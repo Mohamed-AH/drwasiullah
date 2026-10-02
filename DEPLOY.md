@@ -54,11 +54,14 @@ Replace `example.com` with your domain. DNS changes can take from minutes up to 
    (use the exact values Netlify displays).
 3. HTTPS is issued automatically (**Domain management → HTTPS → Verify DNS / Provision certificate**).
 
-### Cloudflare Pages (free, fast, no badge)
-1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → pick this repo.
-2. Framework preset **None**; Build command: *(empty)*; **Build output directory: `site`**; Save and Deploy.
-3. Project → **Custom domains → Set up a domain**. If the domain is registered/managed at Cloudflare the
-   DNS records are added for you in one click.
+### Cloudflare (free, fast, no badge)
+The repo contains `wrangler.jsonc`, which tells Cloudflare to publish the `site/` folder with **no build**.
+1. Cloudflare dashboard → **Workers & Pages → Create → Import a repository** → pick this repo
+   (production branch: `main` — merge your PR first).
+2. Project name `drwasiullah`; **Build command: leave empty**; **Deploy command: `npx wrangler deploy`**.
+   (Without `wrangler.jsonc` Cloudflare guesses "Hugo" and fails with `npx hugo … could not determine executable`.)
+3. Project → **Settings → Domains & Routes → Add → Custom domain**. If the domain is registered/managed at
+   Cloudflare the DNS records are added for you in one click.
 
 ## About the "Netlify" badge
 A plain Netlify site has no badge on its pages. A banner/badge usually means the site is an
