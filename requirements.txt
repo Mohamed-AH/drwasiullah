@@ -1,2 +1,4 @@
-# ingest.py uses only Python standard-library modules.
-# No pip install is required.
+# ingest.py / build_catalogue.py use only the Python standard library.
+# import_wordpress.py (one-off importer for the saved WordPress pages) needs:
+beautifulsoup4
+hijridate

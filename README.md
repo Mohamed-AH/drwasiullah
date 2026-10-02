@@ -151,3 +151,18 @@ The site has six sections (defined at the top of `site/app.js`): الدروس ا
 
 A section with a single series (e.g. khutab) opens straight to that list; with several (e.g. audio) it
 shows the book-shelf of series. Icons are [Lucide](https://lucide.dev) (ISC licence), inlined in `site/icons.js`.
+
+## Importing the WordPress pages
+
+`import_wordpress.py` turns the saved pages of wasiullahabbas.wordpress.com (`wasiwordpress.rar`) into
+`site/data/library.json`:
+
+```bash
+pip install -r requirements.txt            # beautifulsoup4, hijridate
+# unpack the .rar (needs unrar / 7-Zip 21+ / WinRAR), then:
+python import_wordpress.py path/to/wasiwordpress
+```
+
+It reads 9 audio/Urdu series, lectures, khutab and books. Source dates are mostly Hijri (in file names or
+titles) and are kept as-is (`hd`); a Gregorian `date` derived from them is used only for sorting.
+Audio is streamed straight from archive.org; PDFs link to the original files. Re-running regenerates the file.

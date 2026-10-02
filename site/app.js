@@ -35,16 +35,21 @@
   const hijriYear = new Intl.DateTimeFormat(HIJRI, { year: "numeric", timeZone: "UTC" });
   const at = d => new Date(d + "T12:00:00Z");
   const fmtDate = d => d ? hijriFull.format(at(d)) : "";
+  const HM = ["محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"];
+  // `hd` = Hijri date taken from the source ("1433-3-2", "1427-3" or just "1426"); otherwise convert the Gregorian `date`.
+  const fmtHijri = hd => { const [y, m, d] = hd.split("-").map(Number); return [d ? fmtNum(d) : "", m ? HM[m - 1] : "", fmtNum(y), "هـ"].filter(Boolean).join(" "); };
+  const ldate = l => l.hd ? fmtHijri(l.hd) : l.date ? fmtDate(l.date) : "";
   const fmtYear = d => d ? hijriYear.format(at(d)).replace(/\s*هـ$/, "") : "";
   const dur = s => { if (!s) return ""; const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
     return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
   const hours = s => { const h = Math.round(s / 3600); return h ? fmtNum(h) + " ساعة" : ""; };
   const debounce = (f, ms = 160) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
 
+  const dg = s => String(s ?? "").replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);   // Arabic-Indic digits for titles from any source
   const kindIcon = l => l.kind === "audio" ? "headphones" : "video";
   const useLabel = l => l.kind === "video" && l.n != null && l.series !== "misc";   // YouTube titles are long; show "المجلس N" instead
   const label = l => `${seriesById[l.series].unit || "الدرس"} ${fmtNum(l.n)}`;
-  const mainTitle = (l, withBook = true) => useLabel(l) ? `${label(l)}${withBook && l.section ? " — " + l.section : ""}` : l.title;
+  const mainTitle = (l, withBook = true) => useLabel(l) ? `${label(l)}${withBook && l.section ? " — " + l.section : ""}` : dg(l.title);
   const secOfSeries = s => secById[s.sec] || secById.duroos;
   const secOfLesson = l => secOfSeries(seriesById[l.series]);
   const seriesOrder = (a, b) => (a.n ?? 1e9) - (b.n ?? 1e9) || (a.o - b.o);
@@ -62,7 +67,7 @@
   /* ───────── Components ───────── */
   function spine(s, i) {
     const w = Math.round(74 + Math.min(70, Math.log(s.count + 1) * 11.5));
-    return `<a class="spine" href="#/series/${s.id}" title="${esc(s.title)} — ${fmtNum(s.count)} درسًا" style="--w:${w}px;--h:${SPINE_H[i % SPINE_H.length]}px;--c:${SPINE[s.id] || SPINE_PALETTE[i % SPINE_PALETTE.length]};--i:${i}">
+    return `<a class="spine" href="#/series/${s.id}" title="${esc(s.title)} — ${fmtNum(s.count)} درسًا" style="--fs:${s.title.length > 34 ? 16 : s.title.length > 24 ? 18 : 23}px;--w:${w}px;--h:${SPINE_H[i % SPINE_H.length]}px;--c:${SPINE[s.id] || SPINE_PALETTE[i % SPINE_PALETTE.length]};--i:${i}">
       ${STAR.replace("<svg", '<svg class="sp-star"')}<span class="sp-title">${esc(s.title)}</span><span class="sp-count">${fmtNum(s.count)}</span></a>`;
   }
   const shelf = list => `<div class="shelf-wrap"><div class="shelf">${list.map((s, i) => spine(s, i)).join("")}</div><div class="board"></div>
@@ -70,13 +75,13 @@
 
   function lessonCard(l, i = 0) {
     const s = seriesById[l.series];
-    const title = useLabel(l) ? `${s.title} — ${label(l)}${l.section ? " · " + l.section : ""}` : l.title;
+    const title = useLabel(l) ? `${s.title} — ${label(l)}${l.section ? " · " + l.section : ""}` : s.ordered ? `${dg(l.title)} — ${s.title}` : dg(l.title);
     const media = l.kind === "audio"
       ? `<div class="thumb aud"><span class="aud-ic">${ic("headphones", 44)}</span><span class="aud-t">${esc(s.title)}</span>${l.duration ? `<span class="dur">${dur(l.duration)}</span>` : ""}</div>`
       : `<div class="thumb"><img loading="lazy" src="${thumb(l.id)}" alt=""><span class="play"><i>${ic("play", 24)}</i></span>${l.duration ? `<span class="dur">${dur(l.duration)}</span>` : ""}</div>`;
     return `<a class="card" href="#/watch/${encodeURIComponent(l.id)}" style="--i:${i}">${media}
       <div class="card-b"><h3>${esc(title)}</h3>
-      <div class="meta"><span class="tag">${ic(kindIcon(l), 13)}${esc(secOfSeries(s).title)}</span>${l.date ? `<span>${fmtDate(l.date)}</span>` : ""}</div></div></a>`;
+      <div class="meta"><span class="tag">${ic(kindIcon(l), 13)}${esc(secOfSeries(s).title)}</span>${ldate(l) ? `<span>${ldate(l)}</span>` : ""}</div></div></a>`;
   }
   function seriesCard(s, i = 0) {
     const span = s.first ? `<span class="tag plain">${fmtYear(s.first)} – ${fmtYear(s.last)}</span>` : "";
@@ -85,11 +90,11 @@
   }
   function row(l, opts = {}) {
     const s = seriesById[l.series];
-    const sub = (opts.showSeries ? `${esc(s.title)}` : "") + (opts.showSeries && l.date ? " · " : "") + (l.date ? fmtDate(l.date) : "");
+    const sub = (opts.showSeries ? `${esc(s.title)}` : "") + (opts.showSeries && ldate(l) ? " · " : "") + ldate(l);
     return `<a class="row${opts.now === l.id ? " now" : ""}" href="#/watch/${encodeURIComponent(l.id)}" style="--i:${Math.min(opts.i || 0, 24)}" ${opts.now === l.id ? 'aria-current="true"' : ""}>
       <span class="no">${l.n != null ? fmtNum(l.n) : ic(kindIcon(l), 18)}</span>
       <span class="tt"><span class="t">${esc(mainTitle(l, !opts.noSection))}</span><span class="s">${ic(kindIcon(l), 12, "k")}${sub}</span></span>
-      <span class="d">${dur(l.duration)}</span></a>`;
+      ${l.duration ? `<span class="d">${dur(l.duration)}</span>` : ""}</a>`;
   }
   const tile = (s, n) => `<a class="tile" href="${s.route || "#/section/" + s.id}"><span class="tile-ic">${ic(s.icon, 26)}</span>
       <span class="tile-b"><strong>${s.title}</strong><span>${s.desc}</span></span><span class="tile-n">${fmtNum(n)}</span></a>`;
@@ -99,7 +104,6 @@
 
   /* ───────── Views ───────── */
   function home() {
-    const total = DB.lessons.reduce((acc, l) => acc + (l.duration || 0), 0);
     const vis = visible();
     const top = DB.series.slice().sort((a, b) => b.count - a.count).slice(0, 10);
     const latest = DB.lessons.filter(l => l.date).slice(0, 8);
@@ -110,7 +114,7 @@
         <div class="orn">${STAR}</div>
         <p>فهرس منظّم لدروس ومحاضرات الشيخ أ.د. وصي الله بن محمد عباس حفظه الله، مرتّبة بحسب الأقسام والكتب لتصل إلى ما تريده بسرعة.</p>
         ${searchBox("ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج")}
-        <div class="stats"><span><b>${fmtNum(DB.lessons.length)}</b>مادة علمية</span><span><b>${fmtNum(DB.series.length)}</b>سلسلة</span>${total ? `<span><b>${fmtNum(Math.round(total / 3600))}</b>ساعة</span>` : ""}</div></section>
+        <div class="stats"><span><b>${fmtNum(DB.lessons.length)}</b>مادة علمية</span><span><b>${fmtNum(DB.series.length)}</b>سلسلة</span>${DB.books.length ? `<span><b>${fmtNum(DB.books.length)}</b>كتابًا</span>` : ""}</div></section>
       <div class="sec"><h2>الأقسام</h2></div>
       <div class="tiles">${vis.map(s => tile(s, sectionCount(s.id))).join("")}</div>
       <div class="sec"><h2>خزانة الكتب</h2><a href="#/library">كل الأقسام ${ic("chevron-left", 15)}</a></div>
@@ -176,9 +180,10 @@
     if (!s) return notFound();
     const sec = secOfSeries(s), flat = DB.series.filter(x => x.sec === s.sec).length === 1;
     const all = DB.lessons.filter(l => l.series === id);
-    const numbered = all.some(l => l.n != null);
+    const numbered = !!s.ordered || all.some(l => l.n != null);
     const firstSeen = {};
-    all.forEach(l => { if (l.section && (!firstSeen[l.section] || l.date < firstSeen[l.section])) firstSeen[l.section] = l.date; });
+    const when = l => l.date || String(l.o).padStart(8, "0");
+    all.forEach(l => { if (l.section && (!firstSeen[l.section] || when(l) < firstSeen[l.section])) firstSeen[l.section] = when(l); });
     const sections = Object.keys(firstSeen).sort((x, y) => firstSeen[x].localeCompare(firstSeen[y]));   // chronological: by when each book was first taught
     const st = { q: "", sec: "", sort: numbered ? "num" : "new", shown: 100 };
     const crumb = `<a href="#/">الرئيسية</a> / ${flat ? sec.title : `<a href="#/section/${sec.id}">${sec.title}</a> / ${esc(s.title)}`}`;
@@ -186,7 +191,7 @@
       ? `<span class="tile-ic big">${ic(sec.icon, 34)}</span>`
       : `<span class="spine mini" style="--c:${SPINE[s.id] || SPINE_PALETTE[DB.series.indexOf(s) % SPINE_PALETTE.length]}">${STAR.replace("<svg", '<svg class="sp-star"')}<span class="sp-count">${fmtNum(s.count)}</span></span>`;
     $app.innerHTML = `<div class="crumb">${crumb}</div>
-      <div class="title-page">${head}<div><h1 class="page-h">${esc(s.title)}</h1><p class="lede">${esc(s.description || sec.desc)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? " · " + hours(s.seconds) : ""}</p></div></div>
+      <div class="title-page">${head}<div><h1 class="page-h">${esc(s.title)}</h1><p class="lede">${esc(s.description || sec.desc)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? " · " + hours(s.seconds) : ""}</p>${s.extra ? `<a class="btn" href="${esc(s.extra.url)}" target="_blank" rel="noopener">${ic("external-link", 17)} ${esc(s.extra.label)}</a>` : ""}</div></div>
       <div class="bar">${searchBox("ابحث داخل السلسلة (رقم الدرس أو الباب)…")}
         <select id="sort"><option value="new">الأحدث أولًا</option><option value="old">الأقدم أولًا</option>${numbered ? `<option value="num" selected>بالترتيب (الأول فالأخير)</option>` : ""}</select></div>
       ${sections.length > 1 ? `<div class="pill-row" id="secs"><button class="pill on" data-s="">الكل</button>${sections.map(x => `<button class="pill" data-s="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -218,7 +223,7 @@
     const s = seriesById[l.series], sec = secOfSeries(s), flat = DB.series.filter(x => x.sec === s.sec).length === 1;
     const sib = DB.lessons.filter(x => x.series === l.series).sort(numberedSeries(l.series) ? seriesOrder : (a, b) => (b.date || "").localeCompare(a.date || "") || a.o - b.o);
     const i = sib.findIndex(x => x.id === id), prev = sib[i - 1], next = sib[i + 1];
-    const title = useLabel(l) ? `${label(l)} — ${s.title}` : l.title;
+    const title = useLabel(l) ? `${label(l)} — ${s.title}` : s.ordered ? `${dg(l.title)} — ${s.title}` : dg(l.title);
     document.title = title + " | الشيخ وصي الله بن محمد عباس حفظه الله";
     const player = l.kind === "audio"
       ? `<div class="frame"><div class="audio-panel"><span class="disc">${ic("headphones", 46)}</span><div class="ap-t">${esc(s.title)}</div>
@@ -231,7 +236,7 @@
     $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / ${flat ? "" : `<a href="#/section/${sec.id}">${sec.title}</a> / `}<a href="#/series/${s.id}">${esc(s.title)}</a></div>
       <div class="watch"><div>${player}
         <h1 class="w-title">${esc(title)}</h1>
-        <div class="w-meta">${l.section ? `<span class="tag gold">${esc(l.section)}</span>` : ""}<span class="tag">${ic(kindIcon(l), 13)}${sec.title}</span>${l.date ? `<span class="tag plain">${fmtDate(l.date)}</span>` : ""}${l.duration ? `<span class="tag plain">${ic("clock", 13)}${dur(l.duration)}</span>` : ""}</div>
+        <div class="w-meta">${l.section ? `<span class="tag gold">${esc(l.section)}</span>` : ""}<span class="tag">${ic(kindIcon(l), 13)}${sec.title}</span>${ldate(l) ? `<span class="tag plain">${ldate(l)}</span>` : ""}${l.duration ? `<span class="tag plain">${ic("clock", 13)}${dur(l.duration)}</span>` : ""}</div>
         ${useLabel(l) ? `<p class="orig">${esc(l.title)}</p>` : ""}
         <div class="btns">
           <a class="btn pri" href="${next ? "#/watch/" + encodeURIComponent(next.id) : "#"}" aria-disabled="${!next}">التالي ${ic("chevron-left", 17)}</a>
@@ -251,16 +256,22 @@
     }
     window.scrollTo(0, 0);
   }
-  const numberedSeries = id => DB.lessons.some(l => l.series === id && l.n != null);
+  const numberedSeries = id => !!seriesById[id].ordered || DB.lessons.some(l => l.series === id && l.n != null);
 
   function books() {
-    const b = DB.books;
+    const groups = [];
+    DB.books.forEach(k => { const g = k.group || "الكتب"; let e = groups.find(x => x.g === g); if (!e) groups.push(e = { g, items: [] }); e.items.push(k); });
+    const files = k => k.files || (k.url ? [{ label: "تحميل", url: k.url }] : []);
+    const card = (k, i) => {
+      const f = files(k), multi = f.length > 1, main = k.title.split(/\s[–—-]\s/)[0].replace(/\s*\(.*$/, "");
+      return `<article class="book" style="--i:${Math.min(i, 12)}"${k.lang ? ` lang="${k.lang}"` : ""}>
+        <div class="cover">${k.cover ? `<img loading="lazy" src="${esc(k.cover)}" alt="">` : `<span class="cover-t">${esc(main)}</span>`}</div>
+        <div class="book-b"><h3>${esc(k.title)}</h3>${k.desc ? `<p>${esc(k.desc)}</p>` : ""}${k.note ? `<p class="note">${esc(k.note)}</p>` : ""}
+          <div class="btns">${f.map((x, n) => `<a class="btn${n === 0 && !multi ? " pri" : " sm"}" href="${esc(x.url)}" target="_blank" rel="noopener">${n === 0 || !multi ? ic("download", 16) + " " : ""}${esc(multi ? x.label : (x.label || "تحميل"))}</a>`).join("")}</div></div></article>`;
+    };
     $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / الكتب</div>
-      <div class="title-page"><span class="tile-ic big">${ic("book-open", 34)}</span><div><h1 class="page-h">الكتب</h1><p class="lede">${secById.books.desc} — ${fmtNum(b.length)} كتابًا</p></div></div>
-      <div class="books">${b.map((k, i) => `<article class="book" style="--i:${i}">
-        <div class="cover">${k.cover ? `<img loading="lazy" src="${esc(k.cover)}" alt="">` : `<span class="cover-t">${esc(k.title)}</span>`}</div>
-        <div class="book-b"><h3>${esc(k.title)}</h3>${k.desc ? `<p>${esc(k.desc)}</p>` : ""}
-          <div class="btns">${k.url ? `<a class="btn pri" href="${esc(k.url)}" target="_blank" rel="noopener">${ic(/\.pdf($|\?)/i.test(k.url) ? "download" : "book-open", 17)} ${/\.pdf($|\?)/i.test(k.url) ? "تحميل PDF" : "قراءة"}</a>` : ""}</div></div></article>`).join("")}</div>`;
+      <div class="title-page"><span class="tile-ic big">${ic("book-open", 34)}</span><div><h1 class="page-h">الكتب</h1><p class="lede">${secById.books.desc} — ${fmtNum(DB.books.length)} كتابًا</p></div></div>
+      ${groups.map(g => `<div class="sec"><h2>${esc(g.g)}</h2></div><div class="books">${g.items.map(card).join("")}</div>`).join("")}`;
   }
 
   const notFound = () => { $app.innerHTML = `<div class="empty"><h2>الصفحة غير موجودة</h2><p><a href="#/" style="color:var(--rubric)">العودة للرئيسية</a></p></div>`; };
@@ -286,9 +297,9 @@
     if (extra) items.push({ id: extra.id, t: extra.title.replace("الدروس ", ""), i: extra.icon, h: extra.route || "#/section/" + extra.id });
     items.push({ id: "more", t: "المزيد", i: "menu", btn: true });
     document.getElementById("bottom").innerHTML = items.map(x => x.btn
-      ? `<button class="bn" data-nav="more" id="bn-more">${ic(x.i, 22)}<span>${x.t}</span></button>`
+      ? `<a class="bn" href="#" role="button" data-nav="more" id="bn-more"><span class="bn-i">${ic(x.i, 22)}</span><span>${x.t}</span></a>`
       : `<a class="bn${x.mid ? " mid" : ""}" href="${x.h}" data-nav="${x.id}"><span class="bn-i">${ic(x.i, x.mid ? 25 : 22)}</span><span>${x.t}</span></a>`).join("");
-    document.getElementById("bn-more").onclick = () => setDrawer(true);
+    document.getElementById("bn-more").onclick = e => { e.preventDefault(); setDrawer(true); };
   }
   burger.onclick = () => setDrawer(!drawer.classList.contains("open"));
   scrim.onclick = document.getElementById("drawer-x").onclick = () => setDrawer(false);
@@ -342,7 +353,7 @@
     DB.lessons.forEach(l => byId[l.id] = l);
     DB.series.forEach(s => {   // uniform per-series stats, whatever the source
       const ls = DB.lessons.filter(l => l.series === s.id), ds = ls.map(l => l.date).filter(Boolean).sort();
-      s.count = ls.length; s.seconds = ls.reduce((a, l) => a + l.duration, 0); s.first = ds[0] || ""; s.last = ds[ds.length - 1] || "";
+      s.count = ls.length; s.seconds = ls.every(l => l.duration) ? ls.reduce((a, l) => a + l.duration, 0) : 0; s.first = ds[0] || ""; s.last = ds[ds.length - 1] || "";
     });
     DB.series = DB.series.filter(s => s.count > 0);
     document.getElementById("updated").textContent = "آخر تحديث للفهرس: " + fmtDate(DB.updated);
