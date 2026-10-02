@@ -297,9 +297,9 @@
     if (extra) items.push({ id: extra.id, t: extra.title.replace("الدروس ", ""), i: extra.icon, h: extra.route || "#/section/" + extra.id });
     items.push({ id: "more", t: "المزيد", i: "menu", btn: true });
     document.getElementById("bottom").innerHTML = items.map(x => x.btn
-      ? `<button class="bn" data-nav="more" id="bn-more">${ic(x.i, 22)}<span>${x.t}</span></button>`
+      ? `<a class="bn" href="#" role="button" data-nav="more" id="bn-more"><span class="bn-i">${ic(x.i, 22)}</span><span>${x.t}</span></a>`
       : `<a class="bn${x.mid ? " mid" : ""}" href="${x.h}" data-nav="${x.id}"><span class="bn-i">${ic(x.i, x.mid ? 25 : 22)}</span><span>${x.t}</span></a>`).join("");
-    document.getElementById("bn-more").onclick = () => setDrawer(true);
+    document.getElementById("bn-more").onclick = e => { e.preventDefault(); setDrawer(true); };
   }
   burger.onclick = () => setDrawer(!drawer.classList.contains("open"));
   scrim.onclick = document.getElementById("drawer-x").onclick = () => setDrawer(false);
