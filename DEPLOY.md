@@ -63,6 +63,23 @@ The repo contains `wrangler.jsonc`, which tells Cloudflare to publish the `site/
 3. Project → **Settings → Domains & Routes → Add → Custom domain**. If the domain is registered/managed at
    Cloudflare the DNS records are added for you in one click.
 
+### drwasiullah.com bought at Namecheap → Cloudflare Worker
+The domain stays registered at Namecheap; only its **nameservers** move to Cloudflare (a Worker can only
+serve a custom domain whose DNS is on Cloudflare).
+1. **Cloudflare → Add a domain** (*Websites → Add a site*): enter `drwasiullah.com`, pick the **Free** plan.
+   Delete the old Namecheap parking records it imports (`A`/`CNAME` for `@` and `www`, any URL-redirect record).
+   Cloudflare then shows **two nameservers** (`xxx.ns.cloudflare.com`).
+2. **Namecheap → Domain List → Manage → Nameservers**: choose **Custom DNS**, paste the two Cloudflare
+   nameservers, click the green ✓. (If DNSSEC is on in Namecheap's *Advanced DNS*, switch it off first.)
+3. Back in Cloudflare click **Check nameservers**; wait until the domain shows **Active** (minutes to a few hours).
+4. **Workers & Pages → drwasiullah → Settings → Domains & Routes → Add → Custom domain**: add
+   `drwasiullah.com`, then add `www.drwasiullah.com`. DNS records and the HTTPS certificate are created for you.
+5. *(Recommended)* send `www` to the bare domain: **Rules → Redirect Rules → Create rule** — if hostname equals
+   `www.drwasiullah.com` → Dynamic redirect `concat("https://drwasiullah.com", http.request.uri.path)`, 301.
+6. **SSL/TLS → Edge Certificates → Always Use HTTPS: On.**
+7. Test `https://drwasiullah.com` in a private window. If you also use Namecheap email on this domain,
+   re-create its MX records in Cloudflare DNS.
+
 ## About the "Netlify" badge
 A plain Netlify site has no badge on its pages. A banner/badge usually means the site is an
 **unclaimed Netlify Drop** (log in and claim it) or a *deploy preview*. GitHub Pages and Cloudflare Pages
