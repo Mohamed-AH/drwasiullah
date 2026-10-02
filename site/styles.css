@@ -343,3 +343,11 @@ body.lock{overflow:hidden}
 .book-b .note{font:400 13px var(--kufi);color:var(--rubric)}
 .cover-t{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .title-page .btn{margin-top:4px}
+@media(max-width:700px){
+  .books{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .cover{padding:12px}
+  .cover-t{font-size:17px;padding:16px 8px;line-height:1.5}
+  .book-b{padding:10px 12px 12px}
+  .book-b h3{font-size:15px;line-height:1.6}
+  .book-b .btn{padding:6px 12px;font-size:13.5px}
+}
