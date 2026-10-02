@@ -12,8 +12,13 @@
     .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
   const nf = new Intl.NumberFormat("ar-EG");
   const fmtNum = n => nf.format(n);
-  const fmtDate = d => d ? new Date(d).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" }) : "";
-  const fmtYear = d => d ? nf.format(+d.slice(0, 4)).replace(/٬/g, "") : "";
+  // All dates are shown in the Hijri (Umm al-Qura) calendar only. Input is a YYYY-MM-DD string.
+  const HIJRI = "ar-SA-u-ca-islamic-umalqura-nu-arab";
+  const hijriFull = new Intl.DateTimeFormat(HIJRI, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const hijriYear = new Intl.DateTimeFormat(HIJRI, { year: "numeric", timeZone: "UTC" });
+  const at = d => new Date(d + "T12:00:00Z");
+  const fmtDate = d => d ? hijriFull.format(at(d)) : "";
+  const fmtYear = d => d ? hijriYear.format(at(d)).replace(/\s*هـ$/, "") : "";
   const dur = s => { if (!s) return ""; const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
     return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
   const hours = s => { const h = Math.round(s / 3600); return h ? fmtNum(h) + " ساعة" : ""; };
@@ -58,14 +63,14 @@
     return `<a class="row${opts.now === l.id ? " now" : ""}" href="#/watch/${l.id}" style="--i:${Math.min(opts.i || 0, 24)}" ${opts.now === l.id ? 'aria-current="true"' : ""}>
       <span class="no">${l.n != null ? fmtNum(l.n) : "◆"}</span>
       <span class="tt"><span class="t">${esc(opts.full ? l.title : main)}</span><span class="s">${sub}</span></span>
-      <span class="lead"></span><span class="d">${dur(l.duration)}</span></a>`;
+      <span class="d">${dur(l.duration)}</span></a>`;
   }
   const searchBox = (ph, v = "", id = "q") => `<div class="search">${icSearch}<input id="${id}" type="search" placeholder="${ph}" value="${esc(v)}" autocomplete="off" enterkeyhint="search"></div>`;
 
   function match(l, q) {
     if (!q) return true;
     const s = seriesById[l.series];
-    const hay = l._h || (l._h = norm(`${l.title} ${s.title} ${l.section || ""} ${l.n != null ? "المجلس الدرس " + l.n : ""} ${l.date.slice(0, 4)}`));
+    const hay = l._h || (l._h = norm(`${l.title} ${s.title} ${l.section || ""} ${l.n != null ? "المجلس الدرس " + l.n : ""} ${fmtYear(l.date)}`));
     return norm(q).split(/\s+/).filter(Boolean).every(t => hay.includes(t));
   }
   const debounce = (f, ms = 160) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
@@ -108,7 +113,7 @@
       if (st.sort === "old") r = r.slice().reverse();
       count.textContent = r.length ? `${fmtNum(r.length)} نتيجة` : "";
       out.innerHTML = r.length
-        ? `<div class="list">${r.slice(0, st.shown).map((l, i) => row(l, { showSeries: true, i })).join("")}</div>${r.length > st.shown ? `<button class="more" id="more">عرض المزيد</button>` : ""}`
+        ? `<div class="list cols">${r.slice(0, st.shown).map((l, i) => row(l, { showSeries: true, i })).join("")}</div>${r.length > st.shown ? `<button class="more" id="more">عرض المزيد</button>` : ""}`
         : `<div class="empty">لا توجد نتائج مطابقة. جرّب كلمات أقل أو اكتب اسم الكتاب فقط.</div>`;
       const m = document.getElementById("more");
       if (m) m.onclick = () => { st.shown += PAGE; paint(); };
@@ -126,7 +131,9 @@
     if (!s) return notFound();
     const all = DB.lessons.filter(l => l.series === id);
     const numbered = all.some(l => l.n != null);
-    const sections = [...new Set(all.filter(l => l.section).map(l => l.section))];
+    const firstSeen = {};
+    all.forEach(l => { if (l.section && (!firstSeen[l.section] || l.date < firstSeen[l.section])) firstSeen[l.section] = l.date; });
+    const sections = Object.keys(firstSeen).sort((x, y) => firstSeen[x].localeCompare(firstSeen[y]));
     const st = { q: "", sec: "", sort: numbered ? "num" : "new", shown: 100 };
     $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / <a href="#/series">السلاسل</a> / ${esc(s.title)}</div>
       <div class="title-page">${spine(s, DB.series.indexOf(s))}<div><h1 class="page-h">${esc(s.title)}</h1><p class="lede">${esc(s.description)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? " · " + hours(s.seconds) : ""}</p></div></div>
@@ -145,7 +152,7 @@
         if (st.sort === "num" && !st.sec && sections.length > 1 && l.section !== last) { last = l.section; html += `<div class="sect">${esc(l.section || "أخرى")}</div>`; }
         html += row(l, { noSection: true, i: k++ });
       }
-      out.innerHTML = r.length ? `<div class="list">${html}</div>${r.length > st.shown ? `<button class="more" id="more">عرض المزيد</button>` : ""}` : `<div class="empty">لا توجد نتائج.</div>`;
+      out.innerHTML = r.length ? `<div class="list cols">${html}</div>${r.length > st.shown ? `<button class="more" id="more">عرض المزيد</button>` : ""}` : `<div class="empty">لا توجد نتائج.</div>`;
       const m = document.getElementById("more"); if (m) m.onclick = () => { st.shown += 100; paint(); };
     };
     document.getElementById("q").addEventListener("input", debounce(e => { st.q = e.target.value; paint(); }));

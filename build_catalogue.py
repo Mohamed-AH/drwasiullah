@@ -10,7 +10,7 @@ Included: CONFIRMED / MANUAL_APPROVED, plus REVIEW videos whose title names
 the Sheikh. Never included: MANUAL_REJECTED / REJECTED, other speakers.
 """
 import json, re, sqlite3
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
@@ -72,6 +72,12 @@ def clean(t):
     return t or None
 
 
+def riyadh_date(ts):
+    """YouTube gives UTC; the Sheikh teaches in Madinah (UTC+3), and the Hijri day follows local time."""
+    if not ts: return ""
+    return (datetime.strptime(ts[:19], "%Y-%m-%dT%H:%M:%S") + timedelta(hours=3)).date().isoformat()
+
+
 def duration(iso):
     m = re.fullmatch(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso or "")
     if not m: return 0
@@ -107,7 +113,7 @@ def main():
         item = {
             "id": r["youtube_id"], "title": clean(title) if sid != MISC[0] else (clean(title) or title),
             "series": sid, "subject": r["subject"] or series_info[sid]["subject"],
-            "date": (r["published_at"] or "")[:10], "duration": duration(r["duration_iso"]),
+            "date": riyadh_date(r["published_at"]), "duration": duration(r["duration_iso"]),
         }
         if n is not None: item["n"] = n
         sec = section_of(sid, title)
