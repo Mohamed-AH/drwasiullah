@@ -28,25 +28,37 @@
   };
   const seriesOrder = (a, b) => (a.n ?? 1e9) - (b.n ?? 1e9) || a.date.localeCompare(b.date);
 
-  function lessonCard(l) {
+  const STAR = `<svg viewBox="0 0 24 24"><path d="M12 0l2.6 5.4L20.5 3.5l-1.9 5.9L24 12l-5.4 2.6 1.9 5.9-5.9-1.9L12 24l-2.6-5.4-5.9 1.9 1.9-5.9L0 12l5.4-2.6-1.9-5.9 5.9 1.9z"/></svg>`;
+  const SPINE = { muslim: "#1d5a47", "ibn-majah": "#7d2a1d", "fadail-sahabah": "#1f3556", jami: "#8a5a16", nuzhat: "#52305f", nasai: "#175561", misc: "#3b3630" };
+  const SPINE_H = [318, 284, 300, 262, 292, 248, 276];
+  function spine(s, i, extra = "") {
+    const w = Math.round(74 + Math.min(70, Math.log(s.count + 1) * 11.5));
+    return `<a class="spine" href="#/series/${s.id}" title="${esc(s.title)} — ${fmtNum(s.count)} درسًا" style="--w:${w}px;--h:${SPINE_H[i % SPINE_H.length]}px;--c:${SPINE[s.id] || "#2f4a3a"};--i:${i}">
+      ${STAR.replace("<svg", '<svg class="sp-star"')}<span class="sp-title">${esc(s.title)}</span><span class="sp-count">${fmtNum(s.count)}</span></a>`;
+  }
+  const shelf = () => `<div class="shelf-wrap"><div class="shelf">${DB.series.map((s, i) => spine(s, i)).join("")}</div><div class="board"></div>
+    <div class="shelf-note">سُمك الكتاب بقدر عدد دروسه — اضغط على كتاب لفتح السلسلة</div></div>`;
+
+  function lessonCard(l, i = 0) {
     const s = seriesById[l.series];
     const title = l.n != null && s.id !== "misc" ? `${s.title} — ${label(l)}${l.section ? " · " + l.section : ""}` : l.title;
-    return `<a class="card" href="#/watch/${l.id}">
+    return `<a class="card" href="#/watch/${l.id}" style="--i:${i}">
       <div class="thumb"><img loading="lazy" src="${thumb(l.id)}" alt=""><span class="play"><i>${icPlay}</i></span>${l.duration ? `<span class="dur">${dur(l.duration)}</span>` : ""}</div>
       <div class="card-b"><h3>${esc(title)}</h3>
       <div class="meta"><span class="tag">${esc(s.title)}</span><span>${fmtDate(l.date)}</span></div></div></a>`;
   }
-  function seriesCard(s) {
-    return `<a class="card scard" href="#/series/${s.id}"><h3>${esc(s.title)}</h3><p>${esc(s.description)}</p>
-      <div class="meta"><span class="tag gold">${fmtNum(s.count)} درسًا</span>${hours(s.seconds) ? `<span class="tag">${hours(s.seconds)}</span>` : ""}<span class="tag">${fmtYear(s.first)}–${fmtYear(s.last)}</span></div></a>`;
+  function seriesCard(s, i = 0) {
+    return `<a class="card scard" href="#/series/${s.id}" style="--i:${i}"><h3>${esc(s.title)}</h3><p>${esc(s.description)}</p>
+      <div class="meta"><span class="tag gold">${fmtNum(s.count)} درسًا</span>${hours(s.seconds) ? `<span class="tag plain">${hours(s.seconds)}</span>` : ""}<span class="tag plain">${fmtYear(s.first)} – ${fmtYear(s.last)}</span></div></a>`;
   }
   function row(l, opts = {}) {
     const s = seriesById[l.series];
     const main = l.n != null && s.id !== "misc" ? `${label(l)}${l.section && !opts.noSection ? " — " + l.section : ""}` : l.title;
-    return `<a class="row${opts.now === l.id ? " now" : ""}" href="#/watch/${l.id}" ${opts.now === l.id ? 'aria-current="true"' : ""}>
-      <span class="no">${l.n != null ? fmtNum(l.n) : "▶"}</span>
-      <span><span class="t">${esc(opts.full ? l.title : main)}</span>${opts.showSeries ? `<br><span class="s">${esc(s.title)} · ${fmtDate(l.date)}</span>` : `<br><span class="s">${fmtDate(l.date)}</span>`}</span>
-      <span class="d">${dur(l.duration)}</span></a>`;
+    const sub = opts.showSeries ? `${esc(s.title)} · ${fmtDate(l.date)}` : fmtDate(l.date);
+    return `<a class="row${opts.now === l.id ? " now" : ""}" href="#/watch/${l.id}" style="--i:${Math.min(opts.i || 0, 24)}" ${opts.now === l.id ? 'aria-current="true"' : ""}>
+      <span class="no">${l.n != null ? fmtNum(l.n) : "◆"}</span>
+      <span class="tt"><span class="t">${esc(opts.full ? l.title : main)}</span><span class="s">${sub}</span></span>
+      <span class="lead"></span><span class="d">${dur(l.duration)}</span></a>`;
   }
   const searchBox = (ph, v = "", id = "q") => `<div class="search">${icSearch}<input id="${id}" type="search" placeholder="${ph}" value="${esc(v)}" autocomplete="off" enterkeyhint="search"></div>`;
 
@@ -60,15 +72,17 @@
 
   /* ---------- views ---------- */
   function home() {
-    const total = DB.lessons.reduce((a, l) => a + l.duration, 0);
+    const total = DB.lessons.reduce((acc, l) => acc + l.duration, 0);
     const latest = DB.lessons.slice(0, 8);
     $app.innerHTML = `
-      <section class="hero"><h1>دروس الشيخ وصي الله عباس</h1>
-        <p>فهرس منظّم لدروس ومحاضرات الشيخ أ.د. وصي الله بن محمد عباس حفظه الله، مرتّبة بحسب السلاسل والكتب لتصل إلى الدرس الذي تريده بسرعة.</p>
+      <section class="hero"><div class="bism">بسم الله الرحمن الرحيم</div>
+        <h1>الشيخ <em>وصي الله</em> عباس</h1>
+        <div class="orn">${STAR}</div>
+        <p>فهرس منظّم لدروس ومحاضرات الشيخ أ.د. وصي الله بن محمد عباس حفظه الله، مرتّبة بحسب الكتب والأبواب لتصل إلى الدرس الذي تريده بسرعة.</p>
         ${searchBox("ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج")}
-        <div class="stats"><span><b>${fmtNum(DB.lessons.length)}</b>درسًا</span><span><b>${fmtNum(DB.series.length)}</b>سلسلة</span><span><b>${fmtNum(Math.round(total / 3600))}</b>ساعة</span></div></section>
-      <div class="sec"><h2>السلاسل العلمية</h2><a href="#/series">عرض الكل ←</a></div>
-      <div class="grid">${DB.series.map(seriesCard).join("")}</div>
+        <div class="stats"><span><b>${fmtNum(DB.lessons.length)}</b>درسًا</span><span><b>${fmtNum(DB.series.length)}</b>سلاسل علمية</span><span><b>${fmtNum(Math.round(total / 3600))}</b>ساعة</span></div></section>
+      <div class="sec"><h2>خزانة الكتب</h2><a href="#/series">عرض الكل ←</a></div>
+      ${shelf()}
       <div class="sec"><h2>أحدث الدروس</h2><a href="#/lessons">كل الدروس ←</a></div>
       <div class="grid">${latest.map(lessonCard).join("")}</div>`;
     const q = document.getElementById("q");
@@ -76,8 +90,9 @@
   }
 
   function seriesIndex() {
-    $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / السلاسل</div><h1 class="page-h">السلاسل العلمية</h1>
-      <p class="lede">اختر سلسلة لتصفّح دروسها مرتبة.</p><div class="grid">${DB.series.map(seriesCard).join("")}</div>`;
+    $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / السلاسل</div><h1 class="page-h">خزانة الكتب</h1>
+      <p class="lede">اختر كتابًا لتصفّح دروسه مرتّبة.</p>${shelf()}
+      <div class="sec"><h2>تفاصيل السلاسل</h2></div><div class="grid">${DB.series.map(seriesCard).join("")}</div>`;
   }
 
   function lessons(params) {
@@ -93,7 +108,7 @@
       if (st.sort === "old") r = r.slice().reverse();
       count.textContent = r.length ? `${fmtNum(r.length)} نتيجة` : "";
       out.innerHTML = r.length
-        ? `<div class="list">${r.slice(0, st.shown).map(l => row(l, { showSeries: true, full: false })).join("")}</div>${r.length > st.shown ? `<button class="more" id="more">عرض المزيد</button>` : ""}`
+        ? `<div class="list">${r.slice(0, st.shown).map((l, i) => row(l, { showSeries: true, i })).join("")}</div>${r.length > st.shown ? `<button class="more" id="more">عرض المزيد</button>` : ""}`
         : `<div class="empty">لا توجد نتائج مطابقة. جرّب كلمات أقل أو اكتب اسم الكتاب فقط.</div>`;
       const m = document.getElementById("more");
       if (m) m.onclick = () => { st.shown += PAGE; paint(); };
@@ -114,7 +129,7 @@
     const sections = [...new Set(all.filter(l => l.section).map(l => l.section))];
     const st = { q: "", sec: "", sort: numbered ? "num" : "new", shown: 100 };
     $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / <a href="#/series">السلاسل</a> / ${esc(s.title)}</div>
-      <h1 class="page-h">${esc(s.title)}</h1><p class="lede">${esc(s.description)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? " · " + hours(s.seconds) : ""}</p>
+      <div class="title-page">${spine(s, DB.series.indexOf(s))}<div><h1 class="page-h">${esc(s.title)}</h1><p class="lede">${esc(s.description)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? " · " + hours(s.seconds) : ""}</p></div></div>
       <div class="bar">${searchBox("ابحث داخل السلسلة (رقم الدرس أو الباب)…")}
         <select id="sort"><option value="new">الأحدث أولًا</option><option value="old">الأقدم أولًا</option>${numbered ? `<option value="num" selected>بالترتيب (الأول فالأخير)</option>` : ""}</select></div>
       ${sections.length > 1 ? `<div class="pill-row" id="secs"><button class="pill on" data-s="">الكل</button>${sections.map(x => `<button class="pill" data-s="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -125,9 +140,10 @@
       r = st.sort === "num" ? r.slice().sort(seriesOrder) : st.sort === "old" ? r.slice().reverse() : r;
       count.textContent = `${fmtNum(r.length)} درسًا`;
       let html = "", last;
+      let k = 0;
       for (const l of r.slice(0, st.shown)) {
         if (st.sort === "num" && !st.sec && sections.length > 1 && l.section !== last) { last = l.section; html += `<div class="sect">${esc(l.section || "أخرى")}</div>`; }
-        html += row(l, { noSection: true });
+        html += row(l, { noSection: true, i: k++ });
       }
       out.innerHTML = r.length ? `<div class="list">${html}</div>${r.length > st.shown ? `<button class="more" id="more">عرض المزيد</button>` : ""}` : `<div class="empty">لا توجد نتائج.</div>`;
       const m = document.getElementById("more"); if (m) m.onclick = () => { st.shown += 100; paint(); };
@@ -150,24 +166,24 @@
     document.title = title + " | الشيخ وصي الله عباس";
     $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / <a href="#/series/${s.id}">${esc(s.title)}</a></div>
       <div class="watch"><div>
-        <div class="player"><iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="${esc(l.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+        <div class="frame"><div class="player"><iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="${esc(l.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div></div>
         <h1 class="w-title">${esc(title)}</h1>
         <div class="w-meta">${l.section ? `<span class="tag gold">${esc(l.section)}</span>` : ""}<span class="tag">${fmtDate(l.date)}</span>${l.duration ? `<span class="tag">${dur(l.duration)}</span>` : ""}</div>
-        <p class="s" style="color:var(--muted);margin:0">${esc(l.title)}</p>
+        <p class="orig">${esc(l.title)}</p>
         <div class="btns">
           <a class="btn pri" href="${next ? "#/watch/" + next.id : "#"}" aria-disabled="${!next}">الدرس التالي ←</a>
           <a class="btn" href="${prev ? "#/watch/" + prev.id : "#"}" aria-disabled="${!prev}">→ الدرس السابق</a>
           <a class="btn" href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">فتح في يوتيوب</a>
           <button class="btn" id="share">نسخ الرابط</button></div>
       </div>
-      <aside class="side"><h3>${esc(s.title)} <small style="font:400 13px 'IBM Plex Sans Arabic';color:var(--muted)">(${fmtNum(i + 1)} من ${fmtNum(sib.length)})</small></h3>
-        <div class="scroll">${sib.map(x => row(x, { now: id, noSection: false })).join("")}</div></aside></div>`;
+      <aside class="side"><h3>${esc(s.title)} <small>${fmtNum(i + 1)} / ${fmtNum(sib.length)}</small></h3>
+        <div class="scroll">${sib.map(x => row(x, { now: id })).join("")}</div></aside></div>`;
     const cur = $app.querySelector(".side .now"); if (cur) cur.scrollIntoView({ block: "center" });
     document.getElementById("share").onclick = e => { navigator.clipboard?.writeText(location.href); e.target.textContent = "تم النسخ ✓"; };
     window.scrollTo(0, 0);
   }
 
-  const notFound = () => { $app.innerHTML = `<div class="empty"><h2>الصفحة غير موجودة</h2><p><a href="#/" style="color:var(--green-2)">العودة للرئيسية</a></p></div>`; };
+  const notFound = () => { $app.innerHTML = `<div class="empty"><h2>الصفحة غير موجودة</h2><p><a href="#/" style="color:var(--rubric)">العودة للرئيسية</a></p></div>`; };
 
   /* ---------- router ---------- */
   function route() {
