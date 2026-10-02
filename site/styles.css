@@ -71,8 +71,7 @@ h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.4;margin:0}
 .seal{width:44px;height:44px;position:relative;display:grid;place-items:center;color:var(--paper-2);font:700 25px var(--disp)}
 .seal::before,.seal::after{content:"";position:absolute;inset:3px;background:var(--rubric);border-radius:3px}
 .seal::after{transform:rotate(45deg)}
-.seal span{position:relative;z-index:1;margin-top:-4px}
-.brand strong{font:700 22px var(--disp);display:block;line-height:1.1}
+.brand strong{font:700 21px var(--disp);display:block;line-height:1.25}
 .brand small{font:400 12px var(--kufi);color:var(--ink-2);letter-spacing:.02em}
 .nav{display:flex;gap:2px;font-family:var(--kufi);font-size:15px}
 .nav a{padding:4px 14px;position:relative;color:var(--ink-2)}
@@ -85,8 +84,9 @@ h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.4;margin:0}
 /* ───────── Hero ───────── */
 .hero{padding:46px 0 10px;text-align:center;position:relative}
 .bism{font:400 clamp(20px,3vw,28px) var(--disp);color:var(--rubric);animation:ink 1.4s .1s cubic-bezier(.6,0,.2,1) both}
-.hero h1{font-size:clamp(46px,9vw,104px);line-height:1.15;margin:6px 0 0;color:var(--ink);letter-spacing:-.01em;animation:rise 1s .25s both}
+.hero h1{font-size:clamp(40px,7.4vw,88px);line-height:1.15;margin:6px 0 0;color:var(--ink);letter-spacing:-.01em;animation:rise 1s .25s both}
 .hero h1 em{font-style:normal;color:var(--rubric)}
+.dua{font:400 clamp(24px,3.4vw,38px) var(--disp);color:var(--rubric);margin-top:2px;animation:rise 1s .4s both}
 .orn{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px auto 12px;color:var(--gold);max-width:420px}
 .orn::before,.orn::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
 .orn svg{width:20px;height:20px;fill:currentColor;animation:shimmer 4s infinite}
@@ -237,7 +237,7 @@ h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.4;margin:0}
   .wrap{padding:0 14px}
   .top-in{flex-wrap:wrap;gap:6px 10px;padding-block:8px}
   .brand small{display:none}
-  .brand strong{font-size:19px}
+  .brand strong{font-size:17px;white-space:normal}
   .seal{width:38px;height:38px;font-size:21px}
   .nav{order:3;width:100%;justify-content:center;border-top:1px solid var(--rule);padding-top:4px}
   .theme{margin-inline-start:auto}

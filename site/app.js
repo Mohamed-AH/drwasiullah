@@ -81,7 +81,8 @@
     const latest = DB.lessons.slice(0, 8);
     $app.innerHTML = `
       <section class="hero"><div class="bism">بسم الله الرحمن الرحيم</div>
-        <h1>الشيخ <em>وصي الله</em> عباس</h1>
+        <h1>الشيخ <em>وصي الله</em> بن محمد عباس</h1>
+        <div class="dua">حفظه الله</div>
         <div class="orn">${STAR}</div>
         <p>فهرس منظّم لدروس ومحاضرات الشيخ أ.د. وصي الله بن محمد عباس حفظه الله، مرتّبة بحسب الكتب والأبواب لتصل إلى الدرس الذي تريده بسرعة.</p>
         ${searchBox("ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج")}
@@ -170,7 +171,7 @@
     const sib = DB.lessons.filter(x => x.series === l.series).sort(s.id === "misc" ? (a, b) => b.date.localeCompare(a.date) : seriesOrder);
     const i = sib.findIndex(x => x.id === id), prev = sib[i - 1], next = sib[i + 1];
     const title = l.n != null && s.id !== "misc" ? `${label(l)} — ${s.title}` : l.title;
-    document.title = title + " | الشيخ وصي الله عباس";
+    document.title = title + " | الشيخ وصي الله بن محمد عباس حفظه الله";
     $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / <a href="#/series/${s.id}">${esc(s.title)}</a></div>
       <div class="watch"><div>
         <div class="frame"><div class="player"><iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="${esc(l.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div></div>
@@ -197,7 +198,7 @@
     const [path, qs] = (location.hash.slice(1) || "/").split("?");
     const params = new URLSearchParams(qs || "");
     const [, a, b] = path.split("/");
-    document.title = "دروس الشيخ وصي الله عباس";
+    document.title = "دروس الشيخ وصي الله بن محمد عباس حفظه الله";
     document.querySelectorAll("[data-nav]").forEach(x => x.classList.toggle("on", x.dataset.nav === (a === "series" ? "series" : a === "lessons" ? "lessons" : !a ? "home" : "")));
     if (!a) home(); else if (a === "series") b ? seriesPage(b, params) : seriesIndex();
     else if (a === "lessons") lessons(params); else if (a === "watch") watch(b); else notFound();
