@@ -125,3 +125,29 @@ cd site && python3 -m http.server 8000   # open http://localhost:8000
 Arabic-aware search (ignores tashkeel and alef/ya/ta-marbuta variants), series pages grouped by book,
 in-page YouTube player with previous/next lesson and the whole series beside it, shareable links
 for every lesson, dark mode, mobile-friendly.
+
+---
+
+# Sections & the WordPress library
+
+The site has six sections (defined at the top of `site/app.js`): الدروس المرئية، الدروس الصوتية،
+المحاضرات، الخطب، الدروس بالأردية، الكتب. A section appears in the menus only once it has content.
+
+- **YouTube content** comes from `site/catalogue.json` (built by `build_catalogue.py`; `SECTION_OF`
+  there decides which section a series lives in).
+- **Everything from wasiullahabbas.wordpress.com** (audio series, lectures, khutab, Urdu, books) goes in
+  **`site/data/library.json`** — optional; the site works without it:
+
+```jsonc
+{
+  "series":  [{ "id": "arbaeen", "title": "شرح الأربعين النووية", "sec": "audio",   // sec: duroos|audio|lectures|khutab|urdu
+                "description": "…", "unit": "الدرس" }],
+  "lessons": [{ "id": "arbaeen-1", "title": "…", "series": "arbaeen", "n": 1,       // n = lesson number (optional)
+                "kind": "audio", "src": "https://…/file.mp3",                         // kind: audio | video (video needs a YouTube id as `id`)
+                "date": "2020-05-17", "duration": 3120 }],                            // both optional; date is Gregorian, shown as Hijri
+  "books":   [{ "id": "b1", "title": "…", "desc": "…", "cover": "https://…jpg", "url": "https://…pdf" }]
+}
+```
+
+A section with a single series (e.g. khutab) opens straight to that list; with several (e.g. audio) it
+shows the book-shelf of series. Icons are [Lucide](https://lucide.dev) (ISC licence), inlined in `site/icons.js`.

@@ -36,6 +36,8 @@ SERIES = [
     ("shura-urdu", "تفسير سورة الشورى (بالأردية)", "التفسير",
      "دروس مباشرة باللغة الأردية في تفسير سورة الشورى.", r"سوره\s*الشورى"),
 ]
+# Which site section each series lives in (default: "duroos" = visual lessons).
+SECTION_OF = {"misc": "lectures", "shura-urdu": "urdu"}
 MISC = ("misc", "محاضرات وفوائد متفرقة", "محاضرات وفتاوى",
         "محاضرات وكلمات وفتاوى وفوائد منفردة.")
 
@@ -126,7 +128,7 @@ def main():
     for sid, info in series_info.items():
         if sid not in used: continue
         ls = [l for l in lessons if l["series"] == sid]
-        info.update(count=len(ls), seconds=sum(l["duration"] for l in ls),
+        info.update(sec=SECTION_OF.get(sid, "duroos"), count=len(ls), seconds=sum(l["duration"] for l in ls),
                     first=min(l["date"] for l in ls), last=max(l["date"] for l in ls))
         series.append(info)
     series.sort(key=lambda s: (s["id"] == MISC[0], -s["count"]))

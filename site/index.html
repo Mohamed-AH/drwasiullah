@@ -2,38 +2,47 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>دروس الشيخ وصي الله بن محمد عباس حفظه الله</title>
-<meta name="description" content="فهرس منظّم لدروس ومحاضرات الشيخ أ.د. وصي الله بن محمد عباس حفظه الله — ابحث، تصفّح السلاسل، وشاهد الدروس مباشرة.">
+<meta name="description" content="فهرس منظّم لدروس ومحاضرات وخطب وكتب الشيخ أ.د. وصي الله بن محمد عباس حفظه الله — ابحث، تصفّح السلاسل، واستمع أو شاهد مباشرة.">
 <meta name="theme-color" content="#f1e5c8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23a8321f'/></svg>">
 <link rel="preload" href="fonts/aref-ruqaa-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<a class="skip" href="#app">تخطَّ إلى المحتوى</a>
 <header class="top">
   <div class="wrap top-in">
     <a class="brand" href="#/" aria-label="الرئيسية">
       <span class="seal" aria-hidden="true"></span>
       <span><strong>الشيخ وصي الله بن محمد عباس</strong><small>حفظه الله · فهرس الدروس والمحاضرات</small></span>
     </a>
-    <nav class="nav">
-      <a href="#/" data-nav="home">الرئيسية</a>
-      <a href="#/lessons" data-nav="lessons">كل الدروس</a>
-      <a href="#/series" data-nav="series">السلاسل</a>
-    </nav>
-    <button class="theme" id="theme" aria-label="تبديل الوضع الليلي">☾</button>
+    <nav class="nav" id="nav" aria-label="الأقسام"></nav>
+    <a class="icon-btn" id="hsearch" href="#/search" aria-label="بحث"></a>
+    <button class="icon-btn" id="theme" aria-label="تبديل الوضع الليلي"></button>
+    <button class="icon-btn burger" id="burger" aria-label="القائمة" aria-expanded="false" aria-controls="drawer"></button>
   </div>
 </header>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="القائمة الرئيسية">
+  <div class="drawer-h"><span>القائمة</span><button class="icon-btn" id="drawer-x" aria-label="إغلاق"></button></div>
+  <nav class="drawer-nav" id="drawer-nav"></nav>
+  <div class="drawer-f" id="drawer-f"></div>
+</aside>
 
 <main id="app" class="wrap" aria-live="polite"></main>
 
 <footer class="foot">
   <div class="wrap">
-    <p>الدروس مستضافة على <a href="https://www.youtube.com/@wahatsunnah12" target="_blank" rel="noopener">قناة واحة السنة</a> على يوتيوب، وهذا الموقع فهرس لتسهيل الوصول إليها.</p>
+    <p>الدروس المرئية مستضافة على <a href="https://www.youtube.com/@wahatsunnah12" target="_blank" rel="noopener">قناة واحة السنة</a> على يوتيوب، والمواد الصوتية والكتب من <a href="https://wasiullahabbas.wordpress.com/" target="_blank" rel="noopener">موقع الشيخ</a>. وهذا الموقع فهرس لتسهيل الوصول إليها.</p>
     <p id="updated"></p>
   </div>
 </footer>
+
+<nav class="bottom" id="bottom" aria-label="التنقل السريع"></nav>
+<script src="icons.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
