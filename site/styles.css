@@ -351,3 +351,6 @@ body.lock{overflow:hidden}
   .book-b h3{font-size:15px;line-height:1.6}
   .book-b .btn{padding:6px 12px;font-size:13.5px}
 }
+
+.brand strong .hd{color:var(--rubric);font-weight:400;white-space:nowrap;margin-inline-start:.4em;font-size:.92em}
+@media(max-width:700px){.brand strong{display:block}}
