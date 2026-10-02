@@ -86,3 +86,42 @@ YouTube
 
 For a catalogue of fewer than 1,500 videos, this SQLite approach is intentionally simple.
 # drwasiullah
+
+---
+
+# The website (`site/`)
+
+A static Arabic (RTL) site — no build tools, no framework. It reads `site/catalogue.json`.
+
+```text
+ingest.py -> videos.db -> build_catalogue.py -> site/catalogue.json -> site/index.html
+```
+
+## Update the catalogue
+
+```bash
+python ingest.py            # pull new uploads from YouTube
+python build_catalogue.py   # regenerate site/catalogue.json
+```
+
+`build_catalogue.py` includes `CONFIRMED` / `MANUAL_APPROVED` videos, plus `REVIEW` videos whose
+title names the Sheikh (spelling/diacritics-insensitive). `MANUAL_REJECTED` videos and other speakers are
+never included. Series, lesson numbers and books ("كتاب …") are derived from the titles; anything set by
+hand in `videos.db` (`series`, `subject`, `lesson_number`, `title_ar`) overrides the automatic result.
+To add a new series, add a line to `SERIES` at the top of `build_catalogue.py`.
+
+## Preview locally
+
+```bash
+cd site && python3 -m http.server 8000   # open http://localhost:8000
+```
+
+## Deploy
+
+`site/` is plain static files: point GitHub Pages / Netlify / Cloudflare Pages at that folder.
+
+## Features
+
+Arabic-aware search (ignores tashkeel and alef/ya/ta-marbuta variants), series pages grouped by book,
+in-page YouTube player with previous/next lesson and the whole series beside it, shareable links
+for every lesson, dark mode, mobile-friendly.
