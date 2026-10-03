@@ -40,6 +40,7 @@ def size_of(url, timeout=30):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--library", default=str(ROOT / "site" / "data" / "library.json"))
+    ap.add_argument("--catalogue", default=str(ROOT / "site" / "catalogue.json"))
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--refresh", action="store_true")
     a = ap.parse_args()
@@ -47,8 +48,10 @@ def main():
     lib = json.loads(Path(a.library).read_text(encoding="utf-8"))
     items = []   # (url, kind, group)
     series = {s["id"]: s for s in lib["series"]}
+    cat = Path(a.catalogue)   # some lessons (e.g. Arabic lectures) belong to series defined in the YouTube catalogue
+    if cat.exists(): series.update({s["id"]: s for s in json.loads(cat.read_text(encoding="utf-8"))["series"]})
     for l in lib["lessons"]:
-        if l.get("src"): items.append((l["src"], "audio", series[l["series"]]["title"], l.get("duration", 0)))
+        if l.get("src"): items.append((l["src"], "audio", series.get(l["series"], {}).get("title", l["series"]), l.get("duration", 0)))
     for b in lib.get("books", []):
         for f in b["files"]: items.append((f["url"], "pdf", b.get("group", "books"), 0))
 
