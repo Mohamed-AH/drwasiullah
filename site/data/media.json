@@ -1,1 +1,170 @@
-{}
+{
+ "https://archive.org/download/WasiullahAbbas-Ilal/emra0.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/a2612454b0b4c934.pdf",
+  "key": "pdf/a2612454b0b4c934.pdf",
+  "sha256": "a2612454b0b4c934f2e9cbd66c84b2f4b913fa672e349aff47b3d697d44342e1",
+  "size": 33445
+ },
+ "https://archive.org/download/WasiullahAbbas-Ilal/emra1.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/3768b657cae7afa1.pdf",
+  "key": "pdf/3768b657cae7afa1.pdf",
+  "sha256": "3768b657cae7afa1ba7f34a792c099a281f550a3fbbd1f0602483848d8735b1e",
+  "size": 7466196
+ },
+ "https://archive.org/download/WasiullahAbbas-Ilal/emra2.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/ddea5b1d4fb6b783.pdf",
+  "key": "pdf/ddea5b1d4fb6b783.pdf",
+  "sha256": "ddea5b1d4fb6b783b9de9837696d9e24674e35c134c6ffdc166f62a25299dda0",
+  "size": 7914994
+ },
+ "https://archive.org/download/WasiullahAbbas-Ilal/emra3.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/f04b312be4e08cf2.pdf",
+  "key": "pdf/f04b312be4e08cf2.pdf",
+  "sha256": "f04b312be4e08cf209ec948f129949d016445354a12f6ebc5d906cefb41d3d4f",
+  "size": 6358337
+ },
+ "https://archive.org/download/WasiullahAbbas-Ilal/emra4.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/3de0d4abfef543d0.pdf",
+  "key": "pdf/3de0d4abfef543d0.pdf",
+  "sha256": "3de0d4abfef543d0fbc1ae103c36763c4c491d1ef09b1d8ceb077aa161b70560",
+  "size": 4309701
+ },
+ "https://archive.org/download/duafaa_nasaaee/duafaa_majhooloon_matrookoon_nasaaee.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/3553109a6564e2bf.pdf",
+  "key": "pdf/3553109a6564e2bf.pdf",
+  "sha256": "3553109a6564e2bfd607bf4be01af80460492f9dd6350e28fbbb187c77425f7b",
+  "size": 6815825
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/fadaail-uqu.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/5ea6d7b935f147fa.pdf",
+  "key": "pdf/5ea6d7b935f147fa.pdf",
+  "sha256": "5ea6d7b935f147fa3d091a5b94fd4c3789830f99677be2bfa98f145a47a55e16",
+  "size": 16234786
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/fadaail.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/31bd89a53eb8d04c.pdf",
+  "key": "pdf/31bd89a53eb8d04c.pdf",
+  "sha256": "31bd89a53eb8d04c6423a016a345f1a5420f0bdf51ad9e8adfaadd109ae63100",
+  "size": 18453872
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/fidyah-fil-khul.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/fdbac9b007089fe4.pdf",
+  "key": "pdf/fdbac9b007089fe4.pdf",
+  "sha256": "fdbac9b007089fe4622a11ed37e3b93305e91d04bfdd585588cda6ba7016e4ee",
+  "size": 490926
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/ilal_saalih.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/6c2f3d806791954a.pdf",
+  "key": "pdf/6c2f3d806791954a.pdf",
+  "sha256": "6c2f3d806791954a16343dbcaa20a01b24886d54ebfea7fb19efc4724d0a5b5d",
+  "size": 8146633
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/ilm_ilal_alhadeeth.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/3c5ecdccb543e021.pdf",
+  "key": "pdf/3c5ecdccb543e021.pdf",
+  "sha256": "3c5ecdccb543e021cee7b641c19536cba73b89e4fd61c49bcb5272f30d844668",
+  "size": 2434392
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/insaniyat-ka-hal.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/e030a7ab4e71419f.pdf",
+  "key": "pdf/e030a7ab4e71419f.pdf",
+  "sha256": "e030a7ab4e71419ff9fb7405d353235e6637f041ae8ec0966c5e5b64eac8cc97",
+  "size": 2224830
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/iqtisaad.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/69ee5696ce7c2f92.pdf",
+  "key": "pdf/69ee5696ce7c2f92.pdf",
+  "sha256": "69ee5696ce7c2f92c03e5aa1c2db4d32b7962c4ce0bdb31d776e16fdfce3b34d",
+  "size": 18412430
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/ittibaa.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/82b7a449ddad290f.pdf",
+  "key": "pdf/82b7a449ddad290f.pdf",
+  "sha256": "82b7a449ddad290fdfc6d908b85acb009f72b5f91c9e5c1301819e589d32845e",
+  "size": 5114399
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/maqaalah_mubaarakfooree.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/eaa8f0cd9a77e1a3.pdf",
+  "key": "pdf/eaa8f0cd9a77e1a3.pdf",
+  "sha256": "eaa8f0cd9a77e1a355985f865576682cd74029892838277d22b0c009df14f7a1",
+  "size": 3344639
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/sujanaa.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/ab0636160c638a82.pdf",
+  "key": "pdf/ab0636160c638a82.pdf",
+  "sha256": "ab0636160c638a82c470e12cd754072aa4ed57d3415c537650a4173f12d4f8f3",
+  "size": 173206
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/taqleed.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/5019b2e845e2a994.pdf",
+  "key": "pdf/5019b2e845e2a994.pdf",
+  "sha256": "5019b2e845e2a9940268af86bb7859776bd5cd6739e2443fedbc660aad037a86",
+  "size": 4030207
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/thiqah.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/eef70234244ccb7f.pdf",
+  "key": "pdf/eef70234244ccb7f.pdf",
+  "sha256": "eef70234244ccb7ffb475b929477aa42ff4b929ec0de47f9954144482089e1da",
+  "size": 2625403
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/01/waaqi_aljazeerah.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/a65b2781f3147265.pdf",
+  "key": "pdf/a65b2781f3147265.pdf",
+  "sha256": "a65b2781f3147265eb78ee92c6aea0ff12fd4885fe32d91af1ab4fc321727df5",
+  "size": 406276
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/03/bahr_ad-dam_01.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/0b5f33425fb6f680.pdf",
+  "key": "pdf/0b5f33425fb6f680.pdf",
+  "sha256": "0b5f33425fb6f680fef3cf966bbe94d1a2b70e67296c3123080a4adbe4a000e0",
+  "size": 11260869
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/03/bahr_ad-dam_02.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/c3e439e060ed3c9b.pdf",
+  "key": "pdf/c3e439e060ed3c9b.pdf",
+  "sha256": "c3e439e060ed3c9b541a01c1b412b12a3717738763bf7525cb3c09deb721ff80",
+  "size": 8103605
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/03/deen_khalis.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/2cc1f2f62177d34d.pdf",
+  "key": "pdf/2cc1f2f62177d34d.pdf",
+  "sha256": "2cc1f2f62177d34d3768e0dbeb029dec655efb06c2e23ce573c42b1cf182cbcb",
+  "size": 3164444
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/03/tahqeeq_alkalaam.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/4cbd908a6b603252.pdf",
+  "key": "pdf/4cbd908a6b603252.pdf",
+  "sha256": "4cbd908a6b6032528a8f872e03506fea38db4f079a20b4444ce3b34f99f74036",
+  "size": 17090499
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/03/taqleed_ka_hukm.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/bb4ec10b6c7be6ed.pdf",
+  "key": "pdf/bb4ec10b6c7be6ed.pdf",
+  "sha256": "bb4ec10b6c7be6edfa19eb47dbe94368aaf5ca51f20bffb0ee697d8400ce4cb0",
+  "size": 5475300
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/05/ittibaa_urdu.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/5e2042ad18faea19.pdf",
+  "key": "pdf/5e2042ad18faea19.pdf",
+  "sha256": "5e2042ad18faea19eba5fa7ffbd8d85722c9fb5b60cf7b3a1e6b3e53edd18824",
+  "size": 7218425
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2012/05/nikaah_urdu2.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/b314b7d8c5dccfea.pdf",
+  "key": "pdf/b314b7d8c5dccfea.pdf",
+  "sha256": "b314b7d8c5dccfea0656f823157676f9ae752d06d79f4e6c776504dcaf008dea",
+  "size": 8454036
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2023/08/deoband.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/56eee41b3a59fc35.pdf",
+  "key": "pdf/56eee41b3a59fc35.pdf",
+  "sha256": "56eee41b3a59fc35d22fbc3e9f6eca45e7adbda1adb8aadd7bedeb56aea64f47",
+  "size": 3556367
+ },
+ "https://wasiullahabbas.wordpress.com/wp-content/uploads/2023/08/wasiullah-amr-bil-maroof.pdf": {
+  "url": "https://media.drwasiullah.com/pdf/fd5157fc1254bc7f.pdf",
+  "key": "pdf/fd5157fc1254bc7f.pdf",
+  "sha256": "fd5157fc1254bc7fa492b72dbad14728c371879de452309ca715b61b8fac0f5e",
+  "size": 1817939
+ }
+}
