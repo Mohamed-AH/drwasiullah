@@ -182,9 +182,9 @@ paintTheme();
 /* ───────── Boot ───────── */
 const getJSON = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
 const hasBio = !!document.querySelector('a[href="/about/"]');   // the build links /about/ only when data/bio.json exists: no 404 request while the bio is dormant
-Promise.all([getJSON("/catalogue.json"), getJSON("/data/library.json"), hasBio ? getJSON("/data/bio.json") : null, getJSON("/data/media.json")]).then(([cat, lib, bio, media]) => {
+Promise.all([getJSON("/catalogue.json"), getJSON("/data/library.json"), hasBio ? getJSON("/data/bio.json") : null]).then(([cat, lib, bio]) => {
   if (!cat) throw new Error("no catalogue");
-  init(cat, lib || {}, bio, media);
+  init(cat, lib || {}, bio);
   const legacy = () => { if (location.hash.startsWith("#/")) { history.replaceState(null, "", hashToPath(location.hash)); return true; } return false; };   // old shared links (#/watch/ID …)
   legacy();
   addEventListener("hashchange", () => { if (legacy()) route(false); });
