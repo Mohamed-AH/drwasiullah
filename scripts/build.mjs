@@ -12,7 +12,7 @@ const SRC = path.join(ROOT, "site"), OUT = path.join(ROOT, "dist");
 const readJSON = (f, optional = false) => { try { return JSON.parse(fs.readFileSync(path.join(SRC, f), "utf8")); } catch (e) { if (optional) return null; throw e; } };
 
 const t0 = Date.now();
-init(readJSON("catalogue.json"), readJSON("data/library.json", true) || {}, readJSON("data/bio.json", true));
+init(readJSON("catalogue.json"), readJSON("data/library.json", true) || {}, readJSON("data/bio.json", true), readJSON("data/media.json", true));
 const DB = state.DB;
 
 fs.rmSync(OUT, { recursive: true, force: true });
