@@ -6,7 +6,7 @@ Arabic website that organises the lessons, lectures, khutab and books of **ال�
 
 ## Session handoff — state at 2026-10-03 (read this first when resuming)
 **Where we are.** Phase 1 is merged to `main` (`25cb175`). Cloudflare build `#5eb25df7` for that commit was stuck on *"Initializing build environment"* for 10+ min
-(Cloudflare-side queue, nothing cloned yet) → owner should *Cancel build* and *Retry*; a fresh clone of `main` builds in ~4 s and `wrangler deploy --dry-run` passes
+(**confirmed Cloudflare incident on 2026-10-03: "Issues with Workers Build failing to start", cloudflarestatus.com** — not a repo problem) → wait for it to clear, then *Retry*; urgent fallback: deploy from the owner's machine with `git pull && npx wrangler deploy` (runs the build via `wrangler.jsonc`; needs `wrangler login`); a fresh clone of `main` builds in ~4 s and `wrangler deploy --dry-run` passes
 (2,030 files, limit 20,000), so no repo problem is known. If it turns red: ask for the last 30 log lines; first suspect is Cloudflare auto-running `pip install -r requirements.txt`
 (then move `requirements.txt` to `tools/`). Until it is green, drwasiullah.com still serves the previous (hash-URL) version, last good build `365083d`.
 
