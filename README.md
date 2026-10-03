@@ -118,7 +118,7 @@ cd site && python3 -m http.server 8000   # open http://localhost:8000
 
 ## Deploy
 
-`site/` is plain static files: point GitHub Pages / Netlify / Cloudflare Pages at that folder.
+`site/` is plain static files, served by a Cloudflare Worker (`wrangler.jsonc`). See `DEPLOY.md`.
 
 ## Features
 
@@ -166,3 +166,14 @@ python import_wordpress.py path/to/wasiwordpress
 It reads 9 audio/Urdu series, lectures, khutab and books. Source dates are mostly Hijri (in file names or
 titles) and are kept as-is (`hd`); a Gregorian `date` derived from them is used only for sorting.
 Audio is streamed straight from archive.org; PDFs link to the original files. Re-running regenerates the file.
+
+## Tests
+
+`tests/xss_check.mjs` throws hostile input (XSS payloads, oversize/NUL/RTL-override strings, malformed URLs,
+`__proto__` routes) at every input and route:
+
+```bash
+npm i -D playwright                      # once
+(cd site && python3 -m http.server 8000) &
+node tests/xss_check.mjs http://localhost:8000
+```

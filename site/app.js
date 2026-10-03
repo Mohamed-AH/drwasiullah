@@ -17,7 +17,7 @@
   const SPINE_PALETTE = ["#1d5a47", "#7d2a1d", "#1f3556", "#8a5a16", "#52305f", "#175561", "#3b3630", "#5a3d1c", "#2f4a2a"];
   const SPINE_H = [318, 284, 300, 262, 292, 248, 276];
 
-  let DB, byId = {}, seriesById = {}, secById = {};
+  let DB; const byId = Object.create(null), seriesById = Object.create(null), secById = Object.create(null);
 
   /* ───────── Helpers ───────── */
   const ic = (n, s = 20, cls = "") => `<svg class="ic ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${(window.ICONS || {})[n] || ""}</svg>`;
@@ -46,6 +46,19 @@
   const debounce = (f, ms = 160) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
 
   const dg = s => String(s ?? "").replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);   // Arabic-Indic digits for titles from any source
+  /* ───────── Input sanitising ─────────
+     Everything that comes from the user (search boxes, URL hash) or from data files goes through these before use. */
+  const MAXQ = 100, MAXTOKENS = 8;
+  // strip invisible/bidi-control characters (RLO tricks etc.) and control chars; keep ZWNJ/ZWJ used in Persian/Urdu
+  const cleanQuery = s => String(s ?? "").normalize("NFC")
+    .replace(/[\u00AD\u061C\u200B\u200E\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, "")
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ").replace(/\s+/g, " ").trim()
+    .slice(0, MAXQ).split(" ").slice(0, MAXTOKENS).join(" ");
+  const safeDecode = s => { try { return decodeURIComponent(s); } catch { return ""; } };   // malformed %-sequences must not crash routing
+  const oneOf = (v, allowed, dflt = "") => allowed.includes(v) ? v : dflt;                   // whitelist URL parameters
+  const safeUrl = u => { try { const x = new URL(String(u)); return x.protocol === "https:" ? x.href : "#"; } catch { return "#"; } };   // https only: no javascript:/data:
+  const safeYt = id => /^[\w-]{11}$/.test(String(id)) ? String(id) : "";                       // YouTube ids are exactly 11 chars
+  const safeLang = l => /^[a-z]{2,3}$/.test(String(l)) ? String(l) : "";
   const kindIcon = l => l.kind === "audio" ? "headphones" : "video";
   const useLabel = l => l.kind === "video" && l.n != null && l.series !== "misc";   // YouTube titles are long; show "المجلس N" instead
   const label = l => `${seriesById[l.series].unit || "الدرس"} ${fmtNum(l.n)}`;
@@ -53,8 +66,8 @@
   const secOfSeries = s => secById[s.sec] || secById.duroos;
   const secOfLesson = l => secOfSeries(seriesById[l.series]);
   const seriesOrder = (a, b) => (a.n ?? 1e9) - (b.n ?? 1e9) || (a.o - b.o);
-  const thumb = id => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
-  const searchBox = (ph, v = "", id = "q") => `<div class="search">${ic("search", 22)}<input id="${id}" type="search" placeholder="${ph}" value="${esc(v)}" autocomplete="off" enterkeyhint="search"></div>`;
+  const thumb = id => `https://i.ytimg.com/vi/${safeYt(id)}/mqdefault.jpg`;
+  const searchBox = (ph, v = "", id = "q") => `<div class="search">${ic("search", 22)}<input id="${id}" type="search" placeholder="${ph}" value="${esc(v)}" autocomplete="off" enterkeyhint="search" maxlength="${MAXQ}" spellcheck="false"></div>`;
   const STAR = `<svg viewBox="0 0 24 24"><path d="M12 0l2.6 5.4L20.5 3.5l-1.9 5.9L24 12l-5.4 2.6 1.9 5.9-5.9-1.9L12 24l-2.6-5.4-5.9 1.9 1.9-5.9L0 12l5.4-2.6-1.9-5.9 5.9 1.9z"/></svg>`;
 
   function match(l, q) {
@@ -122,7 +135,7 @@
       <div class="sec"><h2>أحدث المواد</h2><a href="#/search">الكل ${ic("chevron-left", 15)}</a></div>
       <div class="grid">${latest.map(lessonCard).join("")}</div>`;
     const q = document.getElementById("q");
-    q.addEventListener("keydown", e => { if (e.key === "Enter" && q.value.trim()) location.hash = "#/search?q=" + encodeURIComponent(q.value.trim()); });
+    q.addEventListener("keydown", e => { if (e.key === "Enter" && cleanQuery(q.value)) location.hash = "#/search?q=" + encodeURIComponent(cleanQuery(q.value)); });
   }
 
   function library() {
@@ -147,7 +160,7 @@
   }
 
   function search(params) {
-    const st = { q: params.get("q") || "", sec: params.get("sec") || "", sort: params.get("sort") || "new", shown: PAGE };
+    const st = { q: cleanQuery(params.get("q")), sec: oneOf(params.get("sec"), SECTIONS.map(s => s.id)), sort: oneOf(params.get("sort"), ["new", "old"], "new"), shown: PAGE };
     const vis = visible().filter(s => s.id !== "books");
     $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / بحث</div><h1 class="page-h">البحث في المكتبة</h1>
       <div class="bar">${searchBox("ابحث في كل الدروس والمحاضرات…", st.q)}
@@ -166,10 +179,10 @@
       const p = new URLSearchParams(); if (st.q) p.set("q", st.q); if (st.sec) p.set("sec", st.sec); if (st.sort !== "new") p.set("sort", st.sort);
       history.replaceState(null, "", "#/search" + (p.toString() ? "?" + p : ""));
     };
-    qi.addEventListener("input", debounce(e => { st.q = e.target.value; st.shown = PAGE; paint(); }));
-    document.getElementById("sort").onchange = e => { st.sort = e.target.value; paint(); };
+    qi.addEventListener("input", debounce(e => { st.q = cleanQuery(e.target.value); st.shown = PAGE; paint(); }));
+    document.getElementById("sort").onchange = e => { st.sort = oneOf(e.target.value, ["new", "old"], "new"); paint(); };
     const secs = document.getElementById("secs");
-    secs.onclick = e => { const b = e.target.closest(".pill"); if (!b) return; st.sec = b.dataset.s;
+    secs.onclick = e => { const b = e.target.closest(".pill"); if (!b) return; st.sec = oneOf(b.dataset.s, SECTIONS.map(s => s.id));
       secs.querySelectorAll(".pill").forEach(x => x.classList.toggle("on", x === b)); st.shown = PAGE; paint(); };
     paint();
     if (!st.q && matchMedia("(max-width:900px)").matches) qi.focus({ preventScroll: true });
@@ -191,7 +204,7 @@
       ? `<span class="tile-ic big">${ic(sec.icon, 34)}</span>`
       : `<span class="spine mini" style="--c:${SPINE[s.id] || SPINE_PALETTE[DB.series.indexOf(s) % SPINE_PALETTE.length]}">${STAR.replace("<svg", '<svg class="sp-star"')}<span class="sp-count">${fmtNum(s.count)}</span></span>`;
     $app.innerHTML = `<div class="crumb">${crumb}</div>
-      <div class="title-page">${head}<div><h1 class="page-h">${esc(s.title)}</h1><p class="lede">${esc(s.description || sec.desc)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? " · " + hours(s.seconds) : ""}</p>${s.extra ? `<a class="btn" href="${esc(s.extra.url)}" target="_blank" rel="noopener">${ic("external-link", 17)} ${esc(s.extra.label)}</a>` : ""}</div></div>
+      <div class="title-page">${head}<div><h1 class="page-h">${esc(s.title)}</h1><p class="lede">${esc(s.description || sec.desc)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? " · " + hours(s.seconds) : ""}</p>${s.extra ? `<a class="btn" href="${esc(safeUrl(s.extra.url))}" target="_blank" rel="noopener">${ic("external-link", 17)} ${esc(s.extra.label)}</a>` : ""}</div></div>
       <div class="bar">${searchBox("ابحث داخل السلسلة (رقم الدرس أو الباب)…")}
         <select id="sort"><option value="new">الأحدث أولًا</option><option value="old">الأقدم أولًا</option>${numbered ? `<option value="num" selected>بالترتيب (الأول فالأخير)</option>` : ""}</select></div>
       ${sections.length > 1 ? `<div class="pill-row" id="secs"><button class="pill on" data-s="">الكل</button>${sections.map(x => `<button class="pill" data-s="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -209,8 +222,8 @@
       out.innerHTML = r.length ? `<div class="list cols">${html}</div>${r.length > st.shown ? `<button class="more" id="more">عرض المزيد</button>` : ""}` : `<div class="empty">لا توجد نتائج.</div>`;
       const m = document.getElementById("more"); if (m) m.onclick = () => { st.shown += 100; paint(); };
     };
-    document.getElementById("q").addEventListener("input", debounce(e => { st.q = e.target.value; paint(); }));
-    document.getElementById("sort").onchange = e => { st.sort = e.target.value; paint(); };
+    document.getElementById("q").addEventListener("input", debounce(e => { st.q = cleanQuery(e.target.value); paint(); }));
+    document.getElementById("sort").onchange = e => { st.sort = oneOf(e.target.value, ["new", "old", "num"], "new"); paint(); };
     const secs = document.getElementById("secs");
     if (secs) secs.onclick = e => { const b = e.target.closest(".pill"); if (!b) return; st.sec = b.dataset.s;
       secs.querySelectorAll(".pill").forEach(x => x.classList.toggle("on", x === b)); st.shown = 100; paint(); };
@@ -227,12 +240,12 @@
     document.title = title + " | الشيخ وصي الله بن محمد عباس حفظه الله";
     const player = l.kind === "audio"
       ? `<div class="frame"><div class="audio-panel"><span class="disc">${ic("headphones", 46)}</span><div class="ap-t">${esc(s.title)}</div>
-           <audio id="aud" controls preload="metadata" src="${esc(l.src)}"></audio>
+           <audio id="aud" controls preload="metadata" src="${esc(safeUrl(l.src))}"></audio>
            <div class="speeds" role="group" aria-label="سرعة التشغيل">${[1, 1.25, 1.5, 2].map(v => `<button data-v="${v}" class="${v === 1 ? "on" : ""}">${fmtNum(v).replace("٫", ".")}×</button>`).join("")}</div></div></div>`
-      : `<div class="frame"><div class="player"><iframe src="https://www.youtube-nocookie.com/embed/${esc(l.id)}?autoplay=1&rel=0" title="${esc(l.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div></div>`;
+      : `<div class="frame"><div class="player"><iframe src="https://www.youtube-nocookie.com/embed/${safeYt(l.id)}?autoplay=1&rel=0" title="${esc(l.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div></div>`;
     const ext = l.kind === "audio"
-      ? `<a class="btn" href="${esc(l.src)}" download target="_blank" rel="noopener">${ic("download", 17)} تحميل</a>`
-      : `<a class="btn" href="https://www.youtube.com/watch?v=${esc(l.id)}" target="_blank" rel="noopener">${ic("external-link", 17)} فتح في يوتيوب</a>`;
+      ? `<a class="btn" href="${esc(safeUrl(l.src))}" download target="_blank" rel="noopener">${ic("download", 17)} تحميل</a>`
+      : `<a class="btn" href="https://www.youtube.com/watch?v=${safeYt(l.id)}" target="_blank" rel="noopener">${ic("external-link", 17)} فتح في يوتيوب</a>`;
     $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / ${flat ? "" : `<a href="#/section/${sec.id}">${sec.title}</a> / `}<a href="#/series/${s.id}">${esc(s.title)}</a></div>
       <div class="watch"><div>${player}
         <h1 class="w-title">${esc(title)}</h1>
@@ -268,10 +281,10 @@
     const files = k => k.files || (k.url ? [{ label: "تحميل", url: k.url }] : []);
     const card = (k, i) => {
       const f = files(k), multi = f.length > 1, main = k.title.split(/\s[–—-]\s/)[0].replace(/\s*\(.*$/, "");
-      return `<article class="book" style="--i:${Math.min(i, 12)}"${k.lang ? ` lang="${k.lang}"` : ""}>
-        <div class="cover">${k.cover ? `<img loading="lazy" src="${esc(k.cover)}" alt="">` : `<span class="cover-t">${esc(main)}</span>`}</div>
+      return `<article class="book" style="--i:${Math.min(i, 12)}"${safeLang(k.lang) ? ` lang="${safeLang(k.lang)}"` : ""}>
+        <div class="cover">${k.cover ? `<img loading="lazy" src="${esc(safeUrl(k.cover))}" alt="">` : `<span class="cover-t">${esc(main)}</span>`}</div>
         <div class="book-b"><h3>${esc(k.title)}</h3>${k.desc ? `<p>${esc(k.desc)}</p>` : ""}${k.note ? `<p class="note">${esc(k.note)}</p>` : ""}
-          <div class="btns">${f.map((x, n) => `<a class="btn${n === 0 && !multi ? " pri" : " sm"}" href="${esc(x.url)}" target="_blank" rel="noopener">${n === 0 || !multi ? ic("download", 16) + " " : ""}${esc(multi ? x.label : (x.label || "تحميل"))}</a>`).join("")}</div></div></article>`;
+          <div class="btns">${f.map((x, n) => `<a class="btn${n === 0 && !multi ? " pri" : " sm"}" href="${esc(safeUrl(x.url))}" target="_blank" rel="noopener">${n === 0 || !multi ? ic("download", 16) + " " : ""}${esc(multi ? x.label : (x.label || "تحميل"))}</a>`).join("")}</div></div></article>`;
     };
     $app.innerHTML = `<div class="crumb"><a href="#/">الرئيسية</a> / الكتب</div>
       <div class="title-page"><span class="tile-ic big">${ic("book-open", 34)}</span><div><h1 class="page-h">الكتب</h1><p class="lede">${secById.books.desc} — ${fmtNum(DB.books.length)} كتابًا</p></div></div>
@@ -313,7 +326,7 @@
   function route() {
     const [path, qs] = (location.hash.slice(1) || "/").split("?");
     const params = new URLSearchParams(qs || "");
-    const [, a, b0] = path.split("/"), b = b0 ? decodeURIComponent(b0) : b0;
+    const [, a, b0] = path.split("/"), b = b0 ? safeDecode(b0).slice(0, 80) : b0;
     document.title = "دروس الشيخ وصي الله بن محمد عباس حفظه الله";
     setDrawer(false);
     let navId = !a ? "home" : a;

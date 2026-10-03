@@ -24,24 +24,24 @@
    *list* of lessons only exists in that blog's pages (already captured in `library.json`).
 3. **Cloudflare Workers static assets can't host the media** (25 MiB per file limit) — media needs object storage.
 4. **Storage is a small money problem, not a big one** (≈ US$0.06–0.35 / month, see §3) because Cloudflare R2 has no egress fee.
-5. **Rights, not technology, are the gating risk** for mirroring audio and for converting YouTube to audio
-   (YouTube's terms forbid downloading content you don't own). Written permission comes first (§2).
+5. **Rights, not technology, are the gating risk** for mirroring audio. The YouTube-download route is dropped: the Sheikh's team will supply the audio (§2). Written OK to mirror existing audio/PDFs still comes first.
 6. A few hygiene items found while auditing: stray files were committed (`__pycache__`, an `unrar` wheel — removed in this
    change); `videos.db` is a binary committed to git (will bloat once a bot commits to it daily); `wasiwordpress.rar`
-   (4.5 MB) is no longer needed; three hosts (Netlify, GitHub Pages workflow, Cloudflare) are configured — keep one.
+   (4.5 MB) is no longer needed; three hosts were configured — Netlify and GitHub Pages config are now removed (Cloudflare only).
    Good news: a history scan found **no API key** ever committed.
 
-## 2. Decisions needed from the owner (blocking)
+## 2. Decisions log
 
-| # | Decision | Needed for |
+| # | Decision | Status |
 |---|---|---|
-| D1 | **Written permission** from the Sheikh and the YouTube channel owner (Wahat al-Sunnah) to (a) mirror existing audio/PDFs on our own storage, (b) extract audio from the YouTube videos, (c) publish a podcast feed. Who owns the **Mixlr** account? | Phases 2, 4, 3b |
-| D2 | **Bio text + photo**: provide or approve the Arabic bio (and English) from the Sheikh's own/official sources. We will not write biographical claims from memory. | Phase 1 |
-| D3 | **Budget ceiling** (suggest ≤ US$5/month on top of the domain). | Phase 2, 4 |
-| D4 | **Keep archive.org as a permanent fallback** after mirroring? (recommended: yes) | Phase 2 |
-| D5 | English edition scope: UI only, or also translated series/book titles? Show Hijri only, or Hijri + Gregorian in English? | Phase 5 |
-| D6 | Repo **public or private**? (public ⇒ unlimited free GitHub Actions minutes; private ⇒ 2,000 min/month) | Phase 3 |
-| D7 | Keep **Cloudflare** as the only host; delete the Netlify site and the GitHub Pages workflow. | Phase 0 |
+| D1 | Permissions. The **Sheikh's team will supply the audio for the YouTube lessons** — so we never download from YouTube (no ToS/permission problem, better quality). Still to confirm in writing: OK to mirror the existing audio/PDFs on our storage; who owns the **Mixlr** account; OK for a podcast feed. | **Partly decided** |
+| D2 | Bio text + photo | **Decided:** the Sheikh's team provides them (we build the page; no biographical text is written by us) |
+| D3 | Budget ceiling (suggest ≤ US$5/month on top of the domain) | Open — expected spend is cents (§3) |
+| D4 | Keep archive.org as a permanent fallback | Open (recommended: yes — and see §3: it stays the **primary** host of the existing audio unless we mirror it) |
+| D5 | English edition scope (UI only, or translated series/book titles?); Hijri only or Hijri + Gregorian? | Open |
+| D6 | Repo visibility | **Decided: public** (unlimited free GitHub Actions minutes) |
+| D7 | Hosting | **Decided: Cloudflare only.** `netlify.toml` and the GitHub Pages workflow are deleted; delete the old Netlify site in its dashboard |
+| D8 | **How much of the free R2 allowance does the other project already use?** (Cloudflare dashboard → R2 → Overview → storage) | Open — decides Phase 2b |
 
 ## 3. Storage assessment
 
@@ -74,11 +74,17 @@ Re-encoding the existing audio to the uniform spec (optional Phase 4b) would not
 saves the list to `tools/missing.txt`. Dead links should be hidden from the site (or fixed at the source) in Phase 0/2
 so students never hit a lesson that doesn't play.
 
+**Important — the R2 free tier is per Cloudflare *account*, not per project or bucket.** The 10 GB-month, 1 M writes and
+10 M reads are shared by every bucket in the account, so a second project on the same account draws from the same
+allowance (and a second account just to get another free 10 GB is against the spirit of the free plan — not planned).
+That does not make storage expensive, only no longer free: usage above the allowance is billed at ≈ US$0.015 / GB-month.
+Example: if the other project stores 5 GB, then PDFs + new audio + existing audio mirror (≈ 14 GB) → 19 GB total → 9 GB billable → **≈ US$0.14 / month**. Set a Cloudflare *billing usage notification* so nothing surprises us.
+
 **Free-tier options**
 
 | Option | Free | Beyond free | Egress | Verdict |
 |---|---|---|---|---|
-| **Cloudflare R2** | 10 GB-month, 1 M writes + 10 M reads / month | ≈ US$0.015 / GB-month | **free** | ✅ primary. Phase 2 (≈ 14 GB) ≈ **US$0.06 / month**; at completion (≈ 33 GB) ≈ **US$0.35 / month** |
+| **Cloudflare R2** | 10 GB-month, 1 M writes + 10 M reads / month | ≈ US$0.015 / GB-month | **free** | ✅ primary for PDFs + new audio. Allowance is **shared with the other R2 project**; beyond it ≈ US$0.015 / GB-month (≈ US$0.35 / month at ≈ 33 GB if the other project is empty) |
 | Backblaze B2 | 10 GB | ≈ US$0.006 / GB-month | free when fronted by Cloudflare | ✅ second copy (backup) |
 | archive.org | unlimited (non-profit) | — | free | ✅ keep as fallback; no SLA, don't rely on it alone |
 | GitHub repo / Pages / LFS | 1 GB soft limit | — | — | ❌ not for media |
@@ -98,10 +104,10 @@ zero egress surprises even if a lesson goes viral.
 | Phase | Theme | Effort | Depends on |
 |---|---|---|---|
 | **0** | Foundations: decisions, hygiene, backups, security basics | S | — |
-| **1** | **Findable & trustworthy**: real URLs + SEO, Search Console, bio page, accessibility & security quick wins | L | D2 |
-| **2** | **Own the data**, step 1: PDFs + existing audio on R2 | M | D1, D3, measure |
-| **3** | **Auto-update**: YouTube daily sync (3a) · Mixlr live + recordings (3b) | M | D6; 3b needs Mixlr owner |
-| **4** | **YouTube → uniform audio** (and optional re-encode of existing audio) | L | D1, Phase 2 |
+| **1** | **Findable & trustworthy**: real URLs + SEO, Search Console, bio page, accessibility & security quick wins | L | bio text/photo from the team |
+| **2** | **Own the data**, step 1: PDFs on R2 (+ optional mirror of the existing audio) | M | D1, D8 |
+| **3** | **Auto-update**: YouTube daily sync (3a) · Mixlr live + recordings (3b) | M | 3b needs the Mixlr owner |
+| **4** | **Audio for the video lessons** — supplied by the Sheikh's team, normalised to one spec (+ optional re-encode of existing audio) | L | D1, team delivery |
 | **5** | **English edition** | L | D5, Phase 1 |
 | ∞ | Backlog (podcast RSS, transcripts, offline, …) | — | |
 
@@ -109,7 +115,9 @@ Indicative calendar: Ph0 wk 1 · Ph1 wk 2–5 · Ph2 wk 5–7 · Ph3 wk 7–9 ·
 security checks run continuously (they are part of every phase's "done").
 
 ### Phase 0 — Foundations (S)
-- [ ] Merge the working branch into `main`; Cloudflare deploys from `main`. Delete `netlify.toml` and `.github/workflows/pages.yml` if D7 = Cloudflare only; delete `wasiwordpress.rar` (keep a private copy).
+- [ ] Merge the working branch into `main`; Cloudflare deploys from `main`. Delete `wasiwordpress.rar` (keep a private copy). Delete the old Netlify site in its dashboard.
+- [x] `netlify.toml` and the GitHub Pages workflow removed (Cloudflare only); `DEPLOY.md` rewritten for Cloudflare + the Namecheap domain.
+- [x] **Input sanitisation** (search boxes, URL parameters, data URLs) + `tests/xss_check.mjs`; CSP shipped in **report-only** mode (see §5.2).
 - [x] Run `tools/measure_storage.py` (done, §3). Result: **30 Bukhari lessons are HTTP 404 at the source** (`wasi007`–`wasi036`, the whole «كتاب الصلاة» part — only the 6 «كتاب العلم» files exist) and 1 PDF returns HTTP 500 (probably the 357 MB «المسجد الحرام»).
 - [x] Hide dead links: pruned 30 dead Bukhari URLs (`dead_links.txt`); series retitled «دروس من صحيح البخاري — كتاب العلم» (6 lessons) — restore «كتابا العلم والصلاة» in `import_wordpress.py` once the prayer lessons are recovered. Ask the archive.org/WordPress owner to re-upload the Bukhari prayer lessons (then delete their lines from `dead_links.txt`). Re-check the PDF later (`measure_storage.py` retries failures).
 - [ ] Accounts: **2-factor authentication** on GitHub, Cloudflare, Namecheap; registrar lock on; auto-renew on; WHOIS privacy on.
@@ -137,14 +145,15 @@ security checks run continuously (they are part of every phase's "done").
 **1d. Accessibility baseline (WCAG 2.2 AA)** — see §5.1 for the checklist.
 **1e. Security baseline** — CSP and headers, see §5.2.
 
-### Phase 2 — Own the data, step 1: PDFs + existing audio (M)  *(needs D1, D3)*
-- Create R2 bucket `drwasiullah-media` + custom domain **`media.drwasiullah.com`** (public read, `Cache-Control: public, max-age=31536000, immutable`, CORS for range requests); write access only through a scoped API token stored as a GitHub/CI secret.
-- `tools/mirror_media.py` (resumable; verifies size + SHA-256; uses the S3 API / `rclone`): downloads each file from archive.org / wordpress.com and uploads to `audio/<series>/<lesson-id>.<ext>` and `pdf/<book-id>/<file>.pdf`. Writes `media-manifest.json` (bytes, sha256, source URL, duration, date mirrored, permission note).
-- `ffprobe` every audio file → fill the missing `duration` fields (also lets us bring back the "hours" statistic honestly).
-- `library.json` gets `src` (R2) **and** `src_alt` (original); the player tries `src`, falls back to `src_alt` on error. Books get the same.
-- Order: PDFs first (tiny, fits the free tier) → audio series by size.
-- Backup: monthly R2 → B2/external drive sync (`rclone sync`), script in `tools/`.
-- **Done when:** every media URL in `library.json` resolves from `media.drwasiullah.com`; manifest shows 100 % sha match; site still plays everything with WordPress and archive.org blocked (test with hosts blocked).
+### Phase 2 — Own the data, step 1 (M)  *(needs D1 for mirroring, D8 to size 2b)*
+The existing audio already sits on archive.org (free, stable); the fragile part is the **PDFs on a WordPress.com blog**. So:
+- **2a — PDFs → R2 (always):** ≈ 0.55 GB, fits any allowance. Bucket `drwasiullah-media` (separate bucket, same account) with custom domain **`media.drwasiullah.com`** (public read, `Cache-Control: public, max-age=31536000, immutable`, CORS for range requests); write access only through a scoped API token held as a GitHub secret.
+- **2b — existing audio → R2 (optional, decide after D8):** ≈ 13.2 GB. Cost is cents (§3) but it uses the shared allowance. If we skip it, archive.org remains the host and nothing is lost except independence from a third party. A cheap middle path: mirror only the series people use most.
+- `tools/mirror_media.py` (resumable; verifies size + SHA-256; S3 API / `rclone`): downloads from the source and uploads to `audio/<series>/<lesson-id>.<ext>` and `pdf/<book-id>/<file>.pdf`; writes `media-manifest.json` (bytes, sha256, source URL, duration, date, permission note).
+- `ffprobe` every audio file → fill the missing `duration` fields (brings back an honest "hours" statistic).
+- `library.json` gets `src` (primary) **and** `src_alt` (the other copy); the player tries `src` and falls back to `src_alt` on error (it already shows a message when a file fails). Books get the same.
+- Backup: monthly sync of R2 → Backblaze B2 (own 10 GB free) or an external drive (`rclone sync`), script in `tools/`.
+- **Done when:** every PDF resolves from `media.drwasiullah.com`; (if 2b) manifest shows 100 % sha match and the site plays everything with WordPress blocked.
 
 ### Phase 3 — Auto-update (M)
 **3a. YouTube sync (GitHub Actions, daily + manual)**
@@ -157,12 +166,14 @@ security checks run continuously (they are part of every phase's "done").
 - Planned outputs, in order of value: **«مباشر» (Live) page + home banner** showing live state via a tiny Cloudflare Worker proxy (cache ≤ 30 s, fails closed so Mixlr downtime never breaks the site) with the official Mixlr embed player; then **recordings ingest** → audio spec of §3 → R2 → `library.json` (under a "المجالس المباشرة" series) via the same Action.
 - Fallback if no API: owner exports/uploads recordings to a shared folder; a script ingests that folder.
 
-### Phase 4 — YouTube → uniform audio (L)  *(gate: D1 in writing)*
-- `tools/video_to_audio.py`: `yt-dlp -f ba` → `ffmpeg` mono, `loudnorm` (−16 LUFS, TP −1.5), AAC-LC 48 kbps, `+faststart`, tags (title, album = series, track = lesson no.) → upload to R2 → set `audio` on the lesson in the catalogue.
-- **Where it runs:** the 857 h backlog (≈ 20–40 GB download of audio-only streams, a few hours of CPU) runs **once on the owner's/our own machine** — YouTube often blocks data-centre IPs (GitHub Actions) with bot checks, so don't plan on Actions for this. Incremental new uploads: same script on a small always-on machine, or Actions if it works, plus the Mixlr/owner-provided originals (better quality) whenever available. Preferred: **ask the channel owner for the original recordings** instead of re-downloading from YouTube.
-- UI: every video lesson page gets a **«استماع فقط» (Audio only)** toggle (data saver on mobile — a real benefit for students on metered plans); audio players keep speed control and auto-next.
-- Optional 4b: re-encode the existing archive.org audio to the same spec for uniform loudness/format (keep originals as backup; lossy→lossy at ≥ 48 kbps is acceptable for speech, A/B-test 5 files first).
-- **Done when:** all video lessons have an audio twin at the uniform spec; loudness within ±1 LU across a random sample; storage matches §3.
+### Phase 4 — Audio for the video lessons, supplied by the Sheikh's team, made uniform (L)  *(decision D1)*
+No YouTube downloading: the Sheikh's team provides the audio (better quality, no terms-of-service or permission issue).
+- **Delivery spec for the team:** `docs/audio-delivery-spec.md` (Arabic) — one file per lesson, any normal format (mp3/m4a/wav/flac), **filename = the YouTube video ID** (e.g. `BHlv9TkmsME.mp3`) or a CSV that maps files to lessons, no re-encoding before sending, shared via a download link. Backlog first (944 lessons, 857 h), then a regular drop for new lessons.
+- `tools/ingest_audio.py` *(to build when the first batch arrives)*: matches each file to a lesson (video ID / CSV), `ffprobe` → duration, `ffmpeg` → **mono, loudnorm −16 LUFS, AAC-LC 48 kbps, `+faststart`, tags (title, series, track no.)**, uploads to storage, sets `audio` (and duration) on the lesson, reports files that matched nothing and lessons still without audio. Runs on any machine with ffmpeg; no cloud service needed.
+- UI: every video lesson page gets a **«استماع فقط» (Audio only)** toggle (data saver on mobile — a real benefit on metered plans); audio players keep speed control and auto-next.
+- Size: ≈ 18.5 GB at 48 kbps for the 857 h backlog (§3) — this is where the shared R2 allowance is exceeded; budget ≈ US$0.15–0.35 / month. If the team's originals are already ≈ 48 kbps mono we can store them as-is.
+- Optional 4b: re-encode the existing archive.org audio to the same spec for uniform loudness/format (keep originals; A/B-test 5 files first).
+- **Done when:** all video lessons with supplied audio have an audio twin at the uniform spec; loudness within ±1 LU across a random sample; lessons without audio are listed for the team.
 
 ### Phase 5 — English edition (L)  *(needs D5)*
 - Architecture: UI strings in `i18n/ar.json`, `i18n/en.json`; pages generated at `/en/…` (LTR) alongside the Arabic ones; `hreflang` pairs + `x-default`; language switcher (remembers choice); CSS already uses logical properties (`inset-inline`, `margin-inline`), so mirroring is mostly icon directions and the bookshelf's vertical spine text.
@@ -188,7 +199,8 @@ Podcast RSS per series (Apple/Spotify reach — needs D1) · WhatsApp share butt
 - **Stretch:** transcripts/captions (backlog).
 
 ### 5.2 Security
-- **Response headers** (`site/_headers`): strict **CSP** (`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'` — inline `style=` attributes are used for CSS variables, accepted risk; `img-src 'self' https://i.ytimg.com data:`; `media-src 'self' https://media.drwasiullah.com https://archive.org https://*.archive.org`; `frame-src https://www.youtube-nocookie.com`; `font-src 'self'`; `connect-src 'self'`; `frame-ancestors 'none'`; `base-uri 'none'`; `form-action 'none'`), `Strict-Transport-Security`, `Permissions-Policy` (deny camera/mic/geo), keep `X-Content-Type-Options` and `Referrer-Policy`. Ship in report-only first, then enforce.
+- **Response headers** (`site/_headers`): strict **CSP** (`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'` — inline `style=` attributes are used for CSS variables, accepted risk; `img-src 'self' https://i.ytimg.com data:`; `media-src 'self' https://media.drwasiullah.com https://archive.org https://*.archive.org`; `frame-src https://www.youtube-nocookie.com`; `font-src 'self'`; `connect-src 'self'`; `frame-ancestors 'none'`; `base-uri 'none'`; `form-action 'none'`), `Strict-Transport-Security`, `Permissions-Policy` (deny camera/mic/geo), keep `X-Content-Type-Options` and `Referrer-Policy`. **Shipped in report-only mode** (`site/_headers`, plus HSTS 180 days and Permissions-Policy). Tested locally in *enforce* mode on 18 page loads with zero violations and a deliberate injected script blocked. Before switching to enforce: open the live site with devtools → Console, play one audio and one video lesson, and confirm no "[Report Only] … violates" messages (the archive.org / YouTube hosts can't be tested from our build environment).
+- **Input sanitisation — DONE (Oct 2026):** search text is length-capped (100 chars / 8 words), stripped of control and bidi-override characters (`cleanQuery`); URL parameters are whitelisted (`sec`, `sort`); malformed `%`-sequences no longer crash routing; lookup tables have no prototype (`#/watch/__proto__` was a crash); every URL taken from data must be `https:` (`safeUrl`) and YouTube ids exactly 11 chars; `tests/xss_check.mjs` throws 19 hostile inputs (XSS, oversize, NUL/ESC, RLO, `__proto__`, malformed URIs) at every entry point.
 - **XSS discipline:** all third-party text (YouTube titles/descriptions, Mixlr, WordPress) is untrusted — it already goes through `esc()` before `innerHTML`; keep it that way and add a unit test that feeds `<img onerror>` payloads through every render path. Pre-rendered pages must escape too.
 - **No third-party scripts** (fonts and icons are self-hosted) — keep it that way; add `Subresource Integrity` if one is ever added.
 - **Secrets:** API keys only in GitHub/Cloudflare secrets, never in the repo (history scan: clean); restrict the YouTube key to the one API; R2 token scoped to one bucket, write-only in CI.
@@ -201,15 +213,14 @@ Podcast RSS per series (Apple/Spotify reach — needs D1) · WhatsApp share butt
 | Risk | Mitigation |
 |---|---|
 | Rights/permission for mirroring or extracting audio | D1 in writing before Phases 2/4; keep archive.org/YouTube links as the default until then |
-| YouTube blocks the audio download from servers | Run locally; prefer originals from the channel owner; metadata sync (Phase 3a) doesn't need downloads |
+| Team delivers audio slowly / inconsistently | Spec + CSV mapping, backlog by series (most-used first); videos keep working without audio twins |
 | Mixlr offers no API | Spike first; fall back to owner-supplied recordings + embed-only live page |
 | SEO: thin, near-duplicate lesson pages | Real series/book context, descriptions, internal links; transcripts later; don't submit low-value URLs |
 | Free-tier terms change | Everything is plain files + a manifest → portable to B2/S3/any host in a day |
 | Single maintainer / bus factor | `CLAUDE.md` + `README.md` + `DEPLOY.md` kept current; data regenerable from scripts |
 
 ## 7. Open questions
-1. Is the Sheikh's Mixlr channel public, and who can log in to it?
-2. Preferred bio sources and a photo that may be published?
-3. Are there original (non-YouTube) recordings of the video lessons?
-4. English: Hijri only, or Hijri + Gregorian? Name transliteration preference?
-5. Public repo OK?
+1. How much R2 storage does the other project use today (D8)?
+2. Is the Sheikh's Mixlr channel public, and who can log in to it?
+3. English: Hijri only, or Hijri + Gregorian? Name transliteration preference?
+4. Budget ceiling (D3) — is up to ≈ US$1/month for storage acceptable?
