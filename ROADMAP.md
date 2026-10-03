@@ -23,7 +23,7 @@
    (a stable non-profit host). The fragile part is the **PDFs on a WordPress.com blog** and the fact that the
    *list* of lessons only exists in that blog's pages (already captured in `library.json`).
 3. **Cloudflare Workers static assets can't host the media** (25 MiB per file limit) — media needs object storage.
-4. **Storage is a small money problem, not a big one** (≈ US$0–1 / month, see §3) because Cloudflare R2 has no egress fee.
+4. **Storage is a small money problem, not a big one** (≈ US$0.06–0.35 / month, see §3) because Cloudflare R2 has no egress fee.
 5. **Rights, not technology, are the gating risk** for mirroring audio and for converting YouTube to audio
    (YouTube's terms forbid downloading content you don't own). Written permission comes first (§2).
 6. A few hygiene items found while auditing: stray files were committed (`__pycache__`, an `unrar` wheel — removed in this
@@ -45,25 +45,40 @@
 
 ## 3. Storage assessment
 
-**Method.** Hours × bitrate. Real file sizes for the existing audio can't be read from our build environment
-(archive.org is blocked there), so `tools/measure_storage.py` does it on any normal machine:
-`python tools/measure_storage.py` (HEAD requests only, nothing is downloaded, resumable, ~1,100 requests).
-**Run it and paste the output into this file — it replaces the estimates below.**
+**Measured (owner ran `tools/measure_storage.py` on 2026-10-03 — HEAD requests, nothing downloaded).**
 
-| Bucket | Files | Size | Basis |
+| Bucket | Measured | Not measurable | Adjusted estimate |
 |---|---|---|---|
-| PDFs (books, incl. one 357 MB scan) | 29 | **≈ 0.6–1.5 GB** | estimate; measure |
-| Existing audio on archive.org | 1,066 | **≈ 15–40 GB** | unmeasured (bitrates unknown, likely 32–64 kbps mono/stereo) |
-| YouTube → audio, backlog | 944 (857 h) | **12.3 GB @32k · 18.5 GB @48k · 24.7 GB @64k** | 857 h × bitrate (mono) |
-| YouTube → audio, ongoing | ~220 videos / yr | **≈ 4 GB / yr @48k** | last 12 months: 219 videos, 179 h |
-| Podcast/other copies, thumbnails, JSON | — | < 0.5 GB | |
-| **Total at completion** | | **≈ 35–65 GB** (recommended 48 kbps AAC) | + ~4 GB / yr |
+| Existing audio on archive.org | **12.83 GB** · 1,036 files · avg 12.4 MB | **30 files** (all of the Bukhari series except 6 → probably dead links, ≈ +0.4 GB if they exist) | **≈ 13.2 GB** |
+| PDFs (books) | **0.18 GB** · 28 files · avg 6.5 MB | 1 file — almost certainly «المسجد الحرام» (the source page says 357 MB) | **≈ 0.55 GB** |
+| **Phase 2 mirror (as-is)** | **13.0 GB** | 31 files | **≈ 13.8 GB** |
+
+By series (GB): Abu Dawud 4.19 · Bulugh al-Maram (Urdu) 2.64 · Tirmidhi 1.89 · Tadrib 1.75 · Tawheed (Urdu) 0.92 ·
+Ibn al-Salah 0.44 · Urdu lectures 0.35 · Nuzhat 0.23 · al-Jami 0.14 · Bukhari 0.13 (6 files) · khutab 0.12 · Arabic lectures 0.05.
+Existing audio is already efficient (avg ≈ 12 MB/file, roughly 30–35 min at ~48 kbps).
+
+**Projection (estimates)**
+
+| Bucket | Size | Basis |
+|---|---|---|
+| Phase 2: existing audio + PDFs, as-is | **≈ 13.8 GB** | measured + adjusted above |
+| Phase 4: YouTube → audio, backlog | **12.3 GB @32k · 18.5 GB @48k · 24.7 GB @64k** | 857 h × bitrate (mono) |
+| Phase 4: ongoing | **≈ 4 GB / yr @48k** | last 12 months: 219 videos, 179 h |
+| Thumbnails, JSON, manifests | < 0.5 GB | |
+| **Total at completion (48 kbps)** | **≈ 33 GB**, +4 GB / yr | |
+
+Re-encoding the existing audio to the uniform spec (optional Phase 4b) would not grow this: it is already around 48 kbps.
+
+**Follow-up from the measurement:** the 30 unreachable Bukhari files and 1 PDF are a *data* issue. Re-run
+`python tools/measure_storage.py` — it now prints the reason per failure (HTTP 404 = dead link at the source) and
+saves the list to `tools/missing.txt`. Dead links should be hidden from the site (or fixed at the source) in Phase 0/2
+so students never hit a lesson that doesn't play.
 
 **Free-tier options**
 
 | Option | Free | Beyond free | Egress | Verdict |
 |---|---|---|---|---|
-| **Cloudflare R2** | 10 GB-month, 1 M writes + 10 M reads / month | ≈ US$0.015 / GB-month | **free** | ✅ primary. 50 GB ≈ **US$0.60 / month**; 65 GB ≈ US$0.83 |
+| **Cloudflare R2** | 10 GB-month, 1 M writes + 10 M reads / month | ≈ US$0.015 / GB-month | **free** | ✅ primary. Phase 2 (≈ 14 GB) ≈ **US$0.06 / month**; at completion (≈ 33 GB) ≈ **US$0.35 / month** |
 | Backblaze B2 | 10 GB | ≈ US$0.006 / GB-month | free when fronted by Cloudflare | ✅ second copy (backup) |
 | archive.org | unlimited (non-profit) | — | free | ✅ keep as fallback; no SLA, don't rely on it alone |
 | GitHub repo / Pages / LFS | 1 GB soft limit | — | — | ❌ not for media |
@@ -71,8 +86,8 @@
 | Oracle Cloud "Always Free" VM | 200 GB disk, big egress | — | — | ⚠️ works, but we'd run a server (ops burden) |
 
 **Recommendation.** R2 as primary (`media.drwasiullah.com`), archive.org as automatic fallback in the player,
-monthly sync of R2 → B2 (or an external drive) as backup. Expected cost: **under US$1/month**, zero egress surprises
-even if a lesson goes viral. The 10 GB free tier alone covers PDFs + the first ~half of the audio.
+monthly sync of R2 → B2 (or an external drive) as backup. Expected cost: **≈ US$0.06/month after Phase 2 and ≈ US$0.35/month at completion** (the free 10 GB covers most of Phase 2),
+zero egress surprises even if a lesson goes viral.
 
 **Uniform audio spec (for new/converted audio):** mono · AAC-LC **48 kbps** · 44.1 kHz · `.m4a` with `+faststart`
 (plays on every iPhone/Android/desktop; Opus-in-WebM does not play on older iOS) · loudness-normalised to
@@ -95,7 +110,7 @@ security checks run continuously (they are part of every phase's "done").
 
 ### Phase 0 — Foundations (S)
 - [ ] Merge the working branch into `main`; Cloudflare deploys from `main`. Delete `netlify.toml` and `.github/workflows/pages.yml` if D7 = Cloudflare only; delete `wasiwordpress.rar` (keep a private copy).
-- [ ] Run `tools/measure_storage.py`; paste results into §3.
+- [x] Run `tools/measure_storage.py` (done, §3). Follow-up: re-run to list the 31 unreachable files (`tools/missing.txt`); hide/repair dead links.
 - [ ] Accounts: **2-factor authentication** on GitHub, Cloudflare, Namecheap; registrar lock on; auto-renew on; WHOIS privacy on.
 - [ ] Cloudflare: Always-HTTPS, HSTS (start 6 months, no preload yet), DNSSEC on (then add the DS record at Namecheap), CAA record, free **Web Analytics** (cookie-less).
 - [ ] GitHub: branch protection on `main` (PR required), secret scanning + Dependabot (Actions) on.
