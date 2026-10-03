@@ -6,7 +6,7 @@ One-time, on your own computer (needs access to wordpress.com / archive.org):
 2. Credentials: in Cloudflare → R2 → **Manage R2 API tokens**, the token must be an **S3-compatible** one (it shows an *Access Key ID* and a *Secret Access Key*; the plain "API token" value will not work), scoped to the bucket `drwasiullah-media` with *Object Read & Write*.
    Put these in a `.env` file in the repo root (it is git-ignored) or export them:
    ```
-   R2_ACCOUNT_ID=<your Cloudflare account id>
+   R2_ACCOUNT_ID=<32-char hex account ID from the R2 overview page - NOT a token>
    R2_ACCESS_KEY_ID=...
    R2_SECRET_ACCESS_KEY=...
    ```
