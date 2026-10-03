@@ -33,3 +33,7 @@ __pycache__/
 /tmp/
 tools/.sizes.json
 tools/missing.txt
+
+# Build output
+dist/
+node_modules/

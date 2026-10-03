@@ -1,9 +1,15 @@
 {
-  // Cloudflare Workers/Pages static-assets deploy: no build step, publish the site/ folder as-is.
+  // Cloudflare Workers static-assets deploy. `node scripts/build.mjs` pre-renders site/ into dist/ (one real HTML file per page,
+  // sitemap.xml, robots.txt, _redirects, 404.html) and wrangler publishes dist/. No npm dependencies are needed for the build.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "drwasiullah",
   "compatibility_date": "2026-10-01",
+  "build": {
+    "command": "node scripts/build.mjs"
+  },
   "assets": {
-    "directory": "./site"
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
   }
 }
