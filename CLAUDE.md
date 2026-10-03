@@ -25,7 +25,7 @@ Measured storage: audio 12.83 GB + PDFs 0.18 GB (+≈0.4 GB unmeasurable). Owner
 **Open questions:** who owns the Mixlr account / is there an API? · English edition: UI only or also translated series/book titles? · does the team have original (non-YouTube) recordings? · transliteration preference for the name in English.
 
 **Next steps for Claude, in order.** (a) ~~Deploy healthy~~ done. (b) When asked: enforce the CSP. (c) When `bio.json` (+ photo) arrives: add `site/data/bio.json` (+ `site/img/sheikh.jpg`), build, screenshot `/about/` and the home teaser, run all three tests, commit.
-(d) **Phase 2a:** write `tools/mirror_media.py` (resumable, sha256, S3-API/rclone, runs on the owner's machine — credentials never in the repo), PDFs → R2 bucket `drwasiullah-media` at `media.drwasiullah.com`; add `src_alt` fallback in `library.json`/player; ffprobe durations. Needs the owner to create the bucket + scoped API token + custom domain.
+(d) **Phase 2a: `tools/mirror_media.py` BUILT (2026-10-03); owner runs it, commits `site/data/media.json`; then ffprobe durations** — originally: write `tools/mirror_media.py` (resumable, sha256, S3-API/rclone, runs on the owner's machine — credentials never in the repo), PDFs → R2 bucket `drwasiullah-media` at `media.drwasiullah.com`; add `src_alt` fallback in `library.json`/player; ffprobe durations. Needs the owner to create the bucket + scoped API token + custom domain.
 (e) Phase 3a: GitHub Actions daily YouTube sync (API key as a secret; replace binary `videos.db` commits with a text store). (f) `tools/ingest_audio.py` when the team's first audio batch arrives. (g) Phase 5 English edition.
 
 **Working notes / gotchas.** Branch workflow: develop on the branch given for the session, commit with the attribution trailers, push; **never open a PR unless asked** — the owner merges PRs on GitHub (and sometimes commits directly to `main`, e.g. "Hide dead links"), so `git fetch && git merge origin/main` before starting.
@@ -41,6 +41,7 @@ Don't commit fixtures (`site/data/bio.json` stays absent until real), `dist/`, a
 - `build_catalogue.py` — `videos.db` → `site/catalogue.json` (derives series, lesson numbers, books from Arabic titles; `SERIES`/`SECTION_OF` at the top).
 - `import_wordpress.py` — saved WordPress pages → `site/data/library.json` (needs `requirements.txt`); `dead_links.txt` — source URLs known to be 404 (skipped by the importer).
 - `tools/check_links.py` — ranged-GET every audio/PDF (retries 5xx; DEAD vs FAILING vs OK) → `tools/link_report.json` + `tools/missing.txt` (DEAD only → `import_wordpress.py --prune`). Run on the owner's machine.
+- `tools/mirror_media.py` — copies PDFs/audio to R2 (`drwasiullah-media`, public `media.drwasiullah.com`), content-addressed keys, writes `site/data/media.json` (source URL → our copy; `init()` makes ours primary and keeps the original as `src_alt`/`url_alt`; the audio player falls back to it). Runs on the owner's machine, see `docs/mirror-setup.md`.
 - `tools/measure_storage.py` — sums remote media sizes. `tests/` — `xss_check.mjs`, `e2e.mjs`, `a11y_check.mjs`. `docs/` — instructions for the owner's team (audio delivery, bio) and SEO setup.
 - `wrangler.jsonc` — Cloudflare Workers static-assets deploy: runs the build, publishes `dist/`. `DEPLOY.md` — hosting/domain guide.
 

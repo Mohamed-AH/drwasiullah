@@ -26,12 +26,14 @@ export const PAGE = 60;
 export const state = { DB: null, bio: null };
 export const byId = Object.create(null), seriesById = Object.create(null), secById = Object.create(null);
 
-export function init(cat, lib = {}, bio = null) {
+export function init(cat, lib = {}, bio = null, media = null) {
+  const mm = media && typeof media === "object" ? media : {};   // source URL -> our own copy (tools/mirror_media.py); the original stays as the fallback
+  const mine = u => { const m = Object.prototype.hasOwnProperty.call(mm, u) ? mm[u] : null; return m && typeof m.url === "string" && m.url.startsWith("https://") ? m.url : ""; };
   SECTIONS.forEach(s => secById[s.id] = s);
   const DB = {
     series: [...cat.series, ...(lib.series || [])].map(s => ({ ...s, sec: s.sec || "duroos", unit: s.unit || UNIT[s.id] })),
-    lessons: [...cat.lessons, ...(lib.lessons || [])].map((l, o) => ({ ...l, kind: l.kind || "video", date: l.date || "", duration: l.duration || 0, o })),
-    books: lib.books || [], updated: cat.updated,
+    lessons: [...cat.lessons, ...(lib.lessons || [])].map((l, o) => ({ ...l, ...(l.src && mine(l.src) ? { src: mine(l.src), src_alt: l.src } : {}), kind: l.kind || "video", date: l.date || "", duration: l.duration || 0, o })),
+    books: (lib.books || []).map(b => ({ ...b, files: b.files.map(f => mine(f.url) ? { ...f, url: mine(f.url), url_alt: f.url } : f) })), updated: cat.updated,
   };
   DB.series.forEach(s => seriesById[s.id] = s);
   DB.lessons = DB.lessons.filter(l => seriesById[l.series]).sort((a, b) => b.date.localeCompare(a.date) || a.o - b.o);   // dated newest-first, undated last

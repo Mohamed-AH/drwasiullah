@@ -173,7 +173,7 @@ function lessonPage(id) {
   const W = 12, win = sib.slice(Math.max(0, i - W), i + W + 1), title = fullTitle(l);
   const player = l.kind === "audio"
     ? `<div class="frame"><div class="audio-panel"><span class="disc">${ic("headphones", 46)}</span><p class="ap-t">${esc(s.title)}</p>
-         <audio id="aud" controls preload="metadata" src="${esc(safeUrl(l.src))}" aria-label="${esc(title)}"></audio>
+         <audio id="aud" controls preload="metadata" src="${esc(safeUrl(l.src))}"${l.src_alt ? ` data-alt="${esc(safeUrl(l.src_alt))}"` : ""} aria-label="${esc(title)}"></audio>
          <div class="speeds" role="group" aria-label="سرعة التشغيل">${[1, 1.25, 1.5, 2].map(v => `<button type="button" data-v="${v}" class="${v === 1 ? "on" : ""}" aria-pressed="${v === 1}">${fmtNum(v).replace("٫", ".")}×</button>`).join("")}</div></div></div>`
     : `<div class="frame"><div class="player lite" data-yt="${safeYt(l.id)}"><img src="https://i.ytimg.com/vi/${safeYt(l.id)}/hqdefault.jpg" alt="" width="480" height="360"><button type="button" class="lite-play" aria-label="تشغيل الفيديو: ${esc(title)}"><i>${ic("play", 30)}</i></button></div></div>`;
   const ext = l.kind === "audio"
