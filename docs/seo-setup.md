@@ -36,11 +36,7 @@ https://www.bing.com/webmasters → **Import from Google Search Console** (one c
   other sites/channels (YouTube channel description, WordPress blog, social profiles) — these are the strongest signals for a new domain.
 - Keep URLs stable: never rename `/series/…` or `/lesson/…` ids (a change loses the indexed page).
 
-## Target queries (added 2026-10-03)
-We want to rank for **«دروس الشيخ وصي الله عباس»** and **«الموقع الرسمي للشيخ وصي الله عباس»**. On-page work is done (home `<title>`, description, visible intro sentence,
-header subtitle, JSON-LD `alternateName` for WebSite and Person). What only the owner can do, in order of impact:
-1. Search Console: verify the domain, submit `sitemap.xml`, then «URL inspection → Request indexing» for `/`, `/about/`, and the main series pages.
-2. **Links from the Sheikh's other official pages** (YouTube channel «حول»/links, the wasiullahabbas.wordpress.com site, Telegram/Mixlr/social bios) pointing to https://drwasiullah.com — this is the strongest signal for "official site". Ask the WordPress site to link here and say "الموقع الرسمي".
-3. Use the same exact name spelling everywhere (the full name + «وصي الله عباس»). Add the bio page (`docs/bio-spec.md`): «عن الشيخ» is what Google uses to connect the person with the site.
-4. Give it weeks: a new domain needs time; check Search Console → Performance for these two queries.
-Note: «الموقع الرسمي» is shown on the site; confirm the Sheikh's team agrees to that wording (it is a claim of official status).
+## Target queries (updated 2026-10-03)
+Target **«دروس الشيخ وصي الله عباس»** — on-page done (home title/description, header subtitle, JSON-LD `alternateName`).
+**«الموقع الرسمي»** is deliberately NOT used on the site until the Sheikh's team gives written consent (owner decision); then add it to the home title/description/intro and WebSite `alternateName` in `site/js/views.js`.
+Owner actions: Search Console (verify, submit sitemap, request indexing); links to drwasiullah.com from the Sheikh's YouTube channel/WordPress/social profiles; the bio page; consistent name spelling; allow weeks.

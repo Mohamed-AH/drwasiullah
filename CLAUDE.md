@@ -21,6 +21,7 @@ Measured storage: audio 12.83 GB + PDFs 0.18 GB (+≈0.4 GB unmeasurable). Owner
 (rename the header in `site/_headers`); (5) delete the old Netlify site; 2FA/DNSSEC/branch protection; (6) a screen-reader pass (NVDA/VoiceOver/TalkBack, Arabic); (7) re-run `python tools/measure_storage.py` occasionally (it prints dead links).
 
 **2026-10-03 follow-ups:** added `tools/check_links.py`; CSP now allows the Cloudflare Web Analytics beacon (still Report-Only); `app.js` fetches `bio.json` only when the build links `/about/`; audio player retries once on error. Owner: run `python tools/check_links.py`, report FAILING ones (e.g. `ibn-salah-0002` = archive.org HTTP 500).
+**Wording rule:** do NOT use «الموقع الرسمي» / "official" anywhere until the Sheikh's team consents in writing (owner decision, 2026-10-03); then add it per `docs/seo-setup.md`. The 23 Ibn al-Salah files on archive.org node dn721807 return HTTP 500 (archive.org-side; recheck with `check_links.py --only ibn-salah`).
 **Open questions:** who owns the Mixlr account / is there an API? · English edition: UI only or also translated series/book titles? · does the team have original (non-YouTube) recordings? · transliteration preference for the name in English.
 
 **Next steps for Claude, in order.** (a) ~~Deploy healthy~~ done. (b) When asked: enforce the CSP. (c) When `bio.json` (+ photo) arrives: add `site/data/bio.json` (+ `site/img/sheikh.jpg`), build, screenshot `/about/` and the home teaser, run all three tests, commit.
