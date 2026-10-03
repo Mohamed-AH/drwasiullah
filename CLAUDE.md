@@ -5,10 +5,9 @@ Arabic website that organises the lessons, lectures, khutab and books of **ال�
 **Roadmap:** `ROADMAP.md` is **approved by the owner** (Oct 2026). Phase list below; Phase 1 is in progress.
 
 ## Session handoff — state at 2026-10-03 (read this first when resuming)
-**Where we are.** Phase 1 is merged to `main` (`25cb175`). Cloudflare build `#5eb25df7` for that commit was stuck on *"Initializing build environment"* for 10+ min
-(**confirmed Cloudflare incident on 2026-10-03: "Issues with Workers Build failing to start", cloudflarestatus.com** — not a repo problem) → wait for it to clear, then *Retry*; urgent fallback: deploy from the owner's machine with `git pull && npx wrangler deploy` (runs the build via `wrangler.jsonc`; needs `wrangler login`); a fresh clone of `main` builds in ~4 s and `wrangler deploy --dry-run` passes
-(2,030 files, limit 20,000), so no repo problem is known. If it turns red: ask for the last 30 log lines; first suspect is Cloudflare auto-running `pip install -r requirements.txt`
-(then move `requirements.txt` to `tools/`). Until it is green, drwasiullah.com still serves the previous (hash-URL) version, last good build `365083d`.
+**Where we are.** Phase 1 is **deployed and confirmed live** (2026-10-03, owner checked `/`, `/series/muslim/` and an old `#/watch/tirmidhi-0003` link → redirects). `main` = `25cb175`+. The earlier stuck build was a Cloudflare Workers Builds incident, not a repo problem.
+Build facts: a fresh clone builds in ~4 s with Node only; `wrangler deploy --dry-run` passes (2,030 files, limit 20,000); if a future build turns red, ask for the last 30 log lines (first suspect: Cloudflare auto-running `pip install -r requirements.txt` → move `requirements.txt` to `tools/`).
+Urgent fallback deploy from the owner's machine: `git pull && npx wrangler deploy` (runs the build via `wrangler.jsonc`; needs `wrangler login`).
 
 **Verified on the final build** (re-run these after any front-end change): `tests/e2e.mjs` 27/27 · `tests/xss_check.mjs` pass · `tests/a11y_check.mjs` 0 axe violations (12 pages × light/dark × desktop/mobile) ·
 Lighthouse a11y/SEO/best-practices 100, performance 90–95 (gzip, local) · CSP enforced locally: 0 violations in 44 loads. **Not testable here:** Cloudflare itself, YouTube/archive.org playback, real Google indexing, screen readers.
@@ -17,13 +16,13 @@ Lighthouse a11y/SEO/best-practices 100, performance 90–95 (gzip, local) · CSP
 (`dead_links.txt`; Bukhari series retitled «كتاب العلم», 6 lessons; restore «كتابا العلم والصلاة» in `import_wordpress.py` if the prayer lessons are re-uploaded and their lines removed from `dead_links.txt`).
 Measured storage: audio 12.83 GB + PDFs 0.18 GB (+≈0.4 GB unmeasurable). Owner's R2 account already holds 12.19 GB (`wurud-audio`); we use a separate bucket; budget ≤ US$1/month (≈ US$0.5 at completion).
 
-**Owner to-do (not Claude's):** (1) retry the stuck Cloudflare build, then smoke-test the live site (`/`, `/series/muslim/`, old `#/watch/…` link redirect, `/sitemap.xml`); (2) Search Console + Bing per `docs/seo-setup.md`;
+**Owner to-do (not Claude's):** (1) ~~deploy + smoke-test~~ done; still check `https://drwasiullah.com/sitemap.xml` and `/robots.txt` load; (2) Search Console + Bing per `docs/seo-setup.md`;
 (3) send the team `docs/bio-spec.md` and `docs/audio-delivery-spec.md` + `docs/lessons-needing-audio.csv`, and collect written permission to publish; (4) open the live site with the console open — if no "[Report Only]" CSP messages while playing one audio and one video lesson, tell Claude to enforce CSP
 (rename the header in `site/_headers`); (5) delete the old Netlify site; 2FA/DNSSEC/branch protection; (6) a screen-reader pass (NVDA/VoiceOver/TalkBack, Arabic); (7) re-run `python tools/measure_storage.py` occasionally (it prints dead links).
 
 **Open questions:** who owns the Mixlr account / is there an API? · English edition: UI only or also translated series/book titles? · does the team have original (non-YouTube) recordings? · transliteration preference for the name in English.
 
-**Next steps for Claude, in order.** (a) Confirm the deploy is healthy / fix if red. (b) When asked: enforce the CSP. (c) When `bio.json` (+ photo) arrives: add `site/data/bio.json` (+ `site/img/sheikh.jpg`), build, screenshot `/about/` and the home teaser, run all three tests, commit.
+**Next steps for Claude, in order.** (a) ~~Deploy healthy~~ done. (b) When asked: enforce the CSP. (c) When `bio.json` (+ photo) arrives: add `site/data/bio.json` (+ `site/img/sheikh.jpg`), build, screenshot `/about/` and the home teaser, run all three tests, commit.
 (d) **Phase 2a:** write `tools/mirror_media.py` (resumable, sha256, S3-API/rclone, runs on the owner's machine — credentials never in the repo), PDFs → R2 bucket `drwasiullah-media` at `media.drwasiullah.com`; add `src_alt` fallback in `library.json`/player; ffprobe durations. Needs the owner to create the bucket + scoped API token + custom domain.
 (e) Phase 3a: GitHub Actions daily YouTube sync (API key as a secret; replace binary `videos.db` commits with a text store). (f) `tools/ingest_audio.py` when the team's first audio batch arrives. (g) Phase 5 English edition.
 
