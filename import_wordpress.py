@@ -20,7 +20,7 @@ ones. They are stored as `hd` ("1433-03-02" or just "1426") and shown as-is by t
 
 Re-run any time; the output is fully regenerated.
 
-Dead links:  python tools/measure_storage.py            # writes tools/missing.txt (HTTP 404 = dead at the source)
+Dead links:  python tools/check_links.py              # writes tools/missing.txt (HTTP 404 = dead at the source)
              python import_wordpress.py --prune tools/missing.txt
 The second command adds the 404 URLs to dead_links.txt (commit it) and removes them from library.json right away;
 later full imports keep skipping them. Delete a line from dead_links.txt if the source fixes the file.
@@ -296,7 +296,7 @@ def prune(missing_file):
     new = {}
     for ln in Path(missing_file).read_text(encoding="utf-8").splitlines():
         parts = ln.split("\t")
-        if len(parts) >= 3 and "HTTP 404" in parts[0]: new[parts[2].strip()] = parts[1].strip()
+        if len(parts) >= 3 and parts[0].strip() in ("HTTP 404", "HTTP 410"): new[parts[2].strip()] = parts[1].strip()
     lines = [] if not DEAD.exists() else DEAD.read_text(encoding="utf-8").splitlines()
     for url, group in new.items():
         if url not in dead: lines.append(f"{url}  # {group}")
