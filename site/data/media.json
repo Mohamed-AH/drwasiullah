@@ -29,6 +29,126 @@
   "sha256": "3de0d4abfef543d0fbc1ae103c36763c4c491d1ef09b1d8ceb077aa161b70560",
   "size": 4309701
  },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/14360207%5B20141129%5Dtrm0001.mp3": {
+  "url": "https://media.drwasiullah.com/audio/467a31a73ea95954.mp3",
+  "key": "audio/467a31a73ea95954.mp3",
+  "sha256": "467a31a73ea9595425ac7e0323f53b0b92e52c34e4930449e06d9bc0cee0d834",
+  "size": 15978256
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436021120141203trm0003.mp3": {
+  "url": "https://media.drwasiullah.com/audio/8b0728aa2bb62eac.mp3",
+  "key": "audio/8b0728aa2bb62eac.mp3",
+  "sha256": "8b0728aa2bb62eacbbc50c814afe4de703d2c812708d489a140d8fade0a79c34",
+  "size": 16783141
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436021220141204trm0008.mp3": {
+  "url": "https://media.drwasiullah.com/audio/5a9d312c0f000cdd.mp3",
+  "key": "audio/5a9d312c0f000cdd.mp3",
+  "sha256": "5a9d312c0f000cddf317291ea2577a79fa4673ac244d3fea6b49df34e93bdf20",
+  "size": 16400300
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436021420141206trm0014.mp3": {
+  "url": "https://media.drwasiullah.com/audio/2e8a51ffd5135b4d.mp3",
+  "key": "audio/2e8a51ffd5135b4d.mp3",
+  "sha256": "2e8a51ffd5135b4d22350d67ee9f07e5a74b649903792adeb871fd30e353f0a3",
+  "size": 16222135
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436021920141211trm0018.mp3": {
+  "url": "https://media.drwasiullah.com/audio/2a18c519c577322a.mp3",
+  "key": "audio/2a18c519c577322a.mp3",
+  "sha256": "2a18c519c577322a1fcfa85ec9507f74cff1990122936ca139bcf920d52e637d",
+  "size": 16686383
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436022120141213trm0024.mp3": {
+  "url": "https://media.drwasiullah.com/audio/6d8f82efd8b0a155.mp3",
+  "key": "audio/6d8f82efd8b0a155.mp3",
+  "sha256": "6d8f82efd8b0a1555df71f080de2ecd834dfe312b72ca082886c4b1fa743edf9",
+  "size": 17088564
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436030520141227trm0032.mp3": {
+  "url": "https://media.drwasiullah.com/audio/1e732263ad57d5f2.mp3",
+  "key": "audio/1e732263ad57d5f2.mp3",
+  "sha256": "1e732263ad57d5f2c24e16a051ccad0ec75e06d2ce83a732d97d3b10fc1d40ef",
+  "size": 16939980
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436030920141231trm0041.mp3": {
+  "url": "https://media.drwasiullah.com/audio/dd1f5763e22886c9.mp3",
+  "key": "audio/dd1f5763e22886c9.mp3",
+  "sha256": "dd1f5763e22886c9cbddab0b64002d08c58c65276b1164c4936d814aba566d7a",
+  "size": 17094625
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436031020150101trm0053.mp3": {
+  "url": "https://media.drwasiullah.com/audio/26f37f20365f4dd9.mp3",
+  "key": "audio/26f37f20365f4dd9.mp3",
+  "sha256": "26f37f20365f4dd9408d11ce3e27e20443ab0c34399306563cf35d586d604275",
+  "size": 16584505
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436031220150103trm0061.mp3": {
+  "url": "https://media.drwasiullah.com/audio/0695387984f0439e.mp3",
+  "key": "audio/0695387984f0439e.mp3",
+  "sha256": "0695387984f0439e5a8531a2ac6d5eb68bd0db98a6c13331a87caad59d73abea",
+  "size": 16478344
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436031620150107trm0067.mp3": {
+  "url": "https://media.drwasiullah.com/audio/6edfb6807f11d047.mp3",
+  "key": "audio/6edfb6807f11d047.mp3",
+  "sha256": "6edfb6807f11d047ccaa7b96e6280377e7033e2a7b4dab4536679fd4b90f8381",
+  "size": 17210608
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436031920150110trm0075.mp3": {
+  "url": "https://media.drwasiullah.com/audio/062cfac69f80cfe3.mp3",
+  "key": "audio/062cfac69f80cfe3.mp3",
+  "sha256": "062cfac69f80cfe3db477899cffa5efa1feda28cba43f08d89423b605d033c17",
+  "size": 16779379
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436032320150114trm0080.mp3": {
+  "url": "https://media.drwasiullah.com/audio/3e6b1e3c32e36aab.mp3",
+  "key": "audio/3e6b1e3c32e36aab.mp3",
+  "sha256": "3e6b1e3c32e36aaba8dfd1c291148b8ae6857ad3476f913ce720f5d89439c068",
+  "size": 16651065
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436040420150124trm0095.mp3": {
+  "url": "https://media.drwasiullah.com/audio/1ce550732c49e462.mp3",
+  "key": "audio/1ce550732c49e462.mp3",
+  "sha256": "1ce550732c49e462d91c8a6e9ccf93ed9ba132ff537bb8b7003606d56a9fcc17",
+  "size": 15151219
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436040820150128trm0096.mp3": {
+  "url": "https://media.drwasiullah.com/audio/5d29da7bec7234a5.mp3",
+  "key": "audio/5d29da7bec7234a5.mp3",
+  "sha256": "5d29da7bec7234a54e88af51bcc083d68cc6f2f79734f60f6ef7644204e5829b",
+  "size": 17176963
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436040920150129trm0101.mp3": {
+  "url": "https://media.drwasiullah.com/audio/c82e303e8e2405a4.mp3",
+  "key": "audio/c82e303e8e2405a4.mp3",
+  "sha256": "c82e303e8e2405a440361b906a96222beb94235c5c253e5fe5d716ed93fce2eb",
+  "size": 17464310
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436041120150131trm0108.mp3": {
+  "url": "https://media.drwasiullah.com/audio/a370fd77de3df293.mp3",
+  "key": "audio/a370fd77de3df293.mp3",
+  "sha256": "a370fd77de3df293bbfcd9c44713fbde8719fcc2d005154fdc5178719ea2dde0",
+  "size": 16567474
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436041620150205trm0121.mp3": {
+  "url": "https://media.drwasiullah.com/audio/d846d407daa70a3b.mp3",
+  "key": "audio/d846d407daa70a3b.mp3",
+  "sha256": "d846d407daa70a3b04e1b967b0fbbe11df5a82867fb7e42edef8c0971b595aa4",
+  "size": 16590879
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436041820150207trm0129.mp3": {
+  "url": "https://media.drwasiullah.com/audio/e440963e989da096.mp3",
+  "key": "audio/e440963e989da096.mp3",
+  "sha256": "e440963e989da096d6886ef483535aaebd1ed7c1fce44e9ff0e892c8e6d434d6",
+  "size": 16339999
+ },
+ "https://archive.org/download/WasiullahAbbas-SunanAtTirmithee/1436042220150211trm0134.mp3": {
+  "url": "https://media.drwasiullah.com/audio/de3a9dcb4ac2fcaf.mp3",
+  "key": "audio/de3a9dcb4ac2fcaf.mp3",
+  "sha256": "de3a9dcb4ac2fcaff2b78decb81e7c0e781189ab1027d3fed75b2b28814a0f8e",
+  "size": 14344035
+ },
  "https://archive.org/download/duafaa_nasaaee/duafaa_majhooloon_matrookoon_nasaaee.pdf": {
   "url": "https://media.drwasiullah.com/pdf/3553109a6564e2bf.pdf",
   "key": "pdf/3553109a6564e2bf.pdf",
