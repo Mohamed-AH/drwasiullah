@@ -70,7 +70,7 @@ function home() {
     <section class="hero"><p class="bism">بسم الله الرحمن الرحيم</p>
       <h1>الشيخ <em>وصي الله</em> بن محمد عباس<span class="dua"> حفظه الله</span></h1>
       <div class="orn" aria-hidden="true">${STAR}</div>
-      <p class="hero-p">فهرس منظّم لدروس ومحاضرات الشيخ أ.د. وصي الله بن محمد عباس حفظه الله، مرتّبة بحسب الأقسام والكتب لتصل إلى ما تريده بسرعة.</p>
+      <p class="hero-p">فهرس منظّم لدروس الشيخ أ.د. وصي الله بن محمد عباس حفظه الله ومحاضراته وخطبه وكتبه، مرتّبة بحسب الأقسام والكتب لتصل إلى ما تريده بسرعة.</p>
       ${searchBox("ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج", "", "q", true)}
       <ul class="stats"><li><b>${fmtNum(DB.lessons.length)}</b>مادة علمية</li><li><b>${fmtNum(DB.series.length)}</b>سلسلة</li>${DB.books.length ? `<li><b>${fmtNum(DB.books.length)}</b>كتابًا</li>` : ""}</ul></section>
     ${bio ? `<section class="about-teaser" aria-labelledby="ab-h"><h2 id="ab-h">عن الشيخ</h2>${bio.summary ? `<p>${esc(bio.summary)}</p>` : ""}<a class="btn" href="${href.about()}">اقرأ المزيد ${ic("chevron-left", 16)}</a></section>` : ""}
@@ -82,12 +82,12 @@ function home() {
     <div class="grid">${latest.map(lessonCard).join("")}</div>`;
   return mkPage({
     nav: "home", path: "/", html, wire: { t: "home" },
-    title: `${NAME_FULL} — الدروس والمحاضرات والكتب`,
-    description: `فهرس منظّم لدروس ومحاضرات وخطب وكتب ${NAME_FULL}: شروح صحيح مسلم وسنن ابن ماجه وسنن أبي داود والترمذي وغيرها، للاستماع والمشاهدة والتحميل.`,
+    title: `دروس الشيخ وصي الله عباس — ${NAME_FULL}`,
+    description: `فهرس دروس الشيخ وصي الله عباس ومحاضراته وخطبه وكتبه (${NAME_FULL}): شروح صحيح مسلم وسنن ابن ماجه وسنن أبي داود والترمذي وغيرها، للاستماع والمشاهدة والتحميل.`,
     jsonld: [
-      { "@context": "https://schema.org", "@type": "WebSite", name: NAME_FULL, url: SITE + "/", inLanguage: "ar",
+      { "@context": "https://schema.org", "@type": "WebSite", name: NAME_FULL, alternateName: ["دروس الشيخ وصي الله عباس"], url: SITE + "/", inLanguage: "ar",
         potentialAction: { "@type": "SearchAction", target: `${SITE}/search/?q={search_term_string}`, "query-input": "required name=search_term_string" } },
-      { "@context": "https://schema.org", "@type": "Person", name: "وصي الله بن محمد عباس", honorificPrefix: "الشيخ", url: SITE + "/", sameAs: [YT_CHANNEL, WP_SITE] },
+      { "@context": "https://schema.org", "@type": "Person", name: "وصي الله بن محمد عباس", alternateName: ["وصي الله عباس", "الشيخ وصي الله عباس"], honorificPrefix: "الشيخ", url: SITE + "/", sameAs: [YT_CHANNEL, WP_SITE] },
     ],
   });
 }
@@ -260,7 +260,7 @@ function aboutPage() {
   return mkPage({
     nav: "about", path: "/about/", html, ogType: "profile",
     title: withSite("عن الشيخ"), description: clip(b.summary || `نبذة عن ${NAME_FULL}.`, 160),
-    jsonld: [c.ld, { "@context": "https://schema.org", "@type": "Person", name: "وصي الله بن محمد عباس", honorificPrefix: "الشيخ", url: SITE + "/about/", ...(photo ? { image: photo.startsWith("/") ? SITE + photo : photo } : {}), sameAs: [YT_CHANNEL, WP_SITE] }],
+    jsonld: [c.ld, { "@context": "https://schema.org", "@type": "Person", name: "وصي الله بن محمد عباس", alternateName: ["وصي الله عباس", "الشيخ وصي الله عباس"], honorificPrefix: "الشيخ", url: SITE + "/about/", ...(photo ? { image: photo.startsWith("/") ? SITE + photo : photo } : {}), sameAs: [YT_CHANNEL, WP_SITE] }],
   });
 }
 
@@ -298,7 +298,7 @@ export function chromeTop(nav) {
   const items = navItems();
   const drawerItems = [{ id: "home", t: "الرئيسية", i: "house", h: "/" }, { id: "library", t: "كل الأقسام", i: "layout-grid", h: href.library() }, { id: "search", t: "بحث", i: "search", h: href.search() }, ...items];
   return `<header class="top"><div class="wrap top-in">
-    <a class="brand" href="/" aria-label="${esc(NAME_FULL)} — الرئيسية"><span class="seal" aria-hidden="true"></span><span><strong>${NAME} <span class="hd">حفظه الله</span></strong><small>فهرس الدروس والمحاضرات</small></span></a>
+    <a class="brand" href="/" aria-label="${esc(NAME_FULL)} — الرئيسية"><span class="seal" aria-hidden="true"></span><span><strong>${NAME} <span class="hd">حفظه الله</span></strong><small>دروس الشيخ وصي الله عباس</small></span></a>
     <nav class="nav" id="nav" aria-label="الأقسام"><a href="/" data-nav="home"${cur(nav, "home")}>الرئيسية</a>${items.map(x => `<a href="${x.h}" data-nav="${x.id}"${cur(nav, x.id)}>${x.t}</a>`).join("")}</nav>
     <a class="icon-btn" id="hsearch" href="${href.search()}" aria-label="بحث">${ic("search", 20)}</a>
     <button type="button" class="icon-btn" id="theme" aria-label="تبديل الوضع الليلي">${ic("moon", 20)}</button>

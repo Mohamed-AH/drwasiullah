@@ -35,3 +35,8 @@ https://www.bing.com/webmasters → **Import from Google Search Console** (one c
 - Real descriptions/summaries per series and lesson (from the Sheikh's team), transcripts (see ROADMAP backlog), links to the site from the Sheikh's
   other sites/channels (YouTube channel description, WordPress blog, social profiles) — these are the strongest signals for a new domain.
 - Keep URLs stable: never rename `/series/…` or `/lesson/…` ids (a change loses the indexed page).
+
+## Target queries (updated 2026-10-03)
+Target **«دروس الشيخ وصي الله عباس»** — on-page done (home title/description, header subtitle, JSON-LD `alternateName`).
+**«الموقع الرسمي»** is deliberately NOT used on the site until the Sheikh's team gives written consent (owner decision); then add it to the home title/description/intro and WebSite `alternateName` in `site/js/views.js`.
+Owner actions: Search Console (verify, submit sitemap, request indexing); links to drwasiullah.com from the Sheikh's YouTube channel/WordPress/social profiles; the bio page; consistent name spelling; allow weeks.
