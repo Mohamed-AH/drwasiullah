@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { init, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href } from "../site/js/core.js";
+import { init, applyMedia, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href } from "../site/js/core.js";
 import { resolve, notFoundPage, chromeTop, chromeBottom, footer, headHtml } from "../site/js/views.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -16,12 +16,14 @@ init(readJSON("catalogue.json"), readJSON("data/library.json", true) || {}, read
 const DB = state.DB;
 
 fs.rmSync(OUT, { recursive: true, force: true });
-fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) });
+fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) && !/[\\/]data[\\/]media\.json$/.test(s) });   // the manifest stays out of dist: the merged library below carries the mirrored links
 
 const shell = fs.readFileSync(path.join(SRC, "shell.html"), "utf8");
 const fill = (tpl, map) => tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => map[k]);   // single pass: page content is never re-scanned for placeholders
 const render = p => fill(shell, { HEAD: headHtml(p), TOP: chromeTop(p.nav), MAIN: p.html, FOOT: footer(), BOTTOM: chromeBottom(p.nav), ROUTE: p.path });
 const write = (rel, html) => { const f = path.join(OUT, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); };
+const MEDIA = readJSON("data/media.json", true), LIB = readJSON("data/library.json", true);
+if (LIB && MEDIA && Object.keys(MEDIA).length) write("data/library.json", JSON.stringify(applyMedia(LIB, MEDIA)));
 
 /* routes */
 const routes = ["/", "/library/", "/search/"];
