@@ -4,6 +4,33 @@ Arabic website that organises the lessons, lectures, khutab and books of **ال�
 حفظه الله** for Arabic-speaking students of knowledge. Live at https://drwasiullah.com.
 **Roadmap:** `ROADMAP.md` is **approved by the owner** (Oct 2026). Phase list below; Phase 1 is in progress.
 
+## Session handoff — state at 2026-10-03 (read this first when resuming)
+**Where we are.** Phase 1 is **deployed and confirmed live** (2026-10-03, owner checked `/`, `/series/muslim/` and an old `#/watch/tirmidhi-0003` link → redirects). `main` = `25cb175`+. The earlier stuck build was a Cloudflare Workers Builds incident, not a repo problem.
+Build facts: a fresh clone builds in ~4 s with Node only; `wrangler deploy --dry-run` passes (2,030 files, limit 20,000); if a future build turns red, ask for the last 30 log lines (first suspect: Cloudflare auto-running `pip install -r requirements.txt` → move `requirements.txt` to `tools/`).
+Urgent fallback deploy from the owner's machine: `git pull && npx wrangler deploy` (runs the build via `wrangler.jsonc`; needs `wrangler login`).
+
+**Verified on the final build** (re-run these after any front-end change): `tests/e2e.mjs` 27/27 · `tests/xss_check.mjs` pass · `tests/a11y_check.mjs` 0 axe violations (12 pages × light/dark × desktop/mobile) ·
+Lighthouse a11y/SEO/best-practices 100, performance 90–95 (gzip, local) · CSP enforced locally: 0 violations in 44 loads. **Not testable here:** Cloudflare itself, YouTube/archive.org playback, real Google indexing, screen readers.
+
+**Data facts.** 944 YouTube lessons (857 h, 7 series) in `catalogue.json`; 1,037 lessons from archive.org (9 series + khutab + lectures) and 24 books (29 PDFs) in `library.json` after pruning 30 dead Bukhari URLs
+(`dead_links.txt`; Bukhari series retitled «كتاب العلم», 6 lessons; restore «كتابا العلم والصلاة» in `import_wordpress.py` if the prayer lessons are re-uploaded and their lines removed from `dead_links.txt`).
+Measured storage: audio 12.83 GB + PDFs 0.18 GB (+≈0.4 GB unmeasurable). Owner's R2 account already holds 12.19 GB (`wurud-audio`); we use a separate bucket; budget ≤ US$1/month (≈ US$0.5 at completion).
+
+**Owner to-do (not Claude's):** (1) ~~deploy + smoke-test~~ done; still check `https://drwasiullah.com/sitemap.xml` and `/robots.txt` load; (2) Search Console + Bing per `docs/seo-setup.md`;
+(3) send the team `docs/bio-spec.md` and `docs/audio-delivery-spec.md` + `docs/lessons-needing-audio.csv`, and collect written permission to publish; (4) open the live site with the console open — if no "[Report Only]" CSP messages while playing one audio and one video lesson, tell Claude to enforce CSP
+(rename the header in `site/_headers`); (5) delete the old Netlify site; 2FA/DNSSEC/branch protection; (6) a screen-reader pass (NVDA/VoiceOver/TalkBack, Arabic); (7) re-run `python tools/measure_storage.py` occasionally (it prints dead links).
+
+**Open questions:** who owns the Mixlr account / is there an API? · English edition: UI only or also translated series/book titles? · does the team have original (non-YouTube) recordings? · transliteration preference for the name in English.
+
+**Next steps for Claude, in order.** (a) ~~Deploy healthy~~ done. (b) When asked: enforce the CSP. (c) When `bio.json` (+ photo) arrives: add `site/data/bio.json` (+ `site/img/sheikh.jpg`), build, screenshot `/about/` and the home teaser, run all three tests, commit.
+(d) **Phase 2a:** write `tools/mirror_media.py` (resumable, sha256, S3-API/rclone, runs on the owner's machine — credentials never in the repo), PDFs → R2 bucket `drwasiullah-media` at `media.drwasiullah.com`; add `src_alt` fallback in `library.json`/player; ffprobe durations. Needs the owner to create the bucket + scoped API token + custom domain.
+(e) Phase 3a: GitHub Actions daily YouTube sync (API key as a secret; replace binary `videos.db` commits with a text store). (f) `tools/ingest_audio.py` when the team's first audio batch arrives. (g) Phase 5 English edition.
+
+**Working notes / gotchas.** Branch workflow: develop on the branch given for the session, commit with the attribution trailers, push; **never open a PR unless asked** — the owner merges PRs on GitHub (and sometimes commits directly to `main`, e.g. "Hide dead links"), so `git fetch && git merge origin/main` before starting.
+Environment: YouTube/archive.org/wordpress.com are blocked; install tools via npm/pip (registries work); Playwright Chromium at `/opt/pw-browsers/chromium`; ESM tests need `playwright` resolvable (symlink `node_modules` in a scratch dir; `axe-core` for the a11y test).
+When serving `dist/` for tests use a server that survives malformed URLs (`/lesson/%E0%A4%A/`) — a crashing server makes tests "pass" silently if output is grep-filtered; always read the full result line. Never `pkill -f` a pattern that appears in your own command line (it kills the shell).
+Don't commit fixtures (`site/data/bio.json` stays absent until real), `dist/`, archives, wheels, `__pycache__`.
+
 ## Layout
 - `site/` — website **source**: `shell.html` (page template), `styles.css`, `fonts/`, `favicon.svg`, `og/default.png`, `_headers`, `catalogue.json` (YouTube), `data/library.json` (archive.org audio, khutab, books), optional `data/bio.json` (from the Sheikh's team), and `js/`:
   `core.js` (data model, helpers, sanitisers, URL builders — no DOM), `views.js` (every page as a pure function returning HTML + SEO metadata), `app.js` (browser: History-API navigation, search/filters, players, drawer), `icons.js` (Lucide), `theme-init.js`.
@@ -22,7 +49,7 @@ Arabic website that organises the lessons, lectures, khutab and books of **ال�
 
 ## Roadmap (approved)
 0. Foundations — merge to `main`, delete old Netlify site, 2FA/DNSSEC/branch protection (owner), cleanup. *(mostly done)*
-1. **Findable & trustworthy — IN PROGRESS:** real URLs + pre-rendering + sitemap + structured data **(done)**; accessibility baseline, axe-clean **(done)**; input sanitisation + CSP report-only **(done)**; Search Console (owner, `docs/seo-setup.md`); bio page **built but dormant until the team supplies `data/bio.json`** (`docs/bio-spec.md`).
+1. **Findable & trustworthy — BUILT & MERGED to `main` (25cb175); awaiting owner actions below:** real URLs + pre-rendering + sitemap + structured data **(done)**; accessibility baseline, axe-clean **(done)**; input sanitisation + CSP report-only **(done)**; Search Console (owner, `docs/seo-setup.md`); bio page **built but dormant until the team supplies `data/bio.json`** (`docs/bio-spec.md`).
 2. Own the data: PDFs → R2 (separate bucket `drwasiullah-media`, `media.drwasiullah.com`); optional mirror of existing audio (R2 account already holds 12.19 GB in `wurud-audio`; budget ≤ US$1/month).
 3. Auto-update: YouTube daily sync (GitHub Actions); Mixlr (needs its owner).
 4. Audio for video lessons **supplied by the Sheikh's team** (`docs/audio-delivery-spec.md`), normalised to mono/−16 LUFS/AAC 48 kbps. No YouTube downloading.
