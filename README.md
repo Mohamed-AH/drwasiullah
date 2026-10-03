@@ -1,6 +1,6 @@
 # Sheikh Wasiullah Abbas — YouTube Ingest
 
-This is the lightweight ingestion step for the Arabic digital library.
+This is the lightweight digest step for the Arabic digital library.
 
 ## What it does
 
