@@ -357,3 +357,5 @@ body.lock{overflow:hidden}
 
 .icon-btn .ic{position:absolute;inset:0;margin:auto;vertical-align:baseline}
 .icon-btn:hover .ic{transform:none}
+
+.ap-err{margin:14px 0 0;padding:8px 14px;border:1px solid var(--gold-hi);border-radius:2px;color:#f3e3b8;background:rgba(0,0,0,.25);font:500 15px var(--body);line-height:1.7}

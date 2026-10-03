@@ -19,15 +19,25 @@ ones. They are stored as `hd` ("1433-03-02" or just "1426") and shown as-is by t
 `date` (Gregorian, from the Hijri via Umm al-Qura) is only used for sorting.
 
 Re-run any time; the output is fully regenerated.
+
+Dead links:  python tools/measure_storage.py            # writes tools/missing.txt (HTTP 404 = dead at the source)
+             python import_wordpress.py --prune tools/missing.txt
+The second command adds the 404 URLs to dead_links.txt (commit it) and removes them from library.json right away;
+later full imports keep skipping them. Delete a line from dead_links.txt if the source fixes the file.
 """
 import html, json, re, sys
 from pathlib import Path
 from urllib.parse import unquote
 
-from bs4 import BeautifulSoup
-from hijridate import Hijri
+try:
+    from bs4 import BeautifulSoup
+    from hijridate import Hijri
+except ImportError:          # --prune works without them
+    BeautifulSoup = Hijri = None
 
-OUT = Path(__file__).resolve().parent / "site" / "data" / "library.json"
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "site" / "data" / "library.json"
+DEAD = ROOT / "dead_links.txt"      # committed: URLs known to be 404 at the source; skipped on every import
 AR_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
 
 # page-title prefix -> series config.  sec: audio | urdu.  headings: use bold paragraphs as book/chapter groups.
@@ -266,8 +276,50 @@ def parse_books(path):
     return books
 
 
+def load_dead():
+    if not DEAD.exists(): return set()
+    return {ln.split("#")[0].strip() for ln in DEAD.read_text(encoding="utf-8").splitlines() if ln.split("#")[0].strip()}
+
+
+def drop_dead(lessons, books, dead):
+    kept = [l for l in lessons if l.get("src") not in dead]
+    nb = []
+    for b in books:
+        files = [f for f in b["files"] if f["url"] not in dead]
+        if files: nb.append({**b, "files": files})
+    return kept, nb
+
+
+def prune(missing_file):
+    """Merge HTTP-404 URLs from tools/missing.txt into dead_links.txt, then remove them from library.json."""
+    dead = load_dead()
+    new = {}
+    for ln in Path(missing_file).read_text(encoding="utf-8").splitlines():
+        parts = ln.split("\t")
+        if len(parts) >= 3 and "HTTP 404" in parts[0]: new[parts[2].strip()] = parts[1].strip()
+    lines = [] if not DEAD.exists() else DEAD.read_text(encoding="utf-8").splitlines()
+    for url, group in new.items():
+        if url not in dead: lines.append(f"{url}  # {group}")
+    DEAD.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    dead = load_dead()
+    lib = json.loads(OUT.read_text(encoding="utf-8"))
+    n0, b0 = len(lib["lessons"]), sum(len(b["files"]) for b in lib["books"])
+    lib["lessons"], lib["books"] = drop_dead(lib["lessons"], lib["books"], dead)
+    left = {l["series"] for l in lib["lessons"]}
+    gone = [s["title"] for s in lib["series"] if s["id"] not in left and s["id"] != "misc"]
+    lib["series"] = [s for s in lib["series"] if s["id"] in left or s["id"] == "misc"]
+    OUT.write_text(json.dumps(lib, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"{len(new)} new dead URLs recorded in {DEAD.name} ({len(dead)} total); removed "
+          f"{n0 - len(lib['lessons'])} lessons and {b0 - sum(len(b['files']) for b in lib['books'])} book files from library.json")
+    if gone: print("series now empty and removed:", ", ".join(gone))
+
+
 def main():
     if len(sys.argv) < 2: sys.exit(__doc__)
+    if sys.argv[1] == "--prune":
+        if len(sys.argv) < 3: sys.exit("usage: python import_wordpress.py --prune tools/missing.txt")
+        return prune(sys.argv[2])
+    if BeautifulSoup is None: sys.exit("pip install -r requirements.txt   (beautifulsoup4, hijridate)")
     folder = Path(sys.argv[1])
     pages = {page_title(p): p for p in folder.glob("*.html")}
     find = lambda prefix: next((p for t, p in pages.items() if t.startswith(prefix)), None)
@@ -308,6 +360,10 @@ def main():
     for i, b in enumerate(books, 1): b["id"] = f"book-{i:03d}"
     print(f"  {len(books):4}  books")
 
+    dead = load_dead()
+    n_before = len(lessons)
+    lessons, books = drop_dead(lessons, books, dead)
+    if dead: print(f"  skipped {n_before - len(lessons)} lessons with known-dead links (dead_links.txt)")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(dict(series=series, lessons=lessons, books=books), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"\n{len(lessons)} lessons, {len(series)} series, {len(books)} books -> {OUT.relative_to(OUT.parents[2])}")

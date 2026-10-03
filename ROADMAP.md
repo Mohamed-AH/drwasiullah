@@ -110,7 +110,8 @@ security checks run continuously (they are part of every phase's "done").
 
 ### Phase 0 — Foundations (S)
 - [ ] Merge the working branch into `main`; Cloudflare deploys from `main`. Delete `netlify.toml` and `.github/workflows/pages.yml` if D7 = Cloudflare only; delete `wasiwordpress.rar` (keep a private copy).
-- [x] Run `tools/measure_storage.py` (done, §3). Follow-up: re-run to list the 31 unreachable files (`tools/missing.txt`); hide/repair dead links.
+- [x] Run `tools/measure_storage.py` (done, §3). Result: **30 Bukhari lessons are HTTP 404 at the source** (`wasi007`–`wasi036`, the whole «كتاب الصلاة» part — only the 6 «كتاب العلم» files exist) and 1 PDF returns HTTP 500 (probably the 357 MB «المسجد الحرام»).
+- [ ] Hide dead links: `python import_wordpress.py --prune tools/missing.txt`, commit `dead_links.txt` + `site/data/library.json`. Ask the archive.org/WordPress owner to re-upload the Bukhari prayer lessons (then delete their lines from `dead_links.txt`). Re-check the PDF later (`measure_storage.py` retries failures).
 - [ ] Accounts: **2-factor authentication** on GitHub, Cloudflare, Namecheap; registrar lock on; auto-renew on; WHOIS privacy on.
 - [ ] Cloudflare: Always-HTTPS, HSTS (start 6 months, no preload yet), DNSSEC on (then add the DS record at Namecheap), CAA record, free **Web Analytics** (cookie-less).
 - [ ] GitHub: branch protection on `main` (PR required), secret scanning + Dependabot (Actions) on.

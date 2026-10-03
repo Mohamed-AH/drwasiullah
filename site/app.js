@@ -249,6 +249,10 @@
     document.getElementById("share").onclick = e => { navigator.clipboard?.writeText(location.href); e.currentTarget.innerHTML = ic("check", 17) + " تم النسخ"; };
     const aud = document.getElementById("aud");
     if (aud) {
+      aud.addEventListener("error", () => {   // dead or blocked file: say so instead of a silent dead player
+        if (document.querySelector(".ap-err")) return;
+        aud.insertAdjacentHTML("afterend", `<p class="ap-err" role="alert">تعذّر تشغيل هذا التسجيل الآن (الملف غير متاح عند المصدر). ${next ? "يمكنك الانتقال إلى الدرس التالي." : ""}</p>`);
+      });
       aud.play().catch(() => {});
       aud.onended = () => { if (next) location.hash = "#/watch/" + encodeURIComponent(next.id); };
       document.querySelector(".speeds").onclick = e => { const b = e.target.closest("button"); if (!b) return;
