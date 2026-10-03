@@ -117,7 +117,7 @@ function wireLesson(w, byNavigation) {
     const id = safeYt(lite.dataset.yt); if (!id) return;
     const f = document.createElement("iframe");
     f.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`; f.title = $(".w-title")?.textContent || "";
-    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen"; f.setAttribute("allowfullscreen", "");
+    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen"; 
     lite.classList.remove("lite"); lite.replaceChildren(f); f.focus();
   });
 
