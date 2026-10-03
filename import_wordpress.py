@@ -48,8 +48,8 @@ SERIES = {
                             desc="تسجيلات لشرح الشيخ لسنن أبي داود، مرتبة بحسب الكتب."),
     "تعليق على بعض كتاب الجامع": dict(id="jami-audio", sec="audio", headings=False, unit="الدرس", title="تعليق على كتاب الجامع لأخلاق الراوي وآداب السامع",
                                      desc="تعليق صوتي على بعض كتاب الجامع لأخلاق الراوي وآداب السامع للخطيب البغدادي."),
-    "دروس من صحيح البخاري": dict(id="bukhari-audio", sec="audio", headings=True, unit="الدرس", title="دروس من صحيح البخاري — كتابا العلم والصلاة",
-                                desc="دروس صوتية من صحيح البخاري في كتابَي العلم والصلاة."),
+    "دروس من صحيح البخاري": dict(id="bukhari-audio", sec="audio", headings=True, unit="الدرس", title="دروس من صحيح البخاري — كتاب العلم",
+                                desc="دروس صوتية من صحيح البخاري في كتاب العلم."),   # «كتاب الصلاة» (30 lessons) is dead at the source: see dead_links.txt
     "شرح نزهة النظر": dict(id="nuzha-audio", sec="audio", headings=False, unit="الدرس", title="شرح نزهة النظر في توضيح نخبة الفكر",
                           desc="شرح صوتي لنزهة النظر في توضيح نخبة الفكر للحافظ ابن حجر."),
     "شرح مقدمة ابن الصلاح": dict(id="ibn-salah", sec="audio", headings=False, unit="الدرس",
