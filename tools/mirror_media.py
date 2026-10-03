@@ -115,6 +115,13 @@ def main(argv=None):
     need = ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
     miss = [k for k in need if not os.environ.get(k)]
     if miss: sys.exit("missing environment variables: " + ", ".join(miss))
+    import re
+    if not os.environ.get("R2_ENDPOINT") and not re.fullmatch(r"[0-9a-f]{32}", os.environ["R2_ACCOUNT_ID"]):
+        sys.exit("R2_ACCOUNT_ID must be your 32-character Cloudflare account ID (letters a-f and digits), not a token or key.\n"
+                 "Find it in the Cloudflare dashboard: R2 overview page, right-hand side 'Account ID' (or the long hex string in the dashboard URL).")
+    for k in ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"):
+        if os.environ[k].startswith("cfat_") or os.environ[k].startswith("cfut_"):
+            sys.exit(f"{k} looks like a Cloudflare API token. R2 needs the S3 pair (Access Key ID 32 hex chars + Secret Access Key 64 hex chars) from R2 -> Manage R2 API tokens -> Create API token.")
     import boto3
     s3 = boto3.client("s3", region_name="auto", aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
                       endpoint_url=os.environ.get("R2_ENDPOINT") or f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com")
