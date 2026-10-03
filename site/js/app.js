@@ -123,7 +123,9 @@ function wireLesson(w, byNavigation) {
 
   const aud = $("#aud");
   if (aud) {
-    aud.addEventListener("error", () => {   // dead or blocked file: say so instead of a silent dead player
+    let retried = false;
+    aud.addEventListener("error", () => {   // dead or blocked file: retry once (archive.org nodes fail transiently), then say so
+      if (!retried) { retried = true; const t = aud.currentTime; setTimeout(() => { aud.load(); aud.currentTime = t; if (byNavigation) aud.play().catch(() => {}); }, 1500); return; }
       if ($(".ap-err")) return;
       aud.insertAdjacentHTML("afterend", `<p class="ap-err" role="alert">تعذّر تشغيل هذا التسجيل الآن (الملف غير متاح عند المصدر). ${w.next ? "يمكنك الانتقال إلى الدرس التالي." : ""}</p>`);
     });
@@ -178,7 +180,8 @@ paintTheme();
 
 /* ───────── Boot ───────── */
 const getJSON = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
-Promise.all([getJSON("/catalogue.json"), getJSON("/data/library.json"), getJSON("/data/bio.json")]).then(([cat, lib, bio]) => {
+const hasBio = !!document.querySelector('a[href="/about/"]');   // the build links /about/ only when data/bio.json exists: no 404 request while the bio is dormant
+Promise.all([getJSON("/catalogue.json"), getJSON("/data/library.json"), hasBio ? getJSON("/data/bio.json") : null]).then(([cat, lib, bio]) => {
   if (!cat) throw new Error("no catalogue");
   init(cat, lib || {}, bio);
   const legacy = () => { if (location.hash.startsWith("#/")) { history.replaceState(null, "", hashToPath(location.hash)); return true; } return false; };   // old shared links (#/watch/ID …)

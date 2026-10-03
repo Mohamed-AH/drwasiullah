@@ -20,6 +20,7 @@ Measured storage: audio 12.83 GB + PDFs 0.18 GB (+≈0.4 GB unmeasurable). Owner
 (3) send the team `docs/bio-spec.md` and `docs/audio-delivery-spec.md` + `docs/lessons-needing-audio.csv`, and collect written permission to publish; (4) open the live site with the console open — if no "[Report Only]" CSP messages while playing one audio and one video lesson, tell Claude to enforce CSP
 (rename the header in `site/_headers`); (5) delete the old Netlify site; 2FA/DNSSEC/branch protection; (6) a screen-reader pass (NVDA/VoiceOver/TalkBack, Arabic); (7) re-run `python tools/measure_storage.py` occasionally (it prints dead links).
 
+**2026-10-03 follow-ups:** added `tools/check_links.py`; CSP now allows the Cloudflare Web Analytics beacon (still Report-Only); `app.js` fetches `bio.json` only when the build links `/about/`; audio player retries once on error. Owner: run `python tools/check_links.py`, report FAILING ones (e.g. `ibn-salah-0002` = archive.org HTTP 500).
 **Open questions:** who owns the Mixlr account / is there an API? · English edition: UI only or also translated series/book titles? · does the team have original (non-YouTube) recordings? · transliteration preference for the name in English.
 
 **Next steps for Claude, in order.** (a) ~~Deploy healthy~~ done. (b) When asked: enforce the CSP. (c) When `bio.json` (+ photo) arrives: add `site/data/bio.json` (+ `site/img/sheikh.jpg`), build, screenshot `/about/` and the home teaser, run all three tests, commit.
@@ -38,6 +39,7 @@ Don't commit fixtures (`site/data/bio.json` stays absent until real), `dist/`, a
 - `ingest.py` / `manage.py` / `export.py` / `schema.sql` / `config.json` — owner's YouTube pipeline → `videos.db` (SQLite, local review).
 - `build_catalogue.py` — `videos.db` → `site/catalogue.json` (derives series, lesson numbers, books from Arabic titles; `SERIES`/`SECTION_OF` at the top).
 - `import_wordpress.py` — saved WordPress pages → `site/data/library.json` (needs `requirements.txt`); `dead_links.txt` — source URLs known to be 404 (skipped by the importer).
+- `tools/check_links.py` — ranged-GET every audio/PDF (retries 5xx; DEAD vs FAILING vs OK) → `tools/link_report.json` + `tools/missing.txt` (DEAD only → `import_wordpress.py --prune`). Run on the owner's machine.
 - `tools/measure_storage.py` — sums remote media sizes. `tests/` — `xss_check.mjs`, `e2e.mjs`, `a11y_check.mjs`. `docs/` — instructions for the owner's team (audio delivery, bio) and SEO setup.
 - `wrangler.jsonc` — Cloudflare Workers static-assets deploy: runs the build, publishes `dist/`. `DEPLOY.md` — hosting/domain guide.
 
