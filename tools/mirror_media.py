@@ -43,18 +43,20 @@ def items(lib, kind):
     return uniq
 
 
-def download(url, kind, tries=4):
+def download(url, kind, tries=3, max_seconds=240):
     """-> (temp path, sha256 hex, size). Streams to disk; retries 5xx/timeouts; rejects HTML error pages."""
     last = None
     for i in range(tries):
         if i: time.sleep(2 ** i)
+        t0 = time.monotonic()
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
                 ctype = (r.headers.get("Content-Type") or "").lower()
                 if ctype.startswith("text/html"): raise ValueError(f"got HTML, not a file ({ctype})")
                 h, n, first = hashlib.sha256(), 0, b""
                 with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                    while chunk := r.read(1 << 20):
+                    while chunk := r.read1(1 << 16):
+                        if time.monotonic() - t0 > max_seconds: raise TimeoutError(f"stalled: more than {max_seconds}s for one file")   # a server that trickles bytes
                         if not first: first = chunk[:8]
                         h.update(chunk); tmp.write(chunk); n += len(chunk)
             if n == 0: raise ValueError("empty file")
@@ -152,4 +154,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:   # progress is saved after every file: just run the script again to continue
+        sys.exit("\ninterrupted - files already mirrored are kept in site/data/media.json; run again to continue")
