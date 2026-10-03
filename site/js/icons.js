@@ -1,5 +1,5 @@
 /* Lucide icons (ISC licence) — https://lucide.dev. Generated from lucide-static. */
-window.ICONS={
+export const ICONS = {
  "menu": "<path d=\"M4 5h16\" /> <path d=\"M4 12h16\" /> <path d=\"M4 19h16\" />",
  "x": "<path d=\"M18 6 6 18\" /> <path d=\"m6 6 12 12\" />",
  "search": "<path d=\"m21 21-4.34-4.34\" /> <circle cx=\"11\" cy=\"11\" r=\"8\" />",

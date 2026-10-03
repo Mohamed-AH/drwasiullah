@@ -1,7 +1,6 @@
 # Roadmap — drwasiullah.com
 
-> **Status: DRAFT for owner review.** Nothing here is approved until the owner says so; once approved, the
-> phase list is copied into `CLAUDE.md`. Effort: **S** ≈ one working session, **M** ≈ 2–3, **L** ≈ 4+.
+> **Status: APPROVED by the owner (Oct 2026); Phase 1 in progress.** The phase list is mirrored in `CLAUDE.md`. Effort: **S** ≈ one working session, **M** ≈ 2–3, **L** ≈ 4+.
 > Free-tier numbers are from memory of the providers' public pricing — **verify at sign-up**, terms change.
 
 ## 0. Where we are (snapshot, Oct 2026)
@@ -36,12 +35,12 @@
 |---|---|---|
 | D1 | Permissions. The **Sheikh's team will supply the audio for the YouTube lessons** — so we never download from YouTube (no ToS/permission problem, better quality). Still to confirm in writing: OK to mirror the existing audio/PDFs on our storage; who owns the **Mixlr** account; OK for a podcast feed. | **Partly decided** |
 | D2 | Bio text + photo | **Decided:** the Sheikh's team provides them (we build the page; no biographical text is written by us) |
-| D3 | Budget ceiling (suggest ≤ US$5/month on top of the domain) | Open — expected spend is cents (§3) |
+| D3 | Budget ceiling | **Decided: ≤ US$1 / month** for storage (expected ≈ US$0.5 at completion, §3) |
 | D4 | Keep archive.org as a permanent fallback | Open (recommended: yes — and see §3: it stays the **primary** host of the existing audio unless we mirror it) |
-| D5 | English edition scope (UI only, or translated series/book titles?); Hijri only or Hijri + Gregorian? | Open |
+| D5 | English edition: **Hijri dates only, in both languages (decided)**. Still open: UI only, or also translated series/book titles? | Partly decided |
 | D6 | Repo visibility | **Decided: public** (unlimited free GitHub Actions minutes) |
 | D7 | Hosting | **Decided: Cloudflare only.** `netlify.toml` and the GitHub Pages workflow are deleted; delete the old Netlify site in its dashboard |
-| D8 | **How much of the free R2 allowance does the other project already use?** (Cloudflare dashboard → R2 → Overview → storage) | Open — decides Phase 2b |
+| D8 | R2 usage of the owner's other project | **Answered: 12.19 GB** (bucket `wurud-audio`, 2.37 k objects; $0.00 billed so far). We use a separate bucket in the same account |
 
 ## 3. Storage assessment
 
@@ -78,7 +77,7 @@ so students never hit a lesson that doesn't play.
 10 M reads are shared by every bucket in the account, so a second project on the same account draws from the same
 allowance (and a second account just to get another free 10 GB is against the spirit of the free plan — not planned).
 That does not make storage expensive, only no longer free: usage above the allowance is billed at ≈ US$0.015 / GB-month.
-Example: if the other project stores 5 GB, then PDFs + new audio + existing audio mirror (≈ 14 GB) → 19 GB total → 9 GB billable → **≈ US$0.14 / month**. Set a Cloudflare *billing usage notification* so nothing surprises us.
+**Actual numbers (Oct 2026): the account already holds 12.19 GB**, i.e. ≈ 2 GB over the allowance (billed as a monthly average; US$0.00 so far). Adding PDFs (0.55 GB) → ≈ US$0.04 / month in total; + existing-audio mirror (13.2 GB) → 26 GB ≈ **US$0.24 / month**; + the team's audio (18.5 GB) → 44 GB ≈ **US$0.52 / month** — inside the US$1 budget. Set a Cloudflare *billing usage notification* so nothing surprises us.
 
 **Free-tier options**
 
@@ -125,7 +124,14 @@ security checks run continuously (they are part of every phase's "done").
 - [ ] GitHub: branch protection on `main` (PR required), secret scanning + Dependabot (Actions) on.
 - [ ] Add `CLAUDE.md` (done) and keep it current.
 
-### Phase 1 — Findable & trustworthy (L)
+### Phase 1 — Findable & trustworthy (L)   — **status (Oct 2026)**
+- [x] 1a Real URLs + pre-rendering (`scripts/build.mjs`; 2,008 pages, sitemap of 2,006), per-page title/description/canonical/OG/Twitter, JSON-LD (`WebSite`+`SearchAction`, `Person`, `BreadcrumbList`, `CollectionPage`/`ItemList`, `AudioObject`/`VideoObject`), `robots.txt`, `_redirects`, real 404 page, legacy `#/…` links redirected, lite YouTube player (YouTube loads only on click).
+- [ ] 1b Search Console + Bing (owner; steps in `docs/seo-setup.md`) — after the merge to `main` is live.
+- [~] 1c Bio page + home teaser **built, dormant** until the team supplies `site/data/bio.json` (+ photo) — spec for them in `docs/bio-spec.md`.
+- [x] 1d Accessibility baseline: axe-core clean (0 violations; 12 pages × light/dark × desktop/mobile), route-change focus + live announcements, menu as modal dialog (focus trap, inert page), landmarks/labels/`aria-current`/`aria-pressed`, no-JS search form, `lang="ur"`, contrast tokens fixed (dark), forced-colors/prefers-contrast. **Still to do manually:** NVDA/VoiceOver/TalkBack pass with Arabic voices (team/owner).
+- [x] 1e Security baseline: input sanitisation + hostile-input test; CSP (report-only) re-tested enforced on 44 page loads, `form-action 'self'`.
+- [ ] Owner: merge to `main`, confirm the Cloudflare build log shows the pre-render, then check the console for "[Report Only]" messages and switch CSP to enforce.
+
 **1a. Real URLs + pre-rendering (the SEO foundation)**
 - New build step `build_site.py` (Python, no framework) that writes static HTML per page: `/`, `/section/<id>/`, `/series/<id>/`, `/lesson/<id>/`, `/books/`, `/about/`, `/search/`. Each page contains the real content (titles, lists, player markup) so it works without JS and is indexable; the existing JS enhances it (History API instead of `#`).
 - Slugs: ASCII ids (`/series/sahih-muslim/`) with the Arabic title in `<title>`/`<h1>` (Arabic URLs get percent-encoded when shared).

@@ -1,0 +1,7 @@
+{
+  "name": "drwasiullah",
+  "private": true,
+  "type": "module",
+  "description": "Static site; `node scripts/build.mjs` pre-renders site/ into dist/ (no dependencies).",
+  "scripts": { "build": "node scripts/build.mjs", "test": "node tests/xss_check.mjs" }
+}

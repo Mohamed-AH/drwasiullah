@@ -110,15 +110,21 @@ never included. Series, lesson numbers and books ("كتاب …") are derived fr
 hand in `videos.db` (`series`, `subject`, `lesson_number`, `title_ar`) overrides the automatic result.
 To add a new series, add a line to `SERIES` at the top of `build_catalogue.py`.
 
-## Preview locally
+## Develop locally
+
+`site/` is the source; `node scripts/build.mjs` **pre-renders it into `dist/`** (one real HTML file per page — ≈ 2,000 — plus
+`sitemap.xml`, `robots.txt`, `_redirects`, `404.html`). No npm dependencies.
 
 ```bash
-cd site && python3 -m http.server 8000   # open http://localhost:8000
+node scripts/build.mjs && (cd dist && python3 -m http.server 8000)   # open http://localhost:8000
 ```
+
+Code layout: `site/js/core.js` (data model + helpers), `site/js/views.js` (every page as a pure function — used by the build *and* the browser),
+`site/js/app.js` (browser: navigation, search, players), `site/shell.html` (page template), `site/styles.css`.
 
 ## Deploy
 
-`site/` is plain static files, served by a Cloudflare Worker (`wrangler.jsonc`). See `DEPLOY.md`.
+Merge to `main`; Cloudflare runs `npx wrangler deploy`, and `wrangler.jsonc` makes it run the build first and publish `dist/`. See `DEPLOY.md`.
 
 ## Features
 
@@ -169,11 +175,11 @@ Audio is streamed straight from archive.org; PDFs link to the original files. Re
 
 ## Tests
 
-`tests/xss_check.mjs` throws hostile input (XSS payloads, oversize/NUL/RTL-override strings, malformed URLs,
-`__proto__` routes) at every input and route:
+All three need Playwright (`npm i -D playwright`; `axe-core` too for the accessibility one), and a served build:
 
 ```bash
-npm i -D playwright                      # once
-(cd site && python3 -m http.server 8000) &
-node tests/xss_check.mjs http://localhost:8000
+node scripts/build.mjs && (cd dist && python3 -m http.server 8000) &
+node tests/xss_check.mjs  http://localhost:8000    # hostile input (XSS, oversize, NUL/RTL-override, malformed/`__proto__` URLs)
+node tests/e2e.mjs        http://localhost:8000    # pre-rendered pages, hydration, navigation, legacy #/ links, search, players, 404, menu
+node tests/a11y_check.mjs http://localhost:8000    # axe-core (WCAG 2.2 AA) × light/dark × desktop/mobile
 ```

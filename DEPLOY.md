@@ -1,17 +1,18 @@
 # Hosting & domain guide (Cloudflare only)
 
-The site is plain static files in `site/` (no build step). It is served by a **Cloudflare Worker with static
-assets** (`wrangler.jsonc` → `"directory": "./site"`), the code lives in this public GitHub repo, and the domain
+The site source is in `site/`; `node scripts/build.mjs` pre-renders it into `dist/` (≈ 2,000 real HTML pages + sitemap + 404).
+It is served by a **Cloudflare Worker with static assets** (`wrangler.jsonc` → `"build.command": "node scripts/build.mjs"`, `"directory": "./dist"`), the code lives in this public GitHub repo, and the domain
 `drwasiullah.com` is registered at **Namecheap** with its DNS on **Cloudflare**.
 
 ## How a change goes live
-Merge to `main` → Cloudflare builds automatically (build command empty, deploy command `npx wrangler deploy`) →
-live in a minute or two. Work happens on a feature branch and reaches `main` through a pull request.
+Merge to `main` → Cloudflare runs `npx wrangler deploy`, which first runs the build command from `wrangler.jsonc`
+(leave the dashboard's *Build command* **empty**; check the log shows `built 2008 pages …`) → live in a minute or two. Work happens on a feature branch and reaches `main` through a pull request.
 
 ## Set up (one-time, already done)
 1. **Cloudflare → Workers & Pages → Create → Import a repository** → this repo (production branch `main`),
    project name `drwasiullah`. **Build command: empty.** Deploy command: `npx wrangler deploy`.
    (Without `wrangler.jsonc` Cloudflare guesses "Hugo" and fails with `npx hugo … could not determine executable`.)
+   Node ≥ 18 is needed for the build; Cloudflare's default is fine.
 2. **Domain:** the domain stays registered at Namecheap; only its *nameservers* point to Cloudflare.
    - Cloudflare → **Add a domain** `drwasiullah.com` (Free plan); delete Namecheap's parking records
      (`A`/`CNAME` for `@` and `www`). Keep the MX/TXT records if Namecheap *Email Forwarding* is used.
