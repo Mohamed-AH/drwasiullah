@@ -33,6 +33,6 @@
 
 ---
 ### For the developer (English)
-`site/data/bio.json` (schema above). A section's `blocks` are rendered in order: a string = paragraph, an array = bullet list, `{ol:[…]}` = numbered list, `{links:[{label,url}]}` = links (https, or a path on this site such as a PDF under `/files/`). The older `paragraphs` + `items` form still works. `photo` (`/img/…` or https) is optional and currently not used.
+`site/data/bio.json` (schema above). A section's `blocks` are rendered in order: a string = paragraph, an array = bullet list, `{ol:[…]}` = numbered list, `{links:[{label,url,kind,note}]}` = links (https, or a path on this site such as a PDF under `/files/`); with `kind` (`pdf` or `external`) a link is drawn as a card with an icon and the `note` line. A section with `"extra": true` is drawn as a separate block after the biography, with an optional `intro` line. The older `paragraphs` + `items` form still works. `photo` (`/img/…` or https) is optional and currently not used.
 When the file exists the build adds: the `/about/` page (+ `Person` JSON-LD), the «عن الشيخ» nav item, the home-page teaser and the sitemap entry.
 When it doesn't, none of them is generated. Content must come from the Sheikh's team (see CLAUDE.md, *Content integrity*).
