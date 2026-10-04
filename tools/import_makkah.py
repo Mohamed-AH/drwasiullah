@@ -5,7 +5,7 @@
 
 Creates the audio series «شرح فتح الباري» from group 33 (1,224 lessons) and adds the last two Nuzhat pieces (lessons 3727, 3728) to our existing
 Nuzhat audio series as lessons 22 and 23. Titles come from the file names on the source site; lessons are linked straight to the source's mp3 files
-(mirroring to our own storage can come later with tools/mirror_media.py, which reads makkah.json too). Prints a summary and a sample of titles to check."""
+(the static mp3 address is used when the scan found one, otherwise the site's download link; mirroring to our own storage can come later with tools/mirror_media.py, which reads makkah.json too). Prints a summary and a sample of titles to check."""
 import argparse, json, re, sys, urllib.parse
 from pathlib import Path
 
@@ -30,13 +30,14 @@ def build(cache):
         if v.get("error") or not v.get("url"): problems.append(f"{key}: {v.get('error', 'no url')}"); continue
         seq += 1
         n = v.get("num") or seq
-        title = (v.get("title") or "").strip() or f"الدرس {n}"
+        title = (v.get("title") or "").strip()
+        if title.lower() in ("download", ""): title = f"الدرس {n}"      # an old scan without file names
         if v.get("part") in PART: title += PART[v["part"]]
-        lessons.append({"id": f"fath-bari-{int(key):04d}", "title": title, "series": "fath-bari", "kind": "audio", "src": clean_url(v["url"]), "n": n})
+        lessons.append({"id": f"fath-bari-{int(key):04d}", "title": title, "series": "fath-bari", "kind": "audio", "src": clean_url(v.get("direct") or v["url"]), "n": n})
     for key, n in NUZHA_EXTRA.items():
         v = cache.get(key)
         if not v or v.get("error") or not v.get("url"): problems.append(f"{key} (Nuzhat): {(v or {}).get('error', 'not scanned')}"); continue
-        lessons.append({"id": f"nuzha-audio-{n:04d}", "title": f"الدرس {n}", "series": "nuzha-audio", "kind": "audio", "src": clean_url(v["url"]), "n": n})
+        lessons.append({"id": f"nuzha-audio-{n:04d}", "title": f"الدرس {n}", "series": "nuzha-audio", "kind": "audio", "src": clean_url(v.get("direct") or v["url"]), "n": n})
     return {"series": [SERIES], "lessons": lessons}, problems
 
 

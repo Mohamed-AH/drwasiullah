@@ -29,16 +29,29 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 OPEN = urllib.request.build_opener(NoRedirect)
 
 
+def disposition_name(h):
+    """Content-Disposition -> file name, or ''. Handles filename*=UTF-8''%D8... and plain filename="..." (also UTF-8 bytes read as latin-1)."""
+    if not h: return ""
+    m = re.search(r"filename\*\s*=\s*[^']*'[^']*'([^;]+)", h, re.I)
+    if m: return urllib.parse.unquote(m.group(1).strip().strip('"'))
+    m = re.search(r'filename\s*=\s*"?([^";]+)"?', h, re.I)
+    if not m: return ""
+    name = urllib.parse.unquote(m.group(1).strip())
+    try: name = name.encode("latin-1").decode("utf-8")      # http.client decodes headers as latin-1
+    except (UnicodeEncodeError, UnicodeDecodeError): pass
+    return name
+
+
 def locate(base, n, timeout=30):
-    """-> (file_url, content_length_or_None, content_type). Reads headers only."""
+    """-> (file_url, content_length_or_None, content_type, file_name). Reads headers only."""
     url = f"{base}/lessons/{n}/download"
     try:
         r = OPEN.open(urllib.request.Request(url, headers={"User-Agent": UA}), timeout=timeout)
-        try: return url, int(r.headers.get("Content-Length") or 0) or None, r.headers.get_content_type()   # served directly: headers are enough
+        try: return url, int(r.headers.get("Content-Length") or 0) or None, r.headers.get_content_type(), disposition_name(r.headers.get("Content-Disposition"))   # served directly: headers are enough
         finally: r.close()
     except urllib.error.HTTPError as e:
         if e.code in (301, 302, 303, 307, 308) and e.headers.get("Location"):
-            return urllib.parse.urljoin(url, e.headers["Location"]), None, ""
+            return urllib.parse.urljoin(url, e.headers["Location"]), None, "", ""
         raise
 
 
@@ -53,9 +66,9 @@ def head(url, timeout=30):
             return (int(cr.rsplit("/", 1)[1]) if "/" in cr and cr.rsplit("/", 1)[1].isdigit() else None), r.headers.get_content_type()
 
 
-def parse_name(url):
-    """File name -> (number, title, part): '0001معرفة السند في الحديث-مقدمةa.mp3' -> (1, 'معرفة السند في الحديث-مقدمة', 'a')."""
-    stem = urllib.parse.unquote(urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1]).rsplit(".", 1)[0]
+def parse_name(name_or_url):
+    """File name (or URL) -> (number, title, part): '0001معرفة السند في الحديث-مقدمةa.mp3' -> (1, 'معرفة السند في الحديث-مقدمة', 'a')."""
+    stem = urllib.parse.unquote(urllib.parse.urlsplit(name_or_url).path.rsplit("/", 1)[-1]).rsplit(".", 1)[0]
     m = re.match(r"^\s*(\d+)\s*(.*?)\s*([ab])?$", stem)
     return (int(m.group(1)), m.group(2).strip(" -_"), m.group(3) or "") if m else (None, stem, "")
 
@@ -66,6 +79,8 @@ def main(argv=None):
     ap.add_argument("--group", choices=sorted(GROUPS))
     ap.add_argument("--all-groups", action="store_true")
     ap.add_argument("--ids", help="comma-separated lesson numbers")
+    ap.add_argument("--direct-prefix", help="folder of the static mp3 host for this series, e.g. 'https://mp3.makkahscholars.org/<scholar>/<series>/'. When given, "
+                                            "each file name is also looked up there (HEAD) and, if the size matches, that direct address is recorded and preferred")
     ap.add_argument("--sample", type=int, default=0, help="only the first N lessons of each group")
     ap.add_argument("--delay", type=float, default=0.6)
     a = ap.parse_args(argv)
@@ -85,29 +100,38 @@ def main(argv=None):
         if not a.group and not a.all_groups: todo += [("35", 3727), ("35", 3728)]   # the two last Nuzhat pieces we are missing
     if not rp.can_fetch(UA, f"{a.base}/lessons/{todo[0][1]}/download"):
         sys.exit("robots.txt of the site disallows /lessons/<n>/download for automated clients; not scanning.")
-    pending = [(g, n) for g, n in todo if str(n) not in cache or cache[str(n)].get("error")]
+    pending = [(g, n) for g, n in todo if str(n) not in cache or cache[str(n)].get("error") or "file" not in cache[str(n)]]   # old-format entries are refreshed
     print(f"{len(todo)} lessons selected, {len(pending)} to look up", file=sys.stderr)
     for i, (g, n) in enumerate(pending, 1):
         try:
-            url, size, ctype = locate(a.base, n)
+            url, size, ctype, fname = locate(a.base, n)
             if size is None or not ctype:
                 time.sleep(a.delay / 2); size, ctype = head(url)
-            num, title, part = parse_name(url)
-            cache[str(n)] = {"group": g, "url": url, "size": size, "type": ctype, "num": num, "title": title, "part": part}
+            fname = fname or urllib.parse.unquote(urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1])
+            num, title, part = parse_name(fname)
+            entry = {"group": g, "url": url, "file": fname, "size": size, "type": ctype, "num": num, "title": title, "part": part}
+            if a.direct_prefix and fname.lower().endswith((".mp3", ".m4a")):
+                direct = a.direct_prefix.rstrip("/") + "/" + urllib.parse.quote(fname)
+                time.sleep(a.delay / 2)
+                try:
+                    dsize, _ = head(direct)
+                    if dsize and (not size or dsize == size): entry["direct"] = direct
+                except Exception: pass
+            cache[str(n)] = entry
         except Exception as e:
             cache[str(n)] = {"group": g, "error": f"{type(e).__name__}: {e}"[:200]}
         if i % 25 == 0 or i == len(pending):
             CACHE.write_text(json.dumps(cache, ensure_ascii=False, indent=0), encoding="utf-8"); print(f"  {i}/{len(pending)}", file=sys.stderr)
         time.sleep(a.delay)
 
-    print("\ngroup  lessons   with-size   total-GB   avg-MB   errors   non-audio")
+    print("\ngroup  lessons   with-size   total-GB   avg-MB   errors   non-audio   direct-url")
     for g in sorted(GROUPS):
         rows = [v for k, v in cache.items() if v.get("group") == g]
         if not rows: continue
         ok = [r for r in rows if not r.get("error")]; sized = [r["size"] for r in ok if r.get("size")]
         non = [r for r in ok if not (r.get("type") or "").startswith(("audio/", "application/octet", "binary/"))]
-        print(f"{g:>5}  {len(rows):7}  {len(sized):9}  {sum(sized) / 1e9:8.2f}  {(sum(sized) / len(sized) / 1e6 if sized else 0):7.1f}  {len(rows) - len(ok):7}  {len(non):9}")
-        for r in ok[:3]: print(f"         e.g. #{r.get('num')} {r.get('part')} {r.get('title')}  <- {urllib.parse.unquote(r['url'])[:110]}")
+        print(f"{g:>5}  {len(rows):7}  {len(sized):9}  {sum(sized) / 1e9:8.2f}  {(sum(sized) / len(sized) / 1e6 if sized else 0):7.1f}  {len(rows) - len(ok):7}  {len(non):9}   {sum(1 for r in ok if r.get('direct')):9}")
+        for r in ok[:3]: print(f"         e.g. #{r.get('num')} {r.get('part')} {r.get('title')}   file: {r.get('file')}   {'direct' if r.get('direct') else 'download link'}")
     total = sum(r["size"] for r in cache.values() if r.get("size"))
     print(f"\nTOTAL {len(cache)} lessons, {total / 1e9:.2f} GB  ->  {CACHE.relative_to(ROOT)}")
     hosts = {urllib.parse.urlsplit(r["url"]).netloc for r in cache.values() if r.get("url")}
