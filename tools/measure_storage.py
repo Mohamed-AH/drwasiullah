@@ -13,6 +13,9 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _lib import load_library   # library.json + makkah.json
+
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = Path(__file__).with_name(".sizes.json")
 UA = {"User-Agent": "drwasiullah-storage-audit/1.0"}
@@ -53,7 +56,7 @@ def main():
     ap.add_argument("--refresh", action="store_true")
     a = ap.parse_args()
 
-    lib = json.loads(Path(a.library).read_text(encoding="utf-8"))
+    lib = load_library(a.library)
     items = []   # (url, kind, group)
     series = {s["id"]: s for s in lib["series"]}
     cat = Path(a.catalogue)   # some lessons (e.g. Arabic lectures) belong to series defined in the YouTube catalogue

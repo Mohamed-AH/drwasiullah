@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """List the Sheikh's lessons on makkahscholars.org (scholar 39) with their real file URLs and sizes. Run on YOUR machine. Downloads NO audio.
 
-    python tools/scan_makkah.py --sample 5          # first 5 lessons of each group: check it works (about 40 requests)
-    python tools/scan_makkah.py                      # everything: 1,550 lessons, resumable (about 30 minutes at the default pace)
-    python tools/scan_makkah.py --group 34           # one group only
+    python tools/scan_makkah.py --sample 5          # first 5 lessons of the default selection: check it works (about 20 requests)
+    python tools/scan_makkah.py                      # the default selection (what we import): Fath al-Bari (group 33, 1,224 lessons) + lessons 3727 and 3728
+    python tools/scan_makkah.py --group 34           # one whole group instead
+    python tools/scan_makkah.py --all-groups         # all four groups (1,550 lessons)
+    python tools/scan_makkah.py --ids 3727,3728      # only these lesson numbers
 
 For each lesson number it asks https://makkahscholars.org/lessons/<n>/download where the file is (reading only the redirect, never the body), then asks the
 file host for the size with a HEAD request. Results go to tools/makkah_scan.json (a cache: an interrupted run continues) and a summary is printed:
@@ -62,6 +64,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default=BASE)
     ap.add_argument("--group", choices=sorted(GROUPS))
+    ap.add_argument("--all-groups", action="store_true")
+    ap.add_argument("--ids", help="comma-separated lesson numbers")
     ap.add_argument("--sample", type=int, default=0, help="only the first N lessons of each group")
     ap.add_argument("--delay", type=float, default=0.6)
     a = ap.parse_args(argv)
@@ -69,11 +73,16 @@ def main(argv=None):
     try: rp.read()
     except Exception: pass
     cache = json.loads(CACHE.read_text(encoding="utf-8")) if CACHE.exists() else {}
+    group_of = lambda n: next((g for g, (lo, hi) in GROUPS.items() if lo <= n <= hi), "?")
     todo = []
-    for g, (lo, hi) in GROUPS.items():
-        if a.group and g != a.group: continue
-        ids = list(range(lo, hi + 1))[: a.sample or None]
-        todo += [(g, n) for n in ids]
+    if a.ids:
+        todo = [(group_of(int(n)), int(n)) for n in a.ids.split(",")]
+    else:
+        wanted = [a.group] if a.group else sorted(GROUPS) if a.all_groups else ["33"]
+        for g in wanted:
+            lo, hi = GROUPS[g]
+            todo += [(g, n) for n in list(range(lo, hi + 1))[: a.sample or None]]
+        if not a.group and not a.all_groups: todo += [("35", 3727), ("35", 3728)]   # the two last Nuzhat pieces we are missing
     if not rp.can_fetch(UA, f"{a.base}/lessons/{todo[0][1]}/download"):
         sys.exit("robots.txt of the site disallows /lessons/<n>/download for automated clients; not scanning.")
     pending = [(g, n) for g, n in todo if str(n) not in cache or cache[str(n)].get("error")]

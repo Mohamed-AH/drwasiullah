@@ -20,6 +20,9 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _lib import load_library   # library.json + makkah.json
+
 ROOT = Path(__file__).resolve().parent.parent
 UA = {"User-Agent": "drwasiullah-link-check/1.0", "Range": "bytes=0-1023"}
 GOOD = {"audio": ("audio/", "video/", "application/octet-stream", "binary/"), "pdf": ("application/pdf", "application/octet-stream", "binary/")}
@@ -76,7 +79,7 @@ def main():
     ap.add_argument("--out", default=str(ROOT / "tools"))
     a = ap.parse_args()
 
-    lib = json.loads(Path(a.library).read_text(encoding="utf-8"))
+    lib = load_library(a.library)
     cp = Path(a.catalogue)
     items = collect(lib, json.loads(cp.read_text(encoding="utf-8")) if cp.exists() else None, a.only)
     print(f"checking {len(items)} files ...", file=sys.stderr)

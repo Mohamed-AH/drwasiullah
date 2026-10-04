@@ -17,6 +17,9 @@ Commit site/data/media.json afterwards. Credentials are NEVER written to the rep
 import argparse, hashlib, json, os, sys, tempfile, time, urllib.parse, urllib.request, urllib.error
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _lib import load_library   # library.json + makkah.json
+
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "site" / "data" / "media.json"
 UA = {"User-Agent": "drwasiullah-mirror/1.0"}
@@ -106,7 +109,7 @@ def main(argv=None):
     base = os.environ.get("MEDIA_BASE", "https://media.drwasiullah.com").rstrip("/")
     if a.verify: return 0 if verify(manifest) else 1
 
-    lib = json.loads(Path(a.library).read_text(encoding="utf-8"))
+    lib = load_library(a.library)
     todo = [(u, k) for u, k in items(lib, a.kind) if u not in manifest]
     print(f"{len(todo)} to copy ({a.kind}); {len(manifest)} already mirrored", file=sys.stderr)
     if a.dry_run:
