@@ -397,7 +397,19 @@ h2.sect{margin:0}
 .about-sec h2{font-size:28px;margin-bottom:8px;color:var(--rubric)}
 .about-sec p,.about-sec li{font-size:19px;line-height:2}
 .about-sec ul,.about-sec ol{padding-inline-start:1.4em}
-.about-sec ul.links{list-style:none;padding:0}
+.about-sec ul.links{list-style:none;padding:0;margin:0}
+.about-extra{margin-top:56px;padding-top:24px;border-top:3px double var(--rule)}
+.about-extra h2{font-size:22px;color:var(--ink-2)}
+.about-intro{margin:0 0 14px;font-size:16px!important;color:var(--ink-2)}
+.linkcard{display:flex;align-items:center;gap:14px;padding:14px 18px;margin:0 0 12px;background:var(--paper-2);border:1px solid var(--rule);color:var(--ink);text-decoration:none;box-shadow:var(--shadow)}
+.linkcard:hover{border-color:var(--rubric)}
+.linkcard:focus-visible{outline:2px solid var(--rubric);outline-offset:3px}
+.lc-ic{flex:none;color:var(--rubric);display:inline-block;line-height:0}
+.lc-tx{flex:1;min-width:0}
+.lc-t{display:block;font-weight:700;font-size:18px;line-height:1.6}
+.lc-n{display:block;font-size:14px;color:var(--ink-2);line-height:1.6}
+.lc-go{flex:none;color:var(--ink-2);display:inline-block;line-height:0}
+.foot-official{font-size:17px}
 @media(max-width:700px){.about-photo{width:140px;height:140px}.about-h{gap:16px}}
 
 @media (forced-colors:active){.spine,.tile-ic::before,.seal::before,.seal::after{forced-color-adjust:none}.btn,.pill,.icon-btn{border:1px solid ButtonText}}

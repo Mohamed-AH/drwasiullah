@@ -254,7 +254,9 @@ function booksPage() {
    Older bio.json files with `paragraphs` + `items` still work. Links: https URLs, or a path on this site (e.g. a PDF under /files/). */
 const aboutLink = x => {
   const own = typeof x.url === "string" && /^\/[\w./-]+$/.test(x.url);
-  return `<a href="${esc(own ? x.url : safeUrl(x.url))}"${own ? "" : ' target="_blank" rel="noopener"'}>${esc(x.label || x.url)}</a>`;
+  const href = esc(own ? x.url : safeUrl(x.url)), ext = own ? "" : ' target="_blank" rel="noopener"';
+  if (!x.kind) return `<a href="${href}"${ext}>${esc(x.label || x.url)}</a>`;
+  return `<a class="linkcard" href="${href}"${ext}><span class="lc-ic" aria-hidden="true">${ic(x.kind === "pdf" ? "file-text" : "external-link", 22)}</span><span class="lc-tx"><span class="lc-t">${esc(x.label || x.url)}</span>${x.note ? `<span class="lc-n">${esc(x.note)}</span>` : ""}</span><span class="lc-go" aria-hidden="true">${ic("chevron-left", 18)}</span></a>`;
 };
 const aboutBlocks = sec => {
   const blocks = Array.isArray(sec.blocks) ? sec.blocks : [...(sec.paragraphs || []), ...(sec.items && sec.items.length ? [sec.items] : [])];
@@ -270,7 +272,7 @@ function aboutPage() {
   const photo = b.photo && /^(\/[\w./-]+|https:\/\/.+)$/.test(b.photo) ? b.photo : "";
   const html = `${c.html}<div class="about">
     <header class="about-h">${photo ? `<img class="about-photo" src="${esc(photo)}" alt="${esc(NAME)}" width="220" height="220">` : ""}<div><h1 class="page-h">${esc(b.title || NAME)}<span class="dua"> حفظه الله</span></h1>${b.lede || b.summary ? `<p class="lede">${esc(b.lede || b.summary)}</p>` : ""}</div></header>
-    ${(b.sections || []).map(sec => `<section class="about-sec"><h2>${esc(sec.title || "")}</h2>${aboutBlocks(sec)}</section>`).join("")}
+    ${(b.sections || []).map(sec => `<section class="about-sec${sec.extra ? " about-extra" : ""}"><h2>${esc(sec.title || "")}</h2>${sec.intro ? `<p class="about-intro">${esc(sec.intro)}</p>` : ""}${aboutBlocks(sec)}</section>`).join("")}
     ${b.sources && b.sources.length ? `<section class="about-sec"><h2>المصادر</h2><ul>${b.sources.map(x => `<li>${x.url ? `${aboutLink(x)}` : esc(x.label || "")}</li>`).join("")}</ul></section>` : ""}</div>`;
   return mkPage({
     nav: "about", path: "/about/", html, ogType: "profile",
@@ -334,7 +336,8 @@ export function chromeBottom(nav) {
     <a class="bn" href="#" role="button" data-nav="more" id="bn-more"><span class="bn-i">${ic("menu", 22)}</span><span>المزيد</span></a></nav>`;
 }
 export const footer = () => `<footer class="foot"><div class="wrap">
-  <p>الدروس المرئية مستضافة على <a href="${YT_CHANNEL}" target="_blank" rel="noopener">قناة واحة السنة</a> على يوتيوب، والمواد الصوتية والكتب من <a href="${WP_SITE}" target="_blank" rel="noopener">موقع الشيخ</a>. وهذا الموقع فهرس لتسهيل الوصول إليها.</p>
+  <p class="foot-official"><strong>${esc(OFFICIAL_NAME)} حفظه الله</strong>، ${esc(ROLE)}.${state.bio ? ` <a href="${href.about()}">عن الشيخ</a>` : ""}</p>
+  <p>الدروس المرئية على <a href="${YT_CHANNEL}" target="_blank" rel="noopener">قناة واحة السنة</a> في يوتيوب، والمواد الصوتية والكتب مأخوذة من <a href="${WP_SITE}" target="_blank" rel="noopener">مدونة الشيخ</a>، ويحفظ هذا الموقع نسخًا من الصوتيات والكتب لتسهيل الوصول إليها.</p>
   <p>آخر تحديث للفهرس: ${fmtDate(state.DB.updated)}</p></div></footer>`;
 
 export function headHtml(p) {

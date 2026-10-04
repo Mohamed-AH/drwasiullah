@@ -90,38 +90,35 @@
    ]
   },
   {
-   "title": "من كلام الشيخ",
-   "blocks": [
-    {
-     "links": [
-      {
-       "label": "افتتاحية المدونة — كلمة الشيخ بخطه (PDF)",
-       "url": "/files/iftitahiyat-al-mudawwana.pdf"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "title": "شهادة في حق الشيخ",
-   "blocks": [
-    {
-     "links": [
-      {
-       "label": "منشور على صفحة محمد بازمول في فيسبوك",
-       "url": "https://www.facebook.com/mohammadbazmool/posts/%D9%81%D8%B6%D9%8A%D9%84%D8%A9-%D8%A7%D9%84%D8%B4%D9%8A%D8%AE-%D8%A7%D9%84%D8%A3%D8%B3%D8%AA%D8%A7%D8%B0-%D8%A7%D9%84%D8%AF%D9%83%D8%AA%D9%88%D8%B1-%D9%88%D8%B5%D9%8A-%D8%A7%D9%84%D9%84%D9%87-%D9%85%D8%AD%D9%85%D8%AF-%D8%B9%D8%A8%D8%A7%D8%B3-%D8%B3%D9%84%D9%85%D9%87-%D8%A7%D9%84%D9%84%D9%87%D9%85%D9%86-%D8%B1%D8%AC%D8%A7%D9%84%D8%A7%D8%AA-%D8%A7%D9%84%D8%AD%D8%AF%D9%8A%D8%AB-%D9%88%D8%A7%D9%84%D8%B3%D9%86%D8%A9-/1030799817038504/?locale=ar_AR"
-      }
-     ]
-    }
-   ]
-  },
-  {
    "title": "مصدر الترجمة",
    "blocks": [
     [
      "المترجم له.",
      "بعض أبنائه."
     ]
+   ]
+  },
+  {
+   "title": "مرفقات وروابط",
+   "extra": true,
+   "intro": "مواد منفصلة عن نص الترجمة أعلاه.",
+   "blocks": [
+    {
+     "links": [
+      {
+       "label": "افتتاحية المدونة — كلمة الشيخ بخطه",
+       "kind": "pdf",
+       "note": "ملف PDF على هذا الموقع",
+       "url": "/files/iftitahiyat-al-mudawwana.pdf"
+      },
+      {
+       "label": "شهادة فضيلة الشيخ محمد بازمول حفظه الله في حق الشيخ",
+       "kind": "external",
+       "note": "منشور على صفحته في فيسبوك — رابط خارجي يُفتح في نافذة جديدة",
+       "url": "https://www.facebook.com/mohammadbazmool/posts/%D9%81%D8%B6%D9%8A%D9%84%D8%A9-%D8%A7%D9%84%D8%B4%D9%8A%D8%AE-%D8%A7%D9%84%D8%A3%D8%B3%D8%AA%D8%A7%D8%B0-%D8%A7%D9%84%D8%AF%D9%83%D8%AA%D9%88%D8%B1-%D9%88%D8%B5%D9%8A-%D8%A7%D9%84%D9%84%D9%87-%D9%85%D8%AD%D9%85%D8%AF-%D8%B9%D8%A8%D8%A7%D8%B3-%D8%B3%D9%84%D9%85%D9%87-%D8%A7%D9%84%D9%84%D9%87%D9%85%D9%86-%D8%B1%D8%AC%D8%A7%D9%84%D8%A7%D8%AA-%D8%A7%D9%84%D8%AD%D8%AF%D9%8A%D8%AB-%D9%88%D8%A7%D9%84%D8%B3%D9%86%D8%A9-/1030799817038504/?locale=ar_AR"
+      }
+     ]
+    }
    ]
   }
  ]
