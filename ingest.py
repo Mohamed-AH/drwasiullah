@@ -38,11 +38,11 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "videos.db"
+DB_PATH = Path(os.environ.get("VIDEOS_DB") or BASE_DIR / "videos.db")   # VIDEOS_DB: the daily GitHub Action works on a scratch copy
 ENV_PATH = BASE_DIR / ".env"
 CONFIG_PATH = BASE_DIR / "config.json"
 
-API_BASE = "https://www.googleapis.com/youtube/v3"
+API_BASE = os.environ.get("YOUTUBE_API_BASE", "https://www.googleapis.com/youtube/v3")   # override only for offline tests
 DEFAULT_HANDLE = "@wahatsunnah12"
 
 
@@ -147,7 +147,7 @@ def init_db(conn: sqlite3.Connection) -> None:
 
 
 def resolve_channel(config: dict) -> tuple[str, str, str]:
-    handle = os.environ.get("YOUTUBE_CHANNEL_HANDLE", config.get("channel_handle", DEFAULT_HANDLE))
+    handle = os.environ.get("YOUTUBE_CHANNEL_HANDLE") or config.get("channel_handle", DEFAULT_HANDLE)
     handle = handle.strip()
 
     data = api_get("channels", {
@@ -269,9 +269,10 @@ def ingest_videos(
     channel_title: str,
     uploads_playlist: str,
     config: dict,
-) -> int:
+) -> set[str]:
     now = datetime.now(timezone.utc).isoformat()
     count = 0
+    seen: set[str] = set()   # ids YouTube actually returned (deleted/private videos are listed in the playlist but not returned)
 
     for batch in chunks(video_ids, 50):
         data = api_get("videos", {
@@ -282,6 +283,7 @@ def ingest_videos(
 
         for video in data.get("items", []):
             vid = video["id"]
+            seen.add(vid)
             snippet = video.get("snippet", {})
             details = video.get("contentDetails", {})
 
@@ -363,8 +365,28 @@ def ingest_videos(
 
         conn.commit()
         print(f"Processed {count}/{len(video_ids)} videos...", flush=True)
+    return seen
 
     return count
+
+
+def mark_removed(conn: sqlite3.Connection, seen: set[str]) -> int:
+    """Videos deleted/made private on YouTube get speaker_status=REMOVED so the site stops linking to them.
+    Safety: a partial API answer must never wipe the library, so more than max(5, 3%) removals at once is refused."""
+    if not seen:
+        return 0
+    ids = [r[0] for r in conn.execute("SELECT youtube_id FROM videos WHERE speaker_status != 'REMOVED'")]
+    gone = [i for i in ids if i not in seen]
+    if not gone:
+        return 0
+    if len(gone) > max(5, int(len(ids) * 0.03)):
+        print(f"WARNING: {len(gone)} videos are missing from YouTube's answer; refusing to mark them removed (looks like a partial API response).")
+        return 0
+    conn.executemany("UPDATE videos SET speaker_status='REMOVED', updated_at=? WHERE youtube_id=?",
+                     [(datetime.now(timezone.utc).isoformat(), i) for i in gone])
+    conn.commit()
+    print(f"Marked {len(gone)} videos as REMOVED (deleted or private on YouTube): {', '.join(gone)}")
+    return len(gone)
 
 
 def main() -> int:
@@ -391,7 +413,7 @@ def main() -> int:
     conn = sqlite3.connect(DB_PATH)
     try:
         init_db(conn)
-        ingest_videos(
+        seen = ingest_videos(
             conn,
             video_ids,
             channel_id,
@@ -399,6 +421,7 @@ def main() -> int:
             uploads_playlist,
             config,
         )
+        mark_removed(conn, seen)
     finally:
         conn.close()
 

@@ -9,7 +9,7 @@ videos.db (series, subject, lesson_number, title_ar) always win.
 Included: CONFIRMED / MANUAL_APPROVED, plus REVIEW videos whose title names
 the Sheikh. Never included: MANUAL_REJECTED / REJECTED, other speakers.
 """
-import json, re, sqlite3
+import json, os, re, sqlite3
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -88,15 +88,17 @@ def duration(iso):
 
 
 def main():
-    db = sqlite3.connect(BASE / "videos.db")
+    db = sqlite3.connect(os.environ.get("VIDEOS_DB") or BASE / "videos.db")
     db.row_factory = sqlite3.Row
-    rows = db.execute("SELECT * FROM videos WHERE speaker_status != 'MANUAL_REJECTED' AND speaker_status != 'REJECTED'").fetchall()
+    rows = db.execute("SELECT * FROM videos WHERE speaker_status NOT IN ('MANUAL_REJECTED', 'REJECTED', 'REMOVED') ORDER BY published_at DESC, youtube_id").fetchall()
 
     series_info = {s[0]: {"id": s[0], "title": s[1], "subject": s[2], "description": s[3]} for s in SERIES}
     series_info[MISC[0]] = {"id": MISC[0], "title": MISC[1], "subject": MISC[2], "description": MISC[3]}
     custom = {}
     lessons = []
     for r in rows:
+        if duration(r["duration_iso"]) == 0:   # live now / premiere not started: it appears on the next run, once it has a length
+            continue
         title = (r["title_ar"] or "").strip() or r["title_original"]
         t = norm(title)
         approved = r["speaker_status"] in ("CONFIRMED", "MANUAL_APPROVED")
@@ -133,7 +135,12 @@ def main():
         series.append(info)
     series.sort(key=lambda s: (s["id"] == MISC[0], -s["count"]))
 
-    out = {"updated": date.today().isoformat(), "channel": "https://www.youtube.com/@wahatsunnah12",
+    updated = date.today().isoformat()
+    try:   # keep the old date when nothing changed, so the daily sync does not commit a no-op every day
+        old = json.loads(OUT.read_text(encoding="utf-8"))
+        if old.get("lessons") == lessons and old.get("series") == series: updated = old.get("updated", updated)
+    except (OSError, ValueError): pass
+    out = {"updated": updated, "channel": "https://www.youtube.com/@wahatsunnah12",
            "subjects": sorted({s["subject"] for s in series}), "series": series, "lessons": lessons}
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{len(lessons)} lessons in {len(series)} series -> {OUT.relative_to(BASE)}")

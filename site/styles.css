@@ -88,6 +88,7 @@ h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.4;margin:0}
 .bism{font:400 clamp(20px,3vw,28px) var(--disp);color:var(--rubric);animation:ink 1.4s .1s cubic-bezier(.6,0,.2,1) both}
 .hero h1{font-size:clamp(40px,7.4vw,88px);line-height:1.15;margin:6px 0 0;color:var(--ink);letter-spacing:-.01em;animation:rise 1s .25s both}
 .hero h1 em{font-style:normal;color:var(--rubric)}
+.h1-pre{display:block;font:400 clamp(26px,3.6vw,42px) var(--disp);color:var(--ink-2);letter-spacing:0;margin-bottom:4px}
 .dua{display:block;font:400 clamp(24px,3.4vw,38px) var(--disp);color:var(--rubric);margin-top:2px;letter-spacing:0}
 .orn{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px auto 12px;color:var(--gold);max-width:420px}
 .orn::before,.orn::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
