@@ -86,9 +86,11 @@ h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.4;margin:0}
 /* ───────── Hero ───────── */
 .hero{padding:46px 0 10px;text-align:center;position:relative}
 .bism{font:400 clamp(20px,3vw,28px) var(--disp);color:var(--rubric);animation:ink 1.4s .1s cubic-bezier(.6,0,.2,1) both}
-.hero h1{font-size:clamp(40px,7.4vw,88px);line-height:1.15;margin:6px 0 0;color:var(--ink);letter-spacing:0;animation:rise 1s .25s both}
+.hero h1{font-size:clamp(34px,6vw,72px);line-height:1.15;margin:6px 0 0;color:var(--ink);letter-spacing:0;animation:rise 1s .25s both}
 .hero h1 em{font-style:normal;color:var(--rubric)}
-.h1-pre{display:block;font:400 clamp(26px,3.6vw,42px) var(--disp);color:var(--ink-2);letter-spacing:0;margin-bottom:4px}
+.h1-pre{display:block;font:400 clamp(22px,3.1vw,36px) var(--disp);color:var(--ink-2);letter-spacing:0;margin-bottom:4px}
+.nm{white-space:nowrap}
+.role{font:700 clamp(18px,2.4vw,24px) var(--body);color:var(--ink-2);margin:2px 0 0;animation:rise 1s .35s both}
 .dua{display:block;font:400 clamp(24px,3.4vw,38px) var(--disp);color:var(--rubric);margin-top:2px;letter-spacing:0}
 .orn{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px auto 12px;color:var(--gold);max-width:420px}
 .orn::before,.orn::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
@@ -390,10 +392,12 @@ h2.sect{margin:0}
 .about-h{display:flex;gap:28px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .about-photo{width:200px;height:200px;object-fit:cover;border:1px solid var(--rule);outline:1px solid var(--rule);outline-offset:6px;filter:sepia(.18)}
 .about-h .dua{font-size:.5em}
+.about-h .page-h{font-size:clamp(30px,4.6vw,54px);line-height:1.3}
 .about-sec{margin:34px 0}
 .about-sec h2{font-size:28px;margin-bottom:8px;color:var(--rubric)}
 .about-sec p,.about-sec li{font-size:19px;line-height:2}
-.about-sec ul{padding-inline-start:1.2em}
+.about-sec ul,.about-sec ol{padding-inline-start:1.4em}
+.about-sec ul.links{list-style:none;padding:0}
 @media(max-width:700px){.about-photo{width:140px;height:140px}.about-h{gap:16px}}
 
 @media (forced-colors:active){.spine,.tile-ic::before,.seal::before,.seal::after{forced-color-adjust:none}.btn,.pill,.icon-btn{border:1px solid ButtonText}}

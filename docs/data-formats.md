@@ -57,4 +57,4 @@ Written by `tools/mirror_media.py`: `{ "<original URL>": { "url": "https://media
 
 ## Optional: `site/data/bio.json`
 
-Biography page, supplied by the Sheikh's team. Format in [bio-spec.md](bio-spec.md) and [bio.example.json](bio.example.json). Until the file exists there is no `/about/` page and no link to it.
+Biography page, text supplied by the Sheikh's team (`docs/bio.md`, copied unchanged into the JSON; edit the JSON directly from now on). Format in [bio-spec.md](bio-spec.md). Until the file exists there is no `/about/` page and no link to it. Files linked from it (the Sheikh's PDF) live in `site/files/`.

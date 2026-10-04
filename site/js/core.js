@@ -4,6 +4,11 @@ import { ICONS } from "./icons.js";
 export const SITE = "https://drwasiullah.com";
 export const NAME = "الشيخ وصي الله بن محمد عباس";
 export const NAME_FULL = `${NAME} حفظه الله`;
+// Wording supplied by the Sheikh's team (2026-10-04): the site's official name, his full name and his posts.
+export const OFFICIAL_PRE = "الموقع الرسمي لفضيلة الشيخ الأستاذ الدكتور";
+export const FULL_NAME = "وصي الله بن محمد عباس بن أحمد عباس";
+export const ROLE = "المدرس بالمسجد الحرام والأستاذ بجامعة أم القرى";
+export const OFFICIAL_NAME = `${OFFICIAL_PRE} ${FULL_NAME}`;
 export const YT_CHANNEL = "https://www.youtube.com/@wahatsunnah12";
 export const WP_SITE = "https://wasiullahabbas.wordpress.com/";
 

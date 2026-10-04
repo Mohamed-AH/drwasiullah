@@ -38,5 +38,5 @@ https://www.bing.com/webmasters → **Import from Google Search Console** (one c
 
 ## Target queries (updated 2026-10-03)
 Target **«دروس الشيخ وصي الله عباس»** — on-page done (home title/description, header subtitle, JSON-LD `alternateName`).
-**«الموقع الرسمي»** is deliberately NOT used on the site until the Sheikh's team gives written consent (owner decision); then add it to the home title/description/intro and WebSite `alternateName` in `site/js/views.js`.
+**«الموقع الرسمي»** is in use since 2026-10-04: the Sheikh's team asked for it (name text in CLAUDE.md, *Wording*). It appears in the home title/description/hero, the header subtitle, every page title suffix, `og:site_name` and the WebSite JSON-LD (`alternateName` includes «الموقع الرسمي للشيخ وصي الله عباس»).
 Owner actions: Search Console (verify, submit sitemap, request indexing); links to drwasiullah.com from the Sheikh's YouTube channel/WordPress/social profiles; the bio page; consistent name spelling; allow weeks.
