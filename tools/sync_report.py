@@ -32,6 +32,10 @@ def main():
     attention += [f"UNMATCHED `{l['id']}` {l['title'][:80]} (no series rule matched; it is listed under general lectures)" for l in added if l["series"] == "misc"][:30]
     attention += [f"NO NUMBER `{l['id']}` {l['title'][:80]} (series {l['series']})" for l in added if l["series"] != "misc" and l.get("n") is None][:30]
     attention += [f"DUPLICATE NUMBER {s} #{k} is now used by more than one lesson" for s, k in sorted(dupes(new["lessons"]) - dupes(old["lessons"]))]
+    rep = os.environ.get("CATALOGUE_REPORT")
+    if rep and Path(rep).exists():
+        for c in json.loads(Path(rep).read_text(encoding="utf-8"))[:30]:
+            attention.append(f"PLAYLIST CONFLICT `{c['id']}` {c['title'][:70]}: the title says {c['title_series']}, its playlist says {c['playlist_series']} (kept the title; override with manage.py if the playlist is right)")
     if attention:
         print("\n### Needs a look (series rules are title patterns; fix with `manage.py edit <id> --series ... --lesson-number ...`, see docs/data-formats.md)\n")
         for a in attention: print(f"- {a}")

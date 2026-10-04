@@ -95,7 +95,7 @@ The structure carries over; the content-specific parts are few.
 
 ## Limits and trade-offs
 
-- **Series and lesson numbers are derived from titles with patterns.** It fits this channel's naming habits, and a title in a new style can land in the wrong series or without a number. Publication does not depend on it (that rests on the speaker's name). The daily sync reports lessons that moved, matched no series, or share a number, and any lesson can be fixed by hand ([docs/data-formats.md](docs/data-formats.md)). Using the channel's own playlists instead is being evaluated.
+- **Series and lesson numbers are derived from titles with patterns.** It fits this channel's naming habits, and a title in a new style can land in the wrong series or without a number. Publication does not depend on it (that rests on the speaker's name). The daily sync reports lessons that moved, matched no series, or share a number, and any lesson can be fixed by hand ([docs/data-formats.md](docs/data-formats.md)). The channel's own playlists are used as a second opinion: they place lessons the patterns miss, and disagreements are listed for a person to decide.
 - **Some media still depends on third parties.** Video stays on YouTube, and any audio or PDF not yet copied to our own storage is served from its original host.
 - **Client-side search suits a few thousand items.** Past that, the JSON files would need splitting or a search service.
 - **Arabic only for now.** An English edition is planned in [ROADMAP.md](ROADMAP.md).

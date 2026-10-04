@@ -28,6 +28,8 @@ def main():
     channel_id, title, _ = ingest.resolve_channel(ingest.load_config())
     cat = json.loads((ROOT / "site" / "catalogue.json").read_text(encoding="utf-8"))
     ours = {l["id"]: l["series"] for l in cat["lessons"]}
+    titles = {l["id"]: l["title"] for l in cat["lessons"]}
+    mapped = json.loads((ROOT / "config.json").read_text(encoding="utf-8")).get("playlist_series") or {}   # playlist id -> our series id
     names = {s["id"]: s["title"] for s in cat["series"]}
     out = [f"Channel: {title}", f"Published lessons: {len(ours)}", ""]
     covered = set()
@@ -40,6 +42,13 @@ def main():
         out.append(f"{p['snippet']['title']}  [{p['id']}]  videos: {len(ids)}, published by us: {len(mine)}")
         for sid, k in by.most_common(4): out.append(f"      {k:4}  in our series: {names.get(sid, sid)}")
         if len(ids) - len(mine): out.append(f"      {len(ids) - len(mine):4}  not published by us (other speakers, or not matched)")
+        sid = mapped.get(p["id"])
+        if sid:   # playlist mapped to one of our series in config.json: list the disagreements
+            extra = [i for i in mine if ours[i] != sid]
+            missing = [i for i, s_ in ours.items() if s_ == sid and i not in ids]
+            out.append(f"      mapped to series '{sid}': {len(extra)} of its videos sit in another series on our side, {len(missing)} of our '{sid}' lessons are not in the playlist")
+            for i in extra[:40]: out.append(f"         in playlist, ours={ours[i]}: {i}  {titles[i][:80]}")
+            for i in missing[:40]: out.append(f"         not in playlist:        {i}  {titles[i][:80]}")
     out.append(f"\nPublished lessons that are in at least one playlist: {len(covered)} of {len(ours)}")
     text = "\n".join(out)
     print(text)

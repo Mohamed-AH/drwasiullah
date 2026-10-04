@@ -15,6 +15,7 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 OUT = BASE / "site" / "catalogue.json"
+PLAYLISTS = Path(os.environ.get("PLAYLISTS_JSON") or BASE / "data" / "playlists.json")   # written by ingest.py
 
 AR_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
 NAME = re.compile(r"وصي\s*(ال)?له|وصى\s*الله|wasi", re.I)
@@ -87,6 +88,21 @@ def duration(iso):
     return h * 3600 + mi * 60 + s
 
 
+def playlist_series():
+    """video id -> built-in series id, from the playlists that config.json maps to series (empty if not available)."""
+    try:
+        mapping = json.loads((BASE / "config.json").read_text(encoding="utf-8")).get("playlist_series") or {}
+        members = json.loads(PLAYLISTS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    known = {s[0] for s in SERIES}
+    out = {}
+    for pid, sid in mapping.items():
+        if sid in known:
+            for vid in members.get(pid, []): out.setdefault(vid, sid)
+    return out
+
+
 def main():
     db = sqlite3.connect(os.environ.get("VIDEOS_DB") or BASE / "videos.db")
     db.row_factory = sqlite3.Row
@@ -96,6 +112,7 @@ def main():
     series_info[MISC[0]] = {"id": MISC[0], "title": MISC[1], "subject": MISC[2], "description": MISC[3]}
     custom = {}
     lessons = []
+    by_playlist, conflicts = playlist_series(), []
     for r in rows:
         if duration(r["duration_iso"]) == 0:   # live now / premiere not started: it appears on the next run, once it has a length
             continue
@@ -116,6 +133,11 @@ def main():
             for s in SERIES:
                 if re.search(s[4], t):
                     sid = s[0]; break
+        # Precedence: manual > title pattern > playlist > general lectures. A playlist only fills gaps; when it disagrees with
+        # a title pattern nothing changes and the case is reported (set CATALOGUE_REPORT to a file to receive the list).
+        pl = by_playlist.get(r["youtube_id"])
+        if pl and not sid: sid = pl
+        elif pl and sid != pl and not manual: conflicts.append({"id": r["youtube_id"], "title": title, "title_series": sid, "playlist_series": pl})
         sid = sid or MISC[0]
         n = r["lesson_number"] if r["lesson_number"] is not None else (number_of(title) if sid != MISC[0] else None)
         item = {
@@ -148,6 +170,9 @@ def main():
            "subjects": sorted({s["subject"] for s in series}), "series": series, "lessons": lessons}
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{len(lessons)} lessons in {len(series)} series -> {OUT.relative_to(BASE)}")
+    if os.environ.get("CATALOGUE_REPORT"):
+        Path(os.environ["CATALOGUE_REPORT"]).write_text(json.dumps(conflicts, ensure_ascii=False), encoding="utf-8")
+    if conflicts: print(f"  {len(conflicts)} videos where the title and the playlist name different series (nothing changed; see the sync report)")
     for s in series: print(f"  {s['count']:4}  {s['title']}")
 
 
