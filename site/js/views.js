@@ -68,7 +68,7 @@ function home() {
   const bio = state.bio;
   const html = `
     <section class="hero"><p class="bism">بسم الله الرحمن الرحيم</p>
-      <h1>الشيخ <em>وصي الله</em> بن محمد عباس<span class="dua"> حفظه الله</span></h1>
+      <h1><span class="h1-pre">موقع دروس</span>الشيخ <em>وصي الله</em> بن محمد عباس<span class="dua"> حفظه الله</span></h1>
       <div class="orn" aria-hidden="true">${STAR}</div>
       <p class="hero-p">فهرس منظّم لدروس الشيخ أ.د. وصي الله بن محمد عباس حفظه الله ومحاضراته وخطبه وكتبه، مرتّبة بحسب الأقسام والكتب لتصل إلى ما تريده بسرعة.</p>
       ${searchBox("ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج", "", "q", true)}
@@ -82,7 +82,7 @@ function home() {
     <div class="grid">${latest.map(lessonCard).join("")}</div>`;
   return mkPage({
     nav: "home", path: "/", html, wire: { t: "home" },
-    title: `دروس الشيخ وصي الله عباس — ${NAME_FULL}`,
+    title: `موقع دروس ${NAME_FULL} — دروس الشيخ وصي الله عباس`,
     description: `فهرس دروس الشيخ وصي الله عباس ومحاضراته وخطبه وكتبه (${NAME_FULL}): شروح صحيح مسلم وسنن ابن ماجه وسنن أبي داود والترمذي وغيرها، للاستماع والمشاهدة والتحميل.`,
     jsonld: [
       { "@context": "https://schema.org", "@type": "WebSite", name: NAME_FULL, alternateName: ["دروس الشيخ وصي الله عباس"], url: SITE + "/", inLanguage: "ar",
