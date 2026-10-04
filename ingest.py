@@ -41,6 +41,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("VIDEOS_DB") or BASE_DIR / "videos.db")   # VIDEOS_DB: the daily GitHub Action works on a scratch copy
 ENV_PATH = BASE_DIR / ".env"
 CONFIG_PATH = BASE_DIR / "config.json"
+PLAYLISTS_PATH = Path(os.environ.get("PLAYLISTS_JSON") or BASE_DIR / "data" / "playlists.json")
 
 API_BASE = os.environ.get("YOUTUBE_API_BASE", "https://www.googleapis.com/youtube/v3")   # override only for offline tests
 DEFAULT_HANDLE = "@wahatsunnah12"
@@ -370,6 +371,33 @@ def ingest_videos(
     return count
 
 
+def sync_playlists(config: dict) -> None:
+    """Remember which videos sit in the playlists that config.json maps to a series (playlist_series).
+    build_catalogue.py uses this only for videos whose title matches no series rule. A failure keeps the previous file."""
+    mapping = config.get("playlist_series") or {}
+    if not mapping:
+        return
+    try:
+        out = {}
+        for pid in mapping:
+            ids, token = [], None
+            while True:
+                params = {"part": "contentDetails", "playlistId": pid, "maxResults": 50}
+                if token:
+                    params["pageToken"] = token
+                data = api_get("playlistItems", params)
+                ids += [i["contentDetails"]["videoId"] for i in data.get("items", []) if i.get("contentDetails", {}).get("videoId")]
+                token = data.get("nextPageToken")
+                if not token:
+                    break
+            out[pid] = ids
+        PLAYLISTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        PLAYLISTS_PATH.write_text(json.dumps(out, indent=0) + "\n", encoding="utf-8")
+        print(f"Playlists: {', '.join(f'{len(v)}' for v in out.values())} videos in {len(out)} mapped playlists.")
+    except RuntimeError as exc:
+        print(f"WARNING: could not read playlists ({exc}); keeping the previous data/playlists.json.")
+
+
 def mark_removed(conn: sqlite3.Connection, seen: set[str]) -> int:
     """Videos deleted/made private on YouTube get speaker_status=REMOVED so the site stops linking to them.
     Safety: a partial API answer must never wipe the library, so more than max(5, 3%) removals at once is refused."""
@@ -422,6 +450,7 @@ def main() -> int:
             config,
         )
         mark_removed(conn, seen)
+        sync_playlists(config)
     finally:
         conn.close()
 

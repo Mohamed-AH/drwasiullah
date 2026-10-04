@@ -37,7 +37,8 @@ jobs:
 
       - name: Require the API key
         run: |
-          echo "VIDEOS_DB=$RUNNER_TEMP/videos.db" >> "$GITHUB_ENV"   # scratch copy; the tracked videos.db is never touched
+          echo "VIDEOS_DB=$RUNNER_TEMP/videos.db" >> "$GITHUB_ENV"
+          echo "CATALOGUE_REPORT=$RUNNER_TEMP/conflicts.json" >> "$GITHUB_ENV"   # scratch copy; the tracked videos.db is never touched
           if [ -z "$YOUTUBE_API_KEY" ]; then echo "::error::Repository secret YOUTUBE_API_KEY is not set (Settings > Secrets and variables > Actions)."; exit 1; fi
 
       - name: Sync
@@ -56,10 +57,11 @@ jobs:
 
       - name: Publish
         run: |
-          if git diff --quiet -- data/videos.jsonl site/catalogue.json; then echo "No changes today."; exit 0; fi
+          if git diff --quiet -- data/videos.jsonl data/playlists.json site/catalogue.json && [ -z "$(git ls-files --others --exclude-standard data/playlists.json)" ]; then echo "No changes today."; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/videos.jsonl site/catalogue.json
+          if [ -f data/playlists.json ]; then git add data/playlists.json; fi
           git commit -m "YouTube sync $(date -u +%F)"
           if [ "$SYNC_MODE" = "pr" ]; then
             git push --force origin HEAD:refs/heads/auto/youtube-sync

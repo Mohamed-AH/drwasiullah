@@ -8,5 +8,12 @@
     "وصی اللہ",
     "Wasiullah Abbass"
   ],
-  "excluded_speakers": []
+  "excluded_speakers": [],
+  "playlist_series": {
+    "PLSk5ZAKsTpSx0CGjKywigrX4pG4Mp55hm": "muslim",
+    "PLSk5ZAKsTpSxE6Qg_CWuBA_b6zkMlDBaC": "ibn-majah",
+    "PLSk5ZAKsTpSybQd-5lusIyC4HvkXCL-64": "fadail-sahabah",
+    "PLSk5ZAKsTpSyxxN2NHDfzNhJEk0PZIGsz": "jami",
+    "PLSk5ZAKsTpSwlaVWHxcEdMUAfNHyxKtXm": "nasai"
+  }
 }

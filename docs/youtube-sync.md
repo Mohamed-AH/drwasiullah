@@ -8,6 +8,7 @@ A GitHub Action (`.github/workflows/youtube-sync.yml`) runs every day at 03:17 U
 3. Writes a summary on the run page: new lessons, lessons that disappeared, how many videos wait for review.
 
 **What gets published automatically:** only videos whose title names the Sheikh (or that you approved by hand with `manage.py`). Other speakers' uploads stay in the database with status `REVIEW` and never reach the site. Live streams and premieres appear after they finish.
+The five main series are also matched against the channel's playlists, which fill in lessons whose title no pattern recognises; disagreements between title and playlist are listed in the run summary, never applied silently (see `docs/data-formats.md`).
 Videos deleted/made private on YouTube are marked `REMOVED` and disappear from the site. Your manual curation (series, lesson number, Arabic title, approvals/rejections) is never overwritten.
 Safety stops: if more than 3 lessons would vanish, or YouTube answers only partly, the run fails and **publishes nothing** (you get GitHub's failure email).
 
