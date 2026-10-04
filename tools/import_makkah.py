@@ -16,8 +16,9 @@ SERIES = {"id": "fath-bari", "title": "شرح فتح الباري", "sec": "audi
 NUZHA_PARTS = ["3727", "3728"]                   # the two last Nuzhat pieces: two parts of lesson 22 of our series nuzha-audio
 NUZHA_N = 22
 ORD = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر"]
+BAD_DATE = re.compile(r"\s*\d{1,2}\s*-+\s*-*\s*\d{1,2}\s*-\s*\d{4}\s*ه?ـ?\s*$")         # malformed '27--4-1422 هـ' (a number is missing): drop it, no date
 DATE = re.compile(r"\s*(\d{1,2})\s*-\s*(\d{1,2})\s*-\s*(\d{4})\s*ه?ـ?\s*$")     # '18-10-1419 هـ' at the end of a file name: day-month-year (Hijri)
-BOOK = re.compile(r"^(كتاب\s+.+?)\s+باب\b")                                       # 'كتاب بدء الوحي باب كيف …' -> section 'كتاب بدء الوحي'
+BOOK = re.compile(r"^(كتاب\s+[^-]+?)\s*(?:-\s*)?\bباب\b|^(كتاب\s+[^-]+?)\s+-\s")                                       # 'كتاب بدء الوحي باب كيف …' -> section 'كتاب بدء الوحي'
 
 
 def clean_url(u):
@@ -40,6 +41,10 @@ def split_name(v):
                 from hijridate import Hijri
                 date = Hijri(y, mo, min(d, 29)).to_gregorian().isoformat()      # for sorting only; the site shows the Hijri date
             except Exception: pass
+    else:
+        name = BAD_DATE.sub("", name).strip(" -_")
+    name = re.sub(r"^\d{3,5}\s+", "", name)                                   # leading file counter '00340 '
+    if "~" in name or len(re.findall(r"[\u0600-\u06FF]", name)) < 4: name = ""   # truncated 8.3 name ('كت~2'): no usable title
     return name, hd, date
 
 
@@ -69,7 +74,7 @@ def build(cache):
             mv = cache[mk]
             part = f" — الجزء {ORD[i] if i < len(ORD) else i + 1}" if len(members) > 1 else ""
             l = {"id": f"fath-bari-{int(mk):04d}", "title": title + part, "series": "fath-bari", "kind": "audio", "src": clean_url(mv.get("direct") or mv["url"]), "n": n}
-            if sec: l["section"] = re.sub(r"\s+", " ", sec.group(1)).strip(" -–—ـ")
+            if sec: l["section"] = re.sub(r"\s+", " ", (sec.group(1) or sec.group(2))).strip(" -–—ـ")
             if hd: l["hd"] = hd
             if date: l["date"] = date
             lessons.append(l)
