@@ -53,14 +53,14 @@ Dates are shown in the Hijri calendar only. Where the source gives a Hijri date 
 
 ## Lessons from makkahscholars.org: `site/data/makkah.json`
 
-The Sheikh's lessons are also on makkahscholars.org (scholar 39). We import two things from there, linked straight to the source's mp3 files (`mp3.makkahscholars.org`): the series «شرح فتح الباري» (group 33, 1,224 lessons) and the last two Nuzhat pieces (lessons 3727 and 3728, added as lessons 22 and 23 of our Nuzhat audio series). The other groups duplicate series we already have.
+The Sheikh's lessons are also on makkahscholars.org (scholar 39). We import two things from there, linked straight to the source's mp3 files (`mp3.makkahscholars.org`): the series «شرح فتح الباري» (group 33, 1,224 lessons) and the last two Nuzhat pieces (lessons 3727 and 3728, which share one file name: the two parts of lesson 22 of our Nuzhat audio series). The other groups duplicate series we already have.
 
 ```
 python tools/scan_makkah.py     # asks the site where each file is and how big it is (no audio is downloaded; ~25 minutes, resumable) -> tools/makkah_scan.json
 python tools/import_makkah.py   # -> site/data/makkah.json (commit this file)
 ```
 
-`scripts/build.mjs` merges `makkah.json` into the library the browsers load; `check_links.py`, `measure_storage.py` and `mirror_media.py` read it too, so the links can be checked and, later, mirrored to our own storage. Titles come from the file names on the source site; check the sample the importer prints. Both scripts run on the owner's machine (the cloud session cannot reach the site) and are polite: robots.txt is honoured and requests are spaced.
+`scripts/build.mjs` merges `makkah.json` into the library the browsers load; `check_links.py`, `measure_storage.py` and `mirror_media.py` read it too, so the links can be checked and, later, mirrored to our own storage. The file names on the source site carry the title and a Hijri date («كتاب بدء الوحي باب كيف بدء الوحي 18-10-1419 هـ»); the importer uses them for the title, the date (shown in Hijri; a Gregorian date is derived only for sorting) and the «كتاب» section for grouping. Consecutive lesson numbers with the same file name are the pieces of one lesson (shown as «الجزء الأول / الثاني»). Check the sample the importer prints. Both scripts run on the owner's machine (the cloud session cannot reach the site) and are polite: robots.txt is honoured and requests are spaced.
 
 ## Mirrored media: `site/data/media.json`
 
