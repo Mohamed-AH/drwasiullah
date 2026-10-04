@@ -69,7 +69,7 @@ def build(cache):
             mv = cache[mk]
             part = f" — الجزء {ORD[i] if i < len(ORD) else i + 1}" if len(members) > 1 else ""
             l = {"id": f"fath-bari-{int(mk):04d}", "title": title + part, "series": "fath-bari", "kind": "audio", "src": clean_url(mv.get("direct") or mv["url"]), "n": n}
-            if sec: l["section"] = re.sub(r"\s+", " ", sec.group(1))
+            if sec: l["section"] = re.sub(r"\s+", " ", sec.group(1)).strip(" -–—ـ")
             if hd: l["hd"] = hd
             if date: l["date"] = date
             lessons.append(l)
