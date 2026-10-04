@@ -105,9 +105,13 @@ def main():
         if not (approved or NAME.search(norm(r["title_original"]))):
             continue
         sid = None
-        if r["series"]:  # manual curation wins
-            sid = custom.setdefault(r["series"], "c-%d" % (len(custom) + 1))
-            series_info.setdefault(sid, {"id": sid, "title": r["series"], "subject": r["subject"] or "عام", "description": ""})
+        manual = (r["series"] or "").strip()
+        if manual:  # manual curation wins. A built-in series id or title joins that series; any other text makes a custom series.
+            builtin = next((x[0] for x in SERIES if manual in (x[0], x[1])), None)
+            if builtin: sid = builtin
+            else:
+                sid = custom.setdefault(manual, "c-%d" % (len(custom) + 1))
+                series_info.setdefault(sid, {"id": sid, "title": manual, "subject": r["subject"] or "عام", "description": ""})
         else:
             for s in SERIES:
                 if re.search(s[4], t):
