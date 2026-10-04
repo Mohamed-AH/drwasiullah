@@ -42,6 +42,9 @@ export function applyMedia(lib = {}, media = null) {
     books: (lib.books || []).map(b => ({ ...b, files: b.files.map(f => mine(f.url) ? { ...f, url: mine(f.url), url_alt: f.url } : f) })) };
 }
 
+/* Library files that add to library.json (lessons imported from other sources, e.g. data/makkah.json). */
+export const mergeLibraries = (...libs) => libs.filter(Boolean).reduce((a, b) => ({ ...a, ...b, series: [...(a.series || []), ...(b.series || [])], lessons: [...(a.lessons || []), ...(b.lessons || [])], books: [...(a.books || []), ...(b.books || [])] }), {});
+
 export function init(cat, lib = {}, bio = null, media = null) {
   lib = applyMedia(lib, media);
   SECTIONS.forEach(s => secById[s.id] = s);

@@ -43,7 +43,7 @@ class Page(HTMLParser):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", action="append", help="listing page to start from (repeatable); default: the four groups of scholar 39")
-    ap.add_argument("--detail", default=r"^/lessons?/\d+", help="regex for lesson pages (on the path) that are followed from a listing")
+    ap.add_argument("--detail", default=r"^/lessons?/\d+$", help="regex for lesson pages (on the path) that are followed from a listing")
     ap.add_argument("--max-pages", type=int, default=300)
     ap.add_argument("--delay", type=float, default=1.0)
     a = ap.parse_args()
@@ -66,7 +66,9 @@ def main():
         if not rp.can_fetch(UA, url): print("robots.txt disallows", url, file=sys.stderr); continue
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "ar,en"}), timeout=30) as r:
-                html = r.read().decode(r.headers.get_content_charset() or "utf-8", "replace")
+                if r.headers.get_content_type() != "text/html":   # never read audio/PDF bodies: only HTML pages are probed
+                    print("skipped (not HTML)", url, r.headers.get_content_type(), file=sys.stderr); continue
+                html = r.read(3_000_000).decode(r.headers.get_content_charset() or "utf-8", "replace")
         except Exception as e:
             print("failed", url, e, file=sys.stderr); continue
         (out_dir / (re.sub(r"[^\w]+", "_", url)[-120:] + ".html")).write_text(html, encoding="utf-8")
@@ -78,7 +80,7 @@ def main():
             full = urllib.parse.urljoin(url, l).split("#")[0]; sp = urllib.parse.urlsplit(full); q = urllib.parse.parse_qs(sp.query)
             if sp.netloc != host or full in seen or full in queue: continue
             same_listing = sp.path in seed_paths and q.get("scholar_id") == ["39"] and q.get("group_id", [g])[0] == g   # pagination of this group
-            is_detail = re.search(a.detail, sp.path) is not None
+            is_detail = re.search(a.detail, sp.path) is not None and not sp.path.endswith("/download")
             if same_listing or is_detail:
                 group_of.setdefault(full, g); queue.append(full)
         print(f"  [{len(pages)}] {url}  ({len(p.media)} media, {len(p.links)} links)", file=sys.stderr)

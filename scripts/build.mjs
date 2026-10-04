@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { init, applyMedia, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href } from "../site/js/core.js";
+import { init, applyMedia, mergeLibraries, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href } from "../site/js/core.js";
 import { resolve, notFoundPage, chromeTop, chromeBottom, footer, headHtml } from "../site/js/views.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -12,18 +12,19 @@ const SRC = path.join(ROOT, "site"), OUT = path.join(ROOT, "dist");
 const readJSON = (f, optional = false) => { try { return JSON.parse(fs.readFileSync(path.join(SRC, f), "utf8")); } catch (e) { if (optional) return null; throw e; } };
 
 const t0 = Date.now();
-init(readJSON("catalogue.json"), readJSON("data/library.json", true) || {}, readJSON("data/bio.json", true), readJSON("data/media.json", true));
+const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true));   // library.json + lessons imported from makkahscholars.org
+init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true));
 const DB = state.DB;
 
 fs.rmSync(OUT, { recursive: true, force: true });
-fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) && !/[\\/]data[\\/]media\.json$/.test(s) });   // the manifest stays out of dist: the merged library below carries the mirrored links
+fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) && !/[\\/]data[\\/]media\.json$/.test(s) && !/[\\/]data[\\/]makkah\.json$/.test(s) });   // the manifest stays out of dist: the merged library below carries the mirrored links
 
 const shell = fs.readFileSync(path.join(SRC, "shell.html"), "utf8");
 const fill = (tpl, map) => tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => map[k]);   // single pass: page content is never re-scanned for placeholders
 const render = p => fill(shell, { HEAD: headHtml(p), TOP: chromeTop(p.nav), MAIN: p.html, FOOT: footer(), BOTTOM: chromeBottom(p.nav), ROUTE: p.path });
 const write = (rel, html) => { const f = path.join(OUT, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); };
-const MEDIA = readJSON("data/media.json", true), LIB = readJSON("data/library.json", true);
-if (LIB && MEDIA && Object.keys(MEDIA).length) write("data/library.json", JSON.stringify(applyMedia(LIB, MEDIA)));
+const MEDIA = readJSON("data/media.json", true);
+write("data/library.json", JSON.stringify(applyMedia(LIB, MEDIA)));   // the one library file browsers load: all sources merged, mirrored links applied
 
 /* routes */
 const routes = ["/", "/library/", "/search/"];

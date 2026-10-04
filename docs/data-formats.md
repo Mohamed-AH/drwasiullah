@@ -51,6 +51,17 @@ Audio series, lectures, khutab, Urdu lessons and books. It was generated from sa
 Dates are shown in the Hijri calendar only. Where the source gives a Hijri date it is used as is; otherwise the Gregorian date is converted.
 `dead_links.txt` lists source URLs known to be 404; the importer skips them. `python tools/check_links.py` finds new ones and `python import_wordpress.py --prune tools/missing.txt` records them.
 
+## Lessons from makkahscholars.org: `site/data/makkah.json`
+
+The Sheikh's lessons are also on makkahscholars.org (scholar 39). We import two things from there, linked straight to the source's mp3 files (`mp3.makkahscholars.org`): the series «شرح فتح الباري» (group 33, 1,224 lessons) and the last two Nuzhat pieces (lessons 3727 and 3728, added as lessons 22 and 23 of our Nuzhat audio series). The other groups duplicate series we already have.
+
+```
+python tools/scan_makkah.py     # asks the site where each file is and how big it is (no audio is downloaded; ~25 minutes, resumable) -> tools/makkah_scan.json
+python tools/import_makkah.py   # -> site/data/makkah.json (commit this file)
+```
+
+`scripts/build.mjs` merges `makkah.json` into the library the browsers load; `check_links.py`, `measure_storage.py` and `mirror_media.py` read it too, so the links can be checked and, later, mirrored to our own storage. Titles come from the file names on the source site; check the sample the importer prints. Both scripts run on the owner's machine (the cloud session cannot reach the site) and are polite: robots.txt is honoured and requests are spaced.
+
 ## Mirrored media: `site/data/media.json`
 
 Written by `tools/mirror_media.py`: `{ "<original URL>": { "url": "https://media.drwasiullah.com/…", "key", "sha256", "size" } }`. It is not sent to browsers. `scripts/build.mjs` merges it into `dist/data/library.json` (our copy becomes `src`/`url`, the original is kept as `src_alt`/`url_alt`), and the audio player falls back to `src_alt` if our copy fails. Setup: [mirror-setup.md](mirror-setup.md).
