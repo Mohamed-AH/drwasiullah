@@ -1,0 +1,74 @@
+name: YouTube sync
+
+# Every day: read the channel through the YouTube Data API, add new lessons to data/videos.jsonl, rebuild site/catalogue.json,
+# and publish. Only lessons whose title names the Sheikh (or that were approved by hand) are published - see docs/youtube-sync.md.
+on:
+  schedule:
+    - cron: "17 3 * * *"        # 03:17 UTC daily
+  workflow_dispatch:             # "Run workflow" button for a manual run
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: youtube-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VIDEOS_DB: ${{ runner.temp }}/videos.db          # scratch copy; the tracked videos.db is never touched
+      YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+      YOUTUBE_CHANNEL_HANDLE: ${{ vars.YOUTUBE_CHANNEL_HANDLE }}
+      SYNC_MODE: ${{ vars.SYNC_MODE }}                  # empty/"main": commit to main.  "pr": open a pull request instead.
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Require the API key
+        run: |
+          if [ -z "$YOUTUBE_API_KEY" ]; then echo "::error::Repository secret YOUTUBE_API_KEY is not set (Settings > Secrets and variables > Actions)."; exit 1; fi
+
+      - name: Sync
+        run: |
+          cp site/catalogue.json "$RUNNER_TEMP/catalogue.before.json"
+          python tools/videos_text.py load
+          python ingest.py
+          python build_catalogue.py
+          python tools/videos_text.py dump
+
+      - name: Check the site still builds, and the result is sane
+        shell: bash          # bash -eo pipefail: a failing guard must stop the job even though its output goes through tee
+        run: |
+          node scripts/build.mjs
+          python tools/sync_report.py "$RUNNER_TEMP/catalogue.before.json" site/catalogue.json "$VIDEOS_DB" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish
+        run: |
+          if git diff --quiet -- data/videos.jsonl site/catalogue.json; then echo "No changes today."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/videos.jsonl site/catalogue.json
+          git commit -m "YouTube sync $(date -u +%F)"
+          if [ "$SYNC_MODE" = "pr" ]; then
+            git push --force origin HEAD:refs/heads/auto/youtube-sync
+            gh pr create --base main --head auto/youtube-sync --title "YouTube sync $(date -u +%F)" --body "Automatic daily sync. See the run summary for new lessons." \
+              || gh pr edit auto/youtube-sync --title "YouTube sync $(date -u +%F)"
+          else
+            for i in 1 2 3; do
+              git pull --rebase origin main && git push origin HEAD:main && exit 0
+              sleep $((i * 5))
+            done
+            echo "::error::Could not push to main (branch protection? set the repository variable SYNC_MODE=pr)"; exit 1
+          fi
