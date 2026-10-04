@@ -1,7 +1,7 @@
 /* Pure page renderers: every page is a function returning { html, title, description, path, jsonld, ... }.
    Used by scripts/build.mjs (pre-rendering to real static HTML) and by js/app.js (client-side navigation). */
 import {
-  SITE, NAME, NAME_FULL, YT_CHANNEL, WP_SITE, SECTIONS, SPINE, SPINE_PALETTE, SPINE_H, PAGE, MAXQ,
+  SITE, NAME, NAME_FULL, OFFICIAL_PRE, FULL_NAME, ROLE, OFFICIAL_NAME, YT_CHANNEL, WP_SITE, SECTIONS, SPINE, SPINE_PALETTE, SPINE_H, PAGE, MAXQ,
   state, byId, seriesById, secById, ic, esc, fmtNum, fmtYear, ldate, dur, isoDur, hours, dg, cleanQuery, oneOf, safeUrl, safeYt, safeLang, safeDecode, jsonLd,
   kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
 } from "./core.js";
@@ -58,7 +58,7 @@ function crumbs(items) {
   return { html, ld };
 }
 const mkPage = o => ({ status: 200, noindex: false, jsonld: [], image: OG_DEFAULT, ogType: "website", nav: "", wire: { t: "none" }, ...o });
-const withSite = t => `${t} | ${NAME}`;
+const withSite = t => `${t} | الموقع الرسمي للشيخ ${NAME.replace(/^الشيخ /, "")}`;
 
 /* ───────── Pages ───────── */
 function home() {
@@ -68,7 +68,8 @@ function home() {
   const bio = state.bio;
   const html = `
     <section class="hero"><p class="bism">بسم الله الرحمن الرحيم</p>
-      <h1><span class="h1-pre">موقع دروس</span>الشيخ <em>وصي الله</em> بن محمد عباس<span class="dua"> حفظه الله</span></h1>
+      <h1><span class="h1-pre">${OFFICIAL_PRE}</span><span class="nm"><em>وصي الله</em></span> <span class="nm">بن محمد عباس</span> <span class="nm">بن أحمد عباس</span><span class="dua"> حفظه الله</span></h1>
+      <p class="role">${ROLE}</p>
       <div class="orn" aria-hidden="true">${STAR}</div>
       <p class="hero-p">فهرس منظّم لدروس الشيخ أ.د. وصي الله بن محمد عباس حفظه الله ومحاضراته وخطبه وكتبه، مرتّبة بحسب الأقسام والكتب لتصل إلى ما تريده بسرعة.</p>
       ${searchBox("ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج", "", "q", true)}
@@ -82,12 +83,12 @@ function home() {
     <div class="grid">${latest.map(lessonCard).join("")}</div>`;
   return mkPage({
     nav: "home", path: "/", html, wire: { t: "home" },
-    title: `موقع دروس ${NAME_FULL} — دروس الشيخ وصي الله عباس`,
-    description: `فهرس دروس الشيخ وصي الله عباس ومحاضراته وخطبه وكتبه (${NAME_FULL}): شروح صحيح مسلم وسنن ابن ماجه وسنن أبي داود والترمذي وغيرها، للاستماع والمشاهدة والتحميل.`,
+    title: `${OFFICIAL_PRE} ${FULL_NAME.replace(" بن أحمد عباس", "")} حفظه الله — دروس الشيخ وصي الله عباس`,
+    description: `${OFFICIAL_NAME} حفظه الله، ${ROLE}: دروس الشيخ وصي الله عباس ومحاضراته وخطبه وكتبه، شروح صحيح مسلم وسنن ابن ماجه وسنن أبي داود والترمذي وغيرها، للاستماع والمشاهدة والتحميل.`,
     jsonld: [
-      { "@context": "https://schema.org", "@type": "WebSite", name: NAME_FULL, alternateName: ["دروس الشيخ وصي الله عباس"], url: SITE + "/", inLanguage: "ar",
+      { "@context": "https://schema.org", "@type": "WebSite", name: OFFICIAL_NAME, alternateName: ["الموقع الرسمي للشيخ وصي الله عباس", "دروس الشيخ وصي الله عباس", NAME_FULL], url: SITE + "/", inLanguage: "ar",
         potentialAction: { "@type": "SearchAction", target: `${SITE}/search/?q={search_term_string}`, "query-input": "required name=search_term_string" } },
-      { "@context": "https://schema.org", "@type": "Person", name: "وصي الله بن محمد عباس", alternateName: ["وصي الله عباس", "الشيخ وصي الله عباس"], honorificPrefix: "الشيخ", url: SITE + "/", sameAs: [YT_CHANNEL, WP_SITE] },
+      { "@context": "https://schema.org", "@type": "Person", name: FULL_NAME, alternateName: ["وصي الله بن محمد عباس", "وصي الله عباس", "الشيخ وصي الله عباس"], honorificPrefix: "الشيخ الأستاذ الدكتور", jobTitle: ROLE, url: SITE + "/", sameAs: [YT_CHANNEL, WP_SITE] },
     ],
   });
 }
@@ -249,18 +250,32 @@ function booksPage() {
   });
 }
 
+/* Bio text blocks: a string is a paragraph, an array a bullet list, {ol:[…]} a numbered list, {links:[{label,url}]} a list of links.
+   Older bio.json files with `paragraphs` + `items` still work. Links: https URLs, or a path on this site (e.g. a PDF under /files/). */
+const aboutLink = x => {
+  const own = typeof x.url === "string" && /^\/[\w./-]+$/.test(x.url);
+  return `<a href="${esc(own ? x.url : safeUrl(x.url))}"${own ? "" : ' target="_blank" rel="noopener"'}>${esc(x.label || x.url)}</a>`;
+};
+const aboutBlocks = sec => {
+  const blocks = Array.isArray(sec.blocks) ? sec.blocks : [...(sec.paragraphs || []), ...(sec.items && sec.items.length ? [sec.items] : [])];
+  return blocks.map(b => Array.isArray(b) ? `<ul>${b.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`
+    : b && Array.isArray(b.ol) ? `<ol>${b.ol.map(x => `<li>${esc(x)}</li>`).join("")}</ol>`
+    : b && Array.isArray(b.links) ? `<ul class="links">${b.links.map(x => `<li>${aboutLink(x)}</li>`).join("")}</ul>`
+    : `<p>${esc(b)}</p>`).join("");
+};
+
 function aboutPage() {
   const b = state.bio; if (!b) return null;
   const c = crumbs([{ t: "عن الشيخ" }]);
   const photo = b.photo && /^(\/[\w./-]+|https:\/\/.+)$/.test(b.photo) ? b.photo : "";
   const html = `${c.html}<div class="about">
-    <header class="about-h">${photo ? `<img class="about-photo" src="${esc(photo)}" alt="${esc(NAME)}" width="220" height="220">` : ""}<div><h1 class="page-h">${esc(b.title || NAME)}<span class="dua"> حفظه الله</span></h1>${b.summary ? `<p class="lede">${esc(b.summary)}</p>` : ""}</div></header>
-    ${(b.sections || []).map(sec => `<section class="about-sec"><h2>${esc(sec.title || "")}</h2>${(sec.paragraphs || []).map(p => `<p>${esc(p)}</p>`).join("")}${sec.items && sec.items.length ? `<ul>${sec.items.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</section>`).join("")}
-    ${b.sources && b.sources.length ? `<section class="about-sec"><h2>المصادر</h2><ul>${b.sources.map(x => `<li>${x.url ? `<a href="${esc(safeUrl(x.url))}" target="_blank" rel="noopener">${esc(x.label || x.url)}</a>` : esc(x.label || "")}</li>`).join("")}</ul></section>` : ""}</div>`;
+    <header class="about-h">${photo ? `<img class="about-photo" src="${esc(photo)}" alt="${esc(NAME)}" width="220" height="220">` : ""}<div><h1 class="page-h">${esc(b.title || NAME)}<span class="dua"> حفظه الله</span></h1>${b.lede || b.summary ? `<p class="lede">${esc(b.lede || b.summary)}</p>` : ""}</div></header>
+    ${(b.sections || []).map(sec => `<section class="about-sec"><h2>${esc(sec.title || "")}</h2>${aboutBlocks(sec)}</section>`).join("")}
+    ${b.sources && b.sources.length ? `<section class="about-sec"><h2>المصادر</h2><ul>${b.sources.map(x => `<li>${x.url ? `${aboutLink(x)}` : esc(x.label || "")}</li>`).join("")}</ul></section>` : ""}</div>`;
   return mkPage({
     nav: "about", path: "/about/", html, ogType: "profile",
     title: withSite("عن الشيخ"), description: clip(b.summary || `نبذة عن ${NAME_FULL}.`, 160),
-    jsonld: [c.ld, { "@context": "https://schema.org", "@type": "Person", name: "وصي الله بن محمد عباس", alternateName: ["وصي الله عباس", "الشيخ وصي الله عباس"], honorificPrefix: "الشيخ", url: SITE + "/about/", ...(photo ? { image: photo.startsWith("/") ? SITE + photo : photo } : {}), sameAs: [YT_CHANNEL, WP_SITE] }],
+    jsonld: [c.ld, { "@context": "https://schema.org", "@type": "Person", name: FULL_NAME, alternateName: ["وصي الله بن محمد عباس", "وصي الله عباس", "الشيخ وصي الله عباس"], honorificPrefix: "الشيخ الأستاذ الدكتور", jobTitle: ROLE, url: SITE + "/about/", ...(photo ? { image: photo.startsWith("/") ? SITE + photo : photo } : {}), sameAs: [YT_CHANNEL, WP_SITE] }],
   });
 }
 
@@ -298,7 +313,7 @@ export function chromeTop(nav) {
   const items = navItems();
   const drawerItems = [{ id: "home", t: "الرئيسية", i: "house", h: "/" }, { id: "library", t: "كل الأقسام", i: "layout-grid", h: href.library() }, { id: "search", t: "بحث", i: "search", h: href.search() }, ...items];
   return `<header class="top"><div class="wrap top-in">
-    <a class="brand" href="/" aria-label="${esc(NAME_FULL)} — الرئيسية"><span class="seal" aria-hidden="true"></span><span><strong>${NAME} <span class="hd">حفظه الله</span></strong><small>دروس الشيخ وصي الله عباس</small></span></a>
+    <a class="brand" href="/" aria-label="${esc(NAME_FULL)} — الرئيسية"><span class="seal" aria-hidden="true"></span><span><strong>${NAME} <span class="hd">حفظه الله</span></strong><small>الموقع الرسمي · دروس الشيخ وصي الله عباس</small></span></a>
     <nav class="nav" id="nav" aria-label="الأقسام"><a href="/" data-nav="home"${cur(nav, "home")}>الرئيسية</a>${items.map(x => `<a href="${x.h}" data-nav="${x.id}"${cur(nav, x.id)}>${x.t}</a>`).join("")}</nav>
     <a class="icon-btn" id="hsearch" href="${href.search()}" aria-label="بحث">${ic("search", 20)}</a>
     <button type="button" class="icon-btn" id="theme" aria-label="تبديل الوضع الليلي">${ic("moon", 20)}</button>
@@ -328,7 +343,7 @@ export function headHtml(p) {
 <meta id="m-desc" name="description" content="${esc(p.description)}">
 <link id="m-canon" rel="canonical" href="${esc(url)}">
 <meta id="m-robots" name="robots" content="${p.noindex ? "noindex, follow" : "index, follow, max-image-preview:large"}">
-<meta property="og:site_name" content="${esc(NAME_FULL)}"><meta property="og:locale" content="ar_AR"><meta id="og-type" property="og:type" content="${p.ogType}">
+<meta property="og:site_name" content="${esc(OFFICIAL_NAME)}"><meta property="og:locale" content="ar_AR"><meta id="og-type" property="og:type" content="${p.ogType}">
 <meta id="og-title" property="og:title" content="${esc(p.title)}"><meta id="og-desc" property="og:description" content="${esc(p.description)}">
 <meta id="og-url" property="og:url" content="${esc(url)}"><meta id="og-img" property="og:image" content="${esc(p.image)}">
 <meta name="twitter:card" content="summary_large_image"><meta id="tw-title" name="twitter:title" content="${esc(p.title)}"><meta id="tw-desc" name="twitter:description" content="${esc(p.description)}"><meta id="tw-img" name="twitter:image" content="${esc(p.image)}">
