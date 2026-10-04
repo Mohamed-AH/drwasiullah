@@ -72,7 +72,7 @@ h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.4;margin:0}
 .seal::before,.seal::after{content:"";position:absolute;inset:3px;background:var(--rubric-fill);border-radius:3px}
 .seal::after{transform:rotate(45deg)}
 .brand strong{font:700 21px var(--disp);display:block;line-height:1.25}
-.brand small{font:400 12px var(--kufi);color:var(--ink-2);letter-spacing:.02em}
+.brand small{font:400 12px var(--kufi);color:var(--ink-2);letter-spacing:0}
 .nav{display:none;gap:0;font-family:var(--kufi);font-size:14.5px}
 .nav a{padding:4px 11px;position:relative;color:var(--ink-2);white-space:nowrap}
 .nav a::after{content:"";position:absolute;inset-inline:11px;bottom:0;height:2px;background:var(--rubric);transform:scaleX(0);transition:transform .3s}
@@ -86,7 +86,7 @@ h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.4;margin:0}
 /* ───────── Hero ───────── */
 .hero{padding:46px 0 10px;text-align:center;position:relative}
 .bism{font:400 clamp(20px,3vw,28px) var(--disp);color:var(--rubric);animation:ink 1.4s .1s cubic-bezier(.6,0,.2,1) both}
-.hero h1{font-size:clamp(40px,7.4vw,88px);line-height:1.15;margin:6px 0 0;color:var(--ink);letter-spacing:-.01em;animation:rise 1s .25s both}
+.hero h1{font-size:clamp(40px,7.4vw,88px);line-height:1.15;margin:6px 0 0;color:var(--ink);letter-spacing:0;animation:rise 1s .25s both}
 .hero h1 em{font-style:normal;color:var(--rubric)}
 .h1-pre{display:block;font:400 clamp(26px,3.6vw,42px) var(--disp);color:var(--ink-2);letter-spacing:0;margin-bottom:4px}
 .dua{display:block;font:400 clamp(24px,3.4vw,38px) var(--disp);color:var(--rubric);margin-top:2px;letter-spacing:0}
