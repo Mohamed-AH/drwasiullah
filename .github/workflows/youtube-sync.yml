@@ -20,7 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      VIDEOS_DB: ${{ runner.temp }}/videos.db          # scratch copy; the tracked videos.db is never touched
       YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
       YOUTUBE_CHANNEL_HANDLE: ${{ vars.YOUTUBE_CHANNEL_HANDLE }}
       SYNC_MODE: ${{ vars.SYNC_MODE }}                  # empty/"main": commit to main.  "pr": open a pull request instead.
@@ -38,6 +37,7 @@ jobs:
 
       - name: Require the API key
         run: |
+          echo "VIDEOS_DB=$RUNNER_TEMP/videos.db" >> "$GITHUB_ENV"   # scratch copy; the tracked videos.db is never touched
           if [ -z "$YOUTUBE_API_KEY" ]; then echo "::error::Repository secret YOUTUBE_API_KEY is not set (Settings > Secrets and variables > Actions)."; exit 1; fi
 
       - name: Sync
