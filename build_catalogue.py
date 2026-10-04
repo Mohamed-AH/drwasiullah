@@ -103,6 +103,14 @@ def playlist_series():
     return out
 
 
+def reviewed_conflicts():
+    """Video ids whose title/playlist disagreement a person already looked at (config.json playlist_conflicts_reviewed): not reported again."""
+    try:
+        return set(json.loads((BASE / "config.json").read_text(encoding="utf-8")).get("playlist_conflicts_reviewed") or {})
+    except (OSError, ValueError):
+        return set()
+
+
 def main():
     db = sqlite3.connect(os.environ.get("VIDEOS_DB") or BASE / "videos.db")
     db.row_factory = sqlite3.Row
@@ -112,7 +120,7 @@ def main():
     series_info[MISC[0]] = {"id": MISC[0], "title": MISC[1], "subject": MISC[2], "description": MISC[3]}
     custom = {}
     lessons = []
-    by_playlist, conflicts = playlist_series(), []
+    by_playlist, conflicts, reviewed = playlist_series(), [], reviewed_conflicts()
     for r in rows:
         if duration(r["duration_iso"]) == 0:   # live now / premiere not started: it appears on the next run, once it has a length
             continue
@@ -137,7 +145,7 @@ def main():
         # a title pattern nothing changes and the case is reported (set CATALOGUE_REPORT to a file to receive the list).
         pl = by_playlist.get(r["youtube_id"])
         if pl and not sid: sid = pl
-        elif pl and sid != pl and not manual: conflicts.append({"id": r["youtube_id"], "title": title, "title_series": sid, "playlist_series": pl})
+        elif pl and sid != pl and not manual and r["youtube_id"] not in reviewed: conflicts.append({"id": r["youtube_id"], "title": title, "title_series": sid, "playlist_series": pl})
         sid = sid or MISC[0]
         n = r["lesson_number"] if r["lesson_number"] is not None else (number_of(title) if sid != MISC[0] else None)
         item = {
