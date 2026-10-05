@@ -19,7 +19,7 @@ Audio later: `--kind audio --limit 20` to try a few, then without `--limit` (≈
 «تحميل» on an audio lesson fetches the file and saves it under a readable name without leaving the page. That needs the host to allow it. For our own bucket: Cloudflare dashboard → R2 → `drwasiullah-media` → Settings → CORS policy → add:
 
 ```json
-[{ "AllowedOrigins": ["https://drwasiullah.com"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"], "MaxAgeSeconds": 86400 }]
+[{ "AllowedOrigins": ["https://drwasiullah.com", "https://www.drwasiullah.com"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"], "ExposeHeaders": ["Content-Length", "Content-Type", "Content-Range", "Accept-Ranges", "ETag"], "MaxAgeSeconds": 86400 }]
 ```
 
 Without it the button opens the file in a new tab (named by its hash when saved). Files larger than 150 MB always use the plain link. archive.org allows it; makkahscholars.org does not send CORS headers, but its download link is an attachment, so it already saves in the same tab.
