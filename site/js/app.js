@@ -44,6 +44,28 @@ function route(initial) {
   }
 }
 addEventListener("popstate", () => route(false));
+// «تحميل» on an audio lesson: fetch the file and save it under a readable name without leaving the page. The file's host must allow it (CORS); if it
+// does not (or the file is huge) fall back to the plain link, which a host that sends "Content-Disposition: attachment" still saves in place.
+const DL_MAX = 150 * 1024 * 1024;
+document.addEventListener("click", async e => {
+  const a = e.target.closest("a[data-dl]");
+  if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  if (a.getAttribute("aria-busy")) return;
+  const label = [...a.childNodes].reverse().find(n => n.nodeType === 3), text = label ? label.textContent : "";
+  const done = () => { a.removeAttribute("aria-busy"); if (label) label.textContent = text; };
+  a.setAttribute("aria-busy", "true"); if (label) label.textContent = " جارٍ التحميل…";
+  const name = (a.dataset.dl || "audio").replace(/[\\/:*?"<>|\u0000-\u001f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) + (/\.(mp3|m4a|ogg|wav)$/i.exec(new URL(a.href).pathname) || [".mp3"])[0];
+  const save = (href, fileName) => { const d = document.createElement("a"); d.href = href; if (fileName) d.download = fileName; d.rel = "noopener"; document.body.appendChild(d); d.click(); d.remove(); };
+  try {
+    const r = await fetch(a.href, { credentials: "omit", referrerPolicy: "no-referrer" });
+    if (!r.ok || (+r.headers.get("content-length") || 0) > DL_MAX) { r.body && r.body.cancel(); throw new Error("fallback"); }
+    const url = URL.createObjectURL(await r.blob());
+    save(url, name); setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch { save(a.href); }
+  finally { done(); }
+});
+
 document.addEventListener("click", e => {
   const a = e.target.closest("a[href]");
   if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

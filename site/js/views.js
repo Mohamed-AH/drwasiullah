@@ -178,7 +178,7 @@ function lessonPage(id) {
          <div class="speeds" role="group" aria-label="سرعة التشغيل">${[1, 1.25, 1.5, 2].map(v => `<button type="button" data-v="${v}" class="${v === 1 ? "on" : ""}" aria-pressed="${v === 1}">${fmtNum(v).replace("٫", ".")}×</button>`).join("")}</div></div></div>`
     : `<div class="frame"><div class="player lite" data-yt="${safeYt(l.id)}"><img src="https://i.ytimg.com/vi/${safeYt(l.id)}/hqdefault.jpg" alt="" width="480" height="360"><button type="button" class="lite-play" aria-label="تشغيل الفيديو: ${esc(title)}"><i>${ic("play", 30)}</i></button></div></div>`;
   const ext = l.kind === "audio"
-    ? `<a class="btn" href="${esc(safeUrl(l.src))}" download target="_blank" rel="noopener">${ic("download", 17)} تحميل</a>`
+    ? `<a class="btn" href="${esc(safeUrl(l.src))}" download target="_blank" rel="noopener" data-dl="${esc(s.title + " — " + title)}">${ic("download", 17)} تحميل</a>`
     : `<a class="btn" href="https://www.youtube.com/watch?v=${safeYt(l.id)}" target="_blank" rel="noopener">${ic("external-link", 17)} فتح في يوتيوب</a>`;
   const c = crumbs(flat ? [{ t: sec.title, h: href.series(s.id) }, { t: title }] : [{ t: sec.title, h: href.section(sec) }, { t: s.title, h: href.series(s.id) }, { t: title }]);
   const html = `${c.html}
