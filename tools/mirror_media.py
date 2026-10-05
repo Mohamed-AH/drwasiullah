@@ -141,7 +141,12 @@ def main(argv=None):
         if os.environ[k].startswith("cfat_") or os.environ[k].startswith("cfut_"):
             sys.exit(f"{k} looks like a Cloudflare API token. R2 needs the S3 pair (Access Key ID 32 hex chars + Secret Access Key 64 hex chars) from R2 -> Manage R2 API tokens -> Create API token.")
     import boto3
-    s3 = boto3.client("s3", region_name="auto", aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+    from boto3.s3.transfer import TransferConfig
+    from botocore.config import Config
+    # gentle on unstable connections: few parallel parts, patient timeouts, automatic retries (a dropped connection used to fail the whole file)
+    cfg = Config(retries={"max_attempts": 8, "mode": "standard"}, connect_timeout=30, read_timeout=120, tcp_keepalive=True)
+    xfer = TransferConfig(max_concurrency=int(os.environ.get("MIRROR_UPLOAD_THREADS", "2")), multipart_chunksize=16 * 1024 * 1024, multipart_threshold=64 * 1024 * 1024)
+    s3 = boto3.client("s3", region_name="auto", config=cfg, aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
                       endpoint_url=os.environ.get("R2_ENDPOINT") or f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com")
     bucket = os.environ.get("R2_BUCKET", "drwasiullah-media")
 
@@ -154,7 +159,12 @@ def main(argv=None):
                 ext = (urllib.parse.urlsplit(url).path.rsplit(".", 1)[-1] or kind).lower()
                 if ext not in MIME: ext = "pdf" if kind == "pdf" else "mp3"
                 key = f"{kind}/{sha[:16]}.{ext}"
-                s3.upload_file(tmp, bucket, key, ExtraArgs={"ContentType": MIME[ext], "CacheControl": "public, max-age=31536000, immutable", "Metadata": {"source": urllib.parse.quote(url, safe=":/")[:1000], "sha256": sha}})
+                extra = {"ContentType": MIME[ext], "CacheControl": "public, max-age=31536000, immutable", "Metadata": {"source": urllib.parse.quote(url, safe=":/")[:1000], "sha256": sha}}
+                for attempt in range(1, 4):         # the connection can still drop mid-upload: start the upload again (up to 3 times)
+                    try: s3.upload_file(tmp, bucket, key, ExtraArgs=extra, Config=xfer); break
+                    except Exception as e:
+                        if attempt == 3: raise
+                        print(f"    upload interrupted ({type(e).__name__}); retrying {attempt}/2 ...", file=sys.stderr); time.sleep(5 * attempt)
             finally:
                 os.unlink(tmp)
             manifest[url] = {"url": f"{base}/{key}", "key": key, "sha256": sha, "size": size}
