@@ -19,8 +19,12 @@ Audio later: `--kind audio --limit 20` to try a few, then without `--limit` (≈
 «تحميل» on an audio lesson fetches the file and saves it under a readable name without leaving the page. That needs the host to allow it. For our own bucket: Cloudflare dashboard → R2 → `drwasiullah-media` → Settings → CORS policy → add:
 
 ```json
-[{ "AllowedOrigins": ["https://drwasiullah.com"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"], "MaxAgeSeconds": 86400 }]
+[{ "AllowedOrigins": ["https://drwasiullah.com", "https://www.drwasiullah.com"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"], "ExposeHeaders": ["Content-Length", "Content-Type", "Content-Range", "Accept-Ranges", "ETag"], "MaxAgeSeconds": 86400 }]
 ```
 
-Without it the button falls back to the plain link (the file opens or saves in the same tab, named by its hash). Files larger than 150 MB always use the plain link. Other hosts (archive.org, makkahscholars.org) save in place only if they send CORS headers; test from the console on the live site: `fetch(url).then(r => r.status)`.
+Without it the button opens the file in a new tab (named by its hash when saved). Files larger than 150 MB always use the plain link. archive.org allows it; makkahscholars.org does not send CORS headers, but its download link is an attachment, so it already saves in the same tab.
 
+
+## Mirroring only some files
+
+By default `--kind audio` skips the lessons hosted on makkahscholars.org (Fath al-Bari and Nuzhat lesson 22, about 10 GB). Choose what to copy with `--series <id> …` (series ids), `--ids <lesson id> …` (single lessons, e.g. `fath-bari-2399`; naming them also lets Makkah lessons through) or `--include-makkah` (everything). Add `--dry-run` first to see the list and the count.
