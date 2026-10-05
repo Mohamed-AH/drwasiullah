@@ -6,8 +6,9 @@ from pathlib import Path
 def load_library(path):
     path = Path(path)
     lib = json.loads(path.read_text(encoding="utf-8"))
-    extra = path.with_name("makkah.json")
-    if extra.exists():
-        x = json.loads(extra.read_text(encoding="utf-8"))
-        lib = {**lib, "series": lib["series"] + x.get("series", []), "lessons": lib["lessons"] + x.get("lessons", [])}
+    for name in ("makkah.json", "haram.json"):          # lessons imported from other sources
+        extra = path.with_name(name)
+        if extra.exists():
+            x = json.loads(extra.read_text(encoding="utf-8"))
+            lib = {**lib, "series": lib["series"] + x.get("series", []), "lessons": lib["lessons"] + x.get("lessons", [])}
     return lib
