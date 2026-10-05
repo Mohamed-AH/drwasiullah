@@ -12,12 +12,12 @@ const SRC = path.join(ROOT, "site"), OUT = path.join(ROOT, "dist");
 const readJSON = (f, optional = false) => { try { return JSON.parse(fs.readFileSync(path.join(SRC, f), "utf8")); } catch (e) { if (optional) return null; throw e; } };
 
 const t0 = Date.now();
-const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true));   // library.json + lessons imported from makkahscholars.org
+const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true), readJSON("data/haram.json", true));   // library.json + lessons imported from makkahscholars.org
 init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true));
 const DB = state.DB;
 
 fs.rmSync(OUT, { recursive: true, force: true });
-fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) && !/[\\/]data[\\/]media\.json$/.test(s) && !/[\\/]data[\\/]makkah\.json$/.test(s) });   // the manifest stays out of dist: the merged library below carries the mirrored links
+fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) && !/[\\/]data[\\/]media\.json$/.test(s) && !/[\\/]data[\\/](makkah|haram)\.json$/.test(s) });   // the manifest stays out of dist: the merged library below carries the mirrored links
 
 const shell = fs.readFileSync(path.join(SRC, "shell.html"), "utf8");
 const fill = (tpl, map) => tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => map[k]);   // single pass: page content is never re-scanned for placeholders

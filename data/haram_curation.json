@@ -1,0 +1,694 @@
+{
+ "channel": "@twjehDM (دروس المسجد الحرام)",
+ "note": "Curated by hand from tools/find_channel_lessons.py output (2026-10-05). One-time import; see docs/data-formats.md.",
+ "series": [
+  {
+   "id": "tirmidhi-video",
+   "title": "شرح سنن الترمذي (تسجيلات مرئية)",
+   "sec": "duroos",
+   "unit": "الدرس",
+   "ordered": true,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  },
+  {
+   "id": "muwaqiza",
+   "title": "شرح الموقظة للذهبي",
+   "sec": "duroos",
+   "unit": "الدرس",
+   "ordered": true,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  },
+  {
+   "id": "barbahari",
+   "title": "شرح السنة للإمام البربهاري",
+   "sec": "duroos",
+   "unit": "الدرس",
+   "ordered": true,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  },
+  {
+   "id": "nuzha-haram",
+   "title": "شرح نزهة النظر (قناة المسجد الحرام)",
+   "sec": "duroos",
+   "unit": "الدرس",
+   "ordered": true,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  },
+  {
+   "id": "ibn-majah-hudud",
+   "title": "شرح سنن ابن ماجه: الحدود والديات (بث مباشر)",
+   "sec": "duroos",
+   "ordered": true,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  },
+  {
+   "id": "tafsir-muhammad",
+   "title": "تفسير سورة محمد",
+   "sec": "duroos",
+   "ordered": true,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  },
+  {
+   "id": "tawheed-urdu",
+   "title": "شرح كتاب التوحيد (بالأردية)",
+   "sec": "urdu",
+   "unit": "الدرس",
+   "ordered": true,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  },
+  {
+   "id": "hajj-urdu",
+   "title": "شرح صفة حج النبي ﷺ (بالأردية)",
+   "sec": "urdu",
+   "unit": "الدرس",
+   "ordered": true,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  },
+  {
+   "id": "aqeeda-manasik-urdu",
+   "title": "أحكام العقيدة والمناسك (بالأردية)",
+   "sec": "urdu",
+   "ordered": true,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  },
+  {
+   "id": "haram-lectures",
+   "title": "محاضرات المسجد الحرام",
+   "sec": "lectures",
+   "ordered": false,
+   "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
+  }
+ ],
+ "videos": [
+  {
+   "id": "MeC-eFRbTpc",
+   "series": "haram-lectures",
+   "title": "الوسطية والاعتدال ومعالجة التطرف",
+   "date": "2017-08-09"
+  },
+  {
+   "id": "f_GxxSOrfBY",
+   "series": "tirmidhi-video",
+   "title": "الدرس 1 (سنن الترمذي)",
+   "n": 1,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "fikhT81TbEQ",
+   "series": "tirmidhi-video",
+   "title": "الدرس 2 (سنن الترمذي)",
+   "n": 2,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "eY5gtM4la3Y",
+   "series": "tirmidhi-video",
+   "title": "الدرس 3 (سنن الترمذي)",
+   "n": 3,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "umwSJhQ8ihw",
+   "series": "tirmidhi-video",
+   "title": "الدرس 4 (سنن الترمذي)",
+   "n": 4,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "t4kd1JG5M6M",
+   "series": "tirmidhi-video",
+   "title": "الدرس 5 (سنن الترمذي)",
+   "n": 5,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "gkxOQ1yumoo",
+   "series": "tirmidhi-video",
+   "title": "الدرس 6 (سنن الترمذي)",
+   "n": 6,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "qJBtZlh5lk8",
+   "series": "tirmidhi-video",
+   "title": "الدرس 7 (سنن الترمذي)",
+   "n": 7,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "84tUWqLEau8",
+   "series": "tirmidhi-video",
+   "title": "الدرس 8 (سنن الترمذي)",
+   "n": 8,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "CTHH6yYe5yE",
+   "series": "tirmidhi-video",
+   "title": "الدرس 9 (سنن الترمذي)",
+   "n": 9,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "qp8YvID2yhA",
+   "series": "tirmidhi-video",
+   "title": "الدرس 10 (سنن الترمذي)",
+   "n": 10,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "2S9gT3ymIDc",
+   "series": "tirmidhi-video",
+   "title": "الدرس 11 (سنن الترمذي)",
+   "n": 11,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "lDcpfCWoGJA",
+   "series": "tirmidhi-video",
+   "title": "الدرس 12 (سنن الترمذي)",
+   "n": 12,
+   "date": "2017-09-10"
+  },
+  {
+   "id": "akOeZ1eat-8",
+   "series": "tirmidhi-video",
+   "title": "الدرس 13 (سنن الترمذي)",
+   "n": 13,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "2n_h8b3aN8s",
+   "series": "tirmidhi-video",
+   "title": "الدرس 14 (سنن الترمذي)",
+   "n": 14,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "t-N-PEj9aqU",
+   "series": "tirmidhi-video",
+   "title": "الدرس 15 (سنن الترمذي)",
+   "n": 15,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "yivUz853t3Q",
+   "series": "tirmidhi-video",
+   "title": "الدرس 16 (سنن الترمذي)",
+   "n": 16,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "aJ4-gITCecg",
+   "series": "tirmidhi-video",
+   "title": "الدرس 17 (سنن الترمذي)",
+   "n": 17,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "Am-tB6R8IdA",
+   "series": "tirmidhi-video",
+   "title": "الدرس 18 (سنن الترمذي)",
+   "n": 18,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "Mtq3swg5oo4",
+   "series": "tirmidhi-video",
+   "title": "الدرس 19 (سنن الترمذي)",
+   "n": 19,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "l8B0iFxKaco",
+   "series": "tirmidhi-video",
+   "title": "الدرس 20 (سنن الترمذي)",
+   "n": 20,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "FoqlyWgSjRM",
+   "series": "tirmidhi-video",
+   "title": "الدرس 21 (سنن الترمذي)",
+   "n": 21,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "UUplR0tM4VY",
+   "series": "tirmidhi-video",
+   "title": "الدرس 22 (سنن الترمذي)",
+   "n": 22,
+   "date": "2017-09-11"
+  },
+  {
+   "id": "AnU20K6HYhs",
+   "series": "tirmidhi-video",
+   "title": "الدرس 23 (سنن الترمذي)",
+   "n": 23,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "sqMVbLITN7k",
+   "series": "tirmidhi-video",
+   "title": "الدرس 24 (سنن الترمذي)",
+   "n": 24,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "anD8GdoZerE",
+   "series": "tirmidhi-video",
+   "title": "الدرس 25 (سنن الترمذي)",
+   "n": 25,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "muXnNYAUvVc",
+   "series": "tirmidhi-video",
+   "title": "الدرس 26 (سنن الترمذي)",
+   "n": 26,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "oM09-ks6IKY",
+   "series": "tirmidhi-video",
+   "title": "الدرس 27 (سنن الترمذي)",
+   "n": 27,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "vSK4e51CB0Q",
+   "series": "tirmidhi-video",
+   "title": "الدرس 28 (سنن الترمذي)",
+   "n": 28,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "_MIWXbYZYKs",
+   "series": "tirmidhi-video",
+   "title": "الدرس 29 (سنن الترمذي)",
+   "n": 29,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "FvZX6sZi0N0",
+   "series": "tirmidhi-video",
+   "title": "الدرس 30 (سنن الترمذي)",
+   "n": 30,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "SNse2MLvn4w",
+   "series": "tirmidhi-video",
+   "title": "الدرس 31 (سنن الترمذي)",
+   "n": 31,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "lS9AK_B-r8w",
+   "series": "tirmidhi-video",
+   "title": "الدرس 32 (سنن الترمذي)",
+   "n": 32,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "cWD7d5TmnRg",
+   "series": "tirmidhi-video",
+   "title": "الدرس 33 (سنن الترمذي)",
+   "n": 33,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "DZv9ovVozS0",
+   "series": "tirmidhi-video",
+   "title": "الدرس 34 (سنن الترمذي)",
+   "n": 34,
+   "date": "2017-09-12"
+  },
+  {
+   "id": "cy2_JwTvFnE",
+   "series": "haram-lectures",
+   "title": "الائتلاف والاختلاف",
+   "date": "2018-03-27"
+  },
+  {
+   "id": "37oqVwA5wE4",
+   "series": "haram-lectures",
+   "title": "ولاتدع من دون الله مالاينفعك ولايضرك",
+   "hd": "1439-9-7",
+   "date": "2018-05-22"
+  },
+  {
+   "id": "NUF2rEiqpfI",
+   "series": "barbahari",
+   "title": "شرح السنة للإمام البربهاري — 01",
+   "n": 1,
+   "date": "2020-02-25"
+  },
+  {
+   "id": "-skzr_KCMyI",
+   "series": "barbahari",
+   "title": "شرح السنة للإمام البربهاري — 02",
+   "n": 2,
+   "date": "2020-02-25"
+  },
+  {
+   "id": "L2_prC_SJtk",
+   "series": "barbahari",
+   "title": "شرح السنة للإمام البربهاري — 03",
+   "n": 3,
+   "date": "2020-02-25"
+  },
+  {
+   "id": "L-3zxkH0qYU",
+   "series": "barbahari",
+   "title": "شرح السنة للإمام البربهاري — 04",
+   "n": 4,
+   "date": "2020-02-25"
+  },
+  {
+   "id": "BiWYee5Psr8",
+   "series": "barbahari",
+   "title": "شرح السنة للإمام البربهاري — 05",
+   "n": 5,
+   "date": "2020-02-25"
+  },
+  {
+   "id": "a00M6iMTaj4",
+   "series": "haram-lectures",
+   "title": "كورونا واغتنام الوقت في الطاعة",
+   "date": "2020-06-09"
+  },
+  {
+   "id": "4UjCn0JVjb4",
+   "series": "haram-lectures",
+   "title": "التحذير من جماعة الإخوان المسلمين وبيان",
+   "hd": "1442-4-27",
+   "date": "2020-12-12"
+  },
+  {
+   "id": "Nwdde4O61qs",
+   "series": "nuzha-haram",
+   "title": "شرح نزهة النظر — 01",
+   "n": 1,
+   "date": "2021-02-28"
+  },
+  {
+   "id": "sVCWdoloKDY",
+   "series": "nuzha-haram",
+   "title": "شرح نزهة النظر — 02",
+   "n": 2,
+   "date": "2021-03-01"
+  },
+  {
+   "id": "nVphrMWj69w",
+   "series": "nuzha-haram",
+   "title": "شرح نزهة النظر — 03",
+   "n": 3,
+   "date": "2021-03-02"
+  },
+  {
+   "id": "0_t3WIH8JfM",
+   "series": "nuzha-haram",
+   "title": "شرح نزهة النظر — 04",
+   "n": 4,
+   "date": "2021-03-03"
+  },
+  {
+   "id": "EB_jvERHgzE",
+   "series": "haram-lectures",
+   "title": "منهج المحدثين في قبول روايات السيرة النبوية",
+   "hd": "1442-7-27",
+   "date": "2021-03-11"
+  },
+  {
+   "id": "d4-IzvSCdMg",
+   "series": "haram-lectures",
+   "title": "بيان فضل علم السلف على علم الخلف — الجزء 1",
+   "date": "2021-06-06"
+  },
+  {
+   "id": "C7PvmwmRSRA",
+   "series": "haram-lectures",
+   "title": "بيان فضل علم السلف على علم الخلف — الجزء 2",
+   "date": "2021-06-07"
+  },
+  {
+   "id": "veDw8erTEKU",
+   "series": "haram-lectures",
+   "title": "بيان فضل علم السلف على علم الخلف — الجزء 3",
+   "date": "2021-06-08"
+  },
+  {
+   "id": "4-2D4uucUeA",
+   "series": "haram-lectures",
+   "title": "مکہ میں رھنے والوں کو نصيحت (بالأردية)",
+   "date": "2021-06-17"
+  },
+  {
+   "id": "N09XEIWRuco",
+   "series": "tafsir-muhammad",
+   "title": "تفسير سورة محمد (بالأردية)",
+   "hd": "1442-12-29",
+   "date": "2021-08-08"
+  },
+  {
+   "id": "2XUV5vpeCVY",
+   "series": "ibn-majah-hudud",
+   "title": "كتاب الحدود من سنن ابن ماجه",
+   "hd": "1443-1-2",
+   "date": "2021-08-10"
+  },
+  {
+   "id": "PXLhkdbo248",
+   "series": "ibn-majah-hudud",
+   "title": "كتاب الديات من سنن ابن ماجه (1)",
+   "hd": "1443-1-9",
+   "date": "2021-08-17"
+  },
+  {
+   "id": "vl9g77M4_QI",
+   "series": "ibn-majah-hudud",
+   "title": "كتاب الديات من سنن ابن ماجه (2)",
+   "hd": "1443-1-16",
+   "date": "2021-08-24"
+  },
+  {
+   "id": "yDkjdonxY4E",
+   "series": "tafsir-muhammad",
+   "title": "تفسير سورة محمد، الآيات 20–24 (بالأردية)",
+   "hd": "1443-1-7",
+   "date": "2021-08-15"
+  },
+  {
+   "id": "CXdSSlLIEbw",
+   "series": "tafsir-muhammad",
+   "title": "تفسير سورة محمد",
+   "hd": "1443-1-21",
+   "date": "2021-08-29"
+  },
+  {
+   "id": "OxOWqTM1zJA",
+   "series": "tafsir-muhammad",
+   "title": "تفسير سورة محمد",
+   "hd": "1443-1-28",
+   "date": "2021-09-05"
+  },
+  {
+   "id": "681nU8qYQW8",
+   "series": "tawheed-urdu",
+   "title": "شرح كتاب التوحيد (بالأردية) — الدرس 1",
+   "hd": "1446-11-18",
+   "date": "2025-05-16",
+   "n": 1
+  },
+  {
+   "id": "ZNy5URKR_7s",
+   "series": "hajj-urdu",
+   "title": "شرح صفة حج النبي ﷺ (بالأردية) — الدرس 1",
+   "hd": "1446-11-27",
+   "date": "2025-05-25",
+   "n": 1
+  },
+  {
+   "id": "5oTUeRgYEx8",
+   "series": "hajj-urdu",
+   "title": "شرح صفة حج النبي ﷺ (بالأردية) — الدرس 2",
+   "hd": "1446-12-1",
+   "date": "2025-05-28",
+   "n": 2
+  },
+  {
+   "id": "RwH9WoQ3Hfw",
+   "series": "hajj-urdu",
+   "title": "شرح صفة حج النبي ﷺ (بالأردية) — الدرس 3",
+   "hd": "1446-12-2",
+   "date": "2025-05-29",
+   "n": 3
+  },
+  {
+   "id": "M_o0ZdH7VHY",
+   "series": "hajj-urdu",
+   "title": "شرح صفة حج النبي ﷺ (بالأردية) — الدرس 4",
+   "hd": "1446-12-3",
+   "date": "2025-05-30",
+   "n": 4
+  },
+  {
+   "id": "ZkLlqA50_LM",
+   "series": "hajj-urdu",
+   "title": "شرح صفة حج النبي ﷺ (بالأردية) — الدرس 5",
+   "hd": "1446-12-4",
+   "date": "2025-05-31",
+   "n": 5
+  },
+  {
+   "id": "_Ub_TO2tm74",
+   "series": "hajj-urdu",
+   "title": "شرح صفة حج النبي ﷺ (بالأردية) — الدرس 6",
+   "hd": "1446-12-5",
+   "date": "2025-06-01",
+   "n": 6
+  },
+  {
+   "id": "Diik_ZSg5PY",
+   "series": "hajj-urdu",
+   "title": "شرح صفة حج النبي ﷺ (بالأردية) — الدرس 7",
+   "hd": "1446-12-6",
+   "date": "2025-06-02",
+   "n": 7
+  },
+  {
+   "id": "ZeEjxt6fSps",
+   "series": "tawheed-urdu",
+   "title": "شرح كتاب التوحيد (بالأردية) — الدرس 2",
+   "hd": "1446-12-15",
+   "date": "2025-06-11",
+   "n": 2
+  },
+  {
+   "id": "9pkph0Kh5vE",
+   "series": "tawheed-urdu",
+   "title": "شرح كتاب التوحيد (بالأردية) — الدرس 3",
+   "hd": "1446-12-16",
+   "date": "2025-06-12",
+   "n": 3
+  },
+  {
+   "id": "EH88lIUMyoA",
+   "series": "tawheed-urdu",
+   "title": "شرح كتاب التوحيد (بالأردية) — الدرس 4",
+   "hd": "1446-12-18",
+   "date": "2025-06-14",
+   "n": 4
+  },
+  {
+   "id": "YQnl9F5A8j4",
+   "series": "tawheed-urdu",
+   "title": "شرح كتاب التوحيد (بالأردية) — الدرس 5",
+   "hd": "1446-12-19",
+   "date": "2025-06-15",
+   "n": 5
+  },
+  {
+   "id": "KfD0rO-BqXs",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 10",
+   "n": 10,
+   "hd": "1447-2-5",
+   "date": "2025-07-30"
+  },
+  {
+   "id": "G9zF9DH1d0k",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 9",
+   "n": 9,
+   "hd": "1447-2-5",
+   "date": "2025-07-30"
+  },
+  {
+   "id": "vcVJyGQe_cY",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 8",
+   "n": 8,
+   "hd": "1447-2-4",
+   "date": "2025-07-29"
+  },
+  {
+   "id": "ug0zufv9IyE",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 7",
+   "n": 7,
+   "hd": "1447-2-4",
+   "date": "2025-07-29"
+  },
+  {
+   "id": "96S9I-tXva4",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 6",
+   "n": 6,
+   "hd": "1447-2-3",
+   "date": "2025-07-28"
+  },
+  {
+   "id": "BmMe6Ceoc_I",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 5",
+   "n": 5,
+   "hd": "1447-2-3",
+   "date": "2025-07-28"
+  },
+  {
+   "id": "DpQb-HEBih4",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 4",
+   "n": 4,
+   "hd": "1447-2-2",
+   "date": "2025-07-27"
+  },
+  {
+   "id": "d6IMMuhDg24",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 3",
+   "n": 3,
+   "hd": "1447-2-2",
+   "date": "2025-07-27"
+  },
+  {
+   "id": "e4ucpUwVCoo",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 2",
+   "n": 2,
+   "hd": "1447-2-1",
+   "date": "2025-07-26"
+  },
+  {
+   "id": "d57EcyukH0E",
+   "series": "muwaqiza",
+   "title": "شرح الموقظة للذهبي — الدرس 1",
+   "n": 1,
+   "hd": "1447-2-1",
+   "date": "2025-07-26"
+  },
+  {
+   "id": "QajLDlcqTL4",
+   "series": "aqeeda-manasik-urdu",
+   "title": "أحكام العقيدة والمناسك (بالأردية) — الجزء الأول",
+   "hd": "1447-12-14",
+   "date": "2026-05-31"
+  },
+  {
+   "id": "o8xkyeUlB9g",
+   "series": "aqeeda-manasik-urdu",
+   "title": "أحكام العقيدة والمناسك (بالأردية) — الجزء الثاني",
+   "hd": "1447-12-15",
+   "date": "2026-06-01"
+  },
+  {
+   "id": "xQe-YeqmyzI",
+   "series": "haram-lectures",
+   "title": "الاعتصام بالكتاب والسنة وأثره في وحدة الصف",
+   "hd": "1448-4-6",
+   "date": "2026-09-17"
+  }
+ ]
+}

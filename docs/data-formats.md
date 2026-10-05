@@ -62,6 +62,17 @@ python tools/import_makkah.py   # -> site/data/makkah.json (commit this file)
 
 `scripts/build.mjs` merges `makkah.json` into the library the browsers load; `check_links.py`, `measure_storage.py` and `mirror_media.py` read it too, so the links can be checked and, later, mirrored to our own storage. The file names on the source site carry the title and a Hijri date («كتاب بدء الوحي باب كيف بدء الوحي 18-10-1419 هـ»); the importer uses them for the title, the date (shown in Hijri; a Gregorian date is derived only for sorting) and the «كتاب» section for grouping. Consecutive lesson numbers with the same file name are the pieces of one lesson (shown as «الجزء الأول / الثاني»). Check the sample the importer prints. Both scripts run on the owner's machine (the cloud session cannot reach the site) and are polite: robots.txt is honoured and requests are spaced.
 
+## Lessons from the Haram guidance channel: `data/haram_curation.json` → `site/data/haram.json`
+
+A one-time import of the Sheikh's videos on the Haram's guidance channel (@twjehDM, «دروس المسجد الحرام»). `tools/find_channel_lessons.py` found the videos that name him; a person curated the result into `data/haram_curation.json` (85 videos in 10 series, one series per course, with titles, lesson numbers and Hijri dates taken from the video titles; the two videos by another speaker that the search matched were left out). The file is the source: edit it to add, remove or rename a video.
+
+```
+python tools/import_haram.py            # asks YouTube for each video's length (metadata only, needs YOUTUBE_API_KEY) -> site/data/haram.json (commit this file)
+python tools/import_haram.py --no-api   # offline: no lengths
+```
+
+Videos YouTube no longer returns, or that are live with no length yet, are left out and listed (exit code 1); videos that cannot be embedded are kept and listed. `scripts/build.mjs` merges `haram.json` into the library like `makkah.json`; the lessons are `kind: "video"` with the YouTube id as `id`. Nothing here is refreshed by the daily sync.
+
 ## Mirrored media: `site/data/media.json`
 
 Written by `tools/mirror_media.py`: `{ "<original URL>": { "url": "https://media.drwasiullah.com/…", "key", "sha256", "size" } }`. It is not sent to browsers. `scripts/build.mjs` merges it into `dist/data/library.json` (our copy becomes `src`/`url`, the original is kept as `src_alt`/`url_alt`), and the audio player falls back to `src_alt` if our copy fails. Setup: [mirror-setup.md](mirror-setup.md).

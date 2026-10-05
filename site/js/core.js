@@ -14,7 +14,7 @@ export const WP_SITE = "https://wasiullahabbas.wordpress.com/";
 
 /* ───────── Site structure ─────────  Every series belongs to one section (series.sec). Books are their own collection. */
 export const SECTIONS = [
-  { id: "duroos",   title: "الدروس المرئية",  icon: "video",       desc: "شروح الكتب والسلاسل العلمية مرئيةً، من قناة الشيخ على يوتيوب." },
+  { id: "duroos",   title: "الدروس المرئية",  icon: "video",       desc: "شروح الكتب والسلاسل العلمية مرئيةً، على يوتيوب." },
   { id: "audio",    title: "الدروس الصوتية",  icon: "headphones",  desc: "سلاسل علمية صوتية للاستماع والتحميل." },
   { id: "lectures", title: "المحاضرات",       icon: "mic-vocal",   desc: "محاضرات وكلمات وفتاوى ولقاءات منفردة." },
   { id: "khutab",   title: "الخطب",           icon: "scroll-text", desc: "خطب الجمعة والمناسبات." },
