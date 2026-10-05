@@ -24,3 +24,7 @@ Audio later: `--kind audio --limit 20` to try a few, then without `--limit` (≈
 
 Without it the button opens the file in a new tab (named by its hash when saved). Files larger than 150 MB always use the plain link. archive.org allows it; makkahscholars.org does not send CORS headers, but its download link is an attachment, so it already saves in the same tab.
 
+
+## Mirroring only some files
+
+By default `--kind audio` skips the lessons hosted on makkahscholars.org (Fath al-Bari and Nuzhat lesson 22, about 10 GB). Choose what to copy with `--series <id> …` (series ids), `--ids <lesson id> …` (single lessons, e.g. `fath-bari-2399`; naming them also lets Makkah lessons through) or `--include-makkah` (everything). Add `--dry-run` first to see the list and the count.

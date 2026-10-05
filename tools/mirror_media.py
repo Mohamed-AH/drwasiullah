@@ -7,6 +7,11 @@
     python tools/mirror_media.py                                   # PDFs only (default, ~0.2 GB)
     python tools/mirror_media.py --kind audio --limit 20           # try a few audio files first
     python tools/mirror_media.py --verify                          # check every mirrored file is served by https://media.drwasiullah.com
+    python tools/mirror_media.py --kind audio --series tirmidhi    # only these series (ids, several allowed)
+    python tools/mirror_media.py --kind audio --ids fath-bari-2399 fath-bari-2400   # only these lessons (this also lets Makkah lessons through)
+    python tools/mirror_media.py --kind audio --include-makkah     # everything, including all of Fath al-Bari (~10 GB)
+
+Files hosted on makkahscholars.org (Fath al-Bari, Nuzhat lesson 22) are NOT copied unless you name them with --ids / --series or pass --include-makkah.
 
 For every source URL in site/data/library.json it downloads the file, computes its SHA-256, uploads it to the bucket under a
 content-addressed key (pdf/<sha16>.pdf, audio/<sha16>.mp3 - immutable, so cached forever) and records
@@ -34,10 +39,15 @@ def load_env():
                 k, v = ln.split("=", 1); os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
-def items(lib, kind):
+def items(lib, kind, series=None, ids=None, include_makkah=False):
     out = []   # (source_url, kind)
     if kind in ("audio", "all"):
-        out += [(l["src"], "audio") for l in lib["lessons"] if l.get("src")]
+        for l in lib["lessons"]:
+            if not l.get("src"): continue
+            if series and l["series"] not in series: continue
+            if ids and l["id"] not in ids: continue
+            if "makkahscholars.org" in l["src"] and not (include_makkah or ids or series): continue   # a 10 GB series: only on request
+            out.append((l["src"], "audio"))
     if kind in ("pdf", "all"):
         out += [(f["url"], "pdf") for b in lib.get("books", []) for f in b["files"]]
     seen, uniq = set(), []
@@ -101,6 +111,9 @@ def main(argv=None):
     ap.add_argument("--library", default=str(ROOT / "site" / "data" / "library.json"))
     ap.add_argument("--kind", choices=["pdf", "audio", "all"], default="pdf")
     ap.add_argument("--limit", type=int, default=0, help="stop after N new uploads")
+    ap.add_argument("--series", nargs="+", default=[], help="only lessons of these series ids")
+    ap.add_argument("--ids", nargs="+", default=[], help="only these lesson ids (e.g. fath-bari-2399)")
+    ap.add_argument("--include-makkah", action="store_true", help="also copy the lessons hosted on makkahscholars.org (Fath al-Bari, ~10 GB)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--verify", action="store_true", help="only check the public URLs of already mirrored files")
     a = ap.parse_args(argv)
@@ -110,7 +123,7 @@ def main(argv=None):
     if a.verify: return 0 if verify(manifest) else 1
 
     lib = load_library(a.library)
-    todo = [(u, k) for u, k in items(lib, a.kind) if u not in manifest]
+    todo = [(u, k) for u, k in items(lib, a.kind, set(a.series), set(a.ids), a.include_makkah) if u not in manifest]
     print(f"{len(todo)} to copy ({a.kind}); {len(manifest)} already mirrored", file=sys.stderr)
     if a.dry_run:
         for u, k in todo: print(f"  {k:5} {u}")
