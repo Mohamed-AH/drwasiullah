@@ -139,6 +139,9 @@ h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.4;margin:0}
 .sp-title{writing-mode:vertical-rl;font:700 var(--fs,23px)/1.35 var(--disp);text-align:center;inline-size:calc(var(--h) - 150px);flex:1;margin-top:34px;display:flex;align-items:center;justify-content:center;text-shadow:0 1px 0 rgba(0,0,0,.35);color:#fbf1d6}
 .sp-count{font:700 20px var(--kufi);color:var(--gold-hi);border:1.5px solid var(--gold-hi);border-radius:50%;width:46px;height:46px;display:grid;place-items:center;font-size:15px;background:rgba(0,0,0,.18)}
 .sp-star{position:absolute;top:12px;width:14px;height:14px;fill:var(--gold-hi)}
+.shelf-nav{display:none;position:absolute;top:190px;z-index:3;background:var(--paper)}
+.shelf-nav.l{left:8px}.shelf-nav.r{right:8px}.icon-btn.shelf-nav.r .ic{transform:scaleX(-1)}
+@media (hover:hover) and (pointer:fine){.shelf-wrap.ovf .shelf-nav:not([hidden]){display:block}}
 .shelf-note{text-align:center;color:var(--ink-2);font:400 13px var(--kufi);margin-top:16px}
 
 /* ───────── Lesson cards ───────── */
