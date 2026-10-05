@@ -62,6 +62,24 @@ function wire(p, byNavigation) {
   else if (w.t === "series") wireSeries(w.id);
   else if (w.t === "search") wireSearch();
   else if (w.t === "lesson") wireLesson(w, byNavigation);
+  wireShelves();
+}
+
+// A shelf with more books than fit scrolls sideways; a mouse has no swipe, so offer arrows (touch screens keep swiping).
+function wireShelves() {
+  app.querySelectorAll(".shelf-wrap").forEach(wrap => {
+    const sh = wrap.querySelector(".shelf"); if (!sh || wrap.querySelector(".shelf-nav")) return;
+    const mk = (cls, label, dir) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "icon-btn shelf-nav " + cls; b.setAttribute("aria-label", label); b.innerHTML = ic("chevron-left", 20);
+      b.addEventListener("click", () => sh.scrollBy({ left: dir * sh.clientWidth * 0.8, behavior: "smooth" })); wrap.appendChild(b); return b;
+    };
+    const more = mk("l", "عرض مزيد من الكتب", -1), back = mk("r", "الرجوع إلى الكتب السابقة", 1);   // physical left/right: the page is RTL, the first books are at the right
+    const update = () => {
+      const max = sh.scrollWidth - sh.clientWidth, pos = Math.abs(sh.scrollLeft);
+      wrap.classList.toggle("ovf", max > 4); more.hidden = pos >= max - 4; back.hidden = pos <= 4;
+    };
+    sh.addEventListener("scroll", update, { passive: true }); addEventListener("resize", update); update();
+  });
 }
 
 function wireHome() {
