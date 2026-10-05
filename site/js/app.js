@@ -44,26 +44,38 @@ function route(initial) {
   }
 }
 addEventListener("popstate", () => route(false));
-// «تحميل» on an audio lesson: fetch the file and save it under a readable name without leaving the page. The file's host must allow it (CORS); if it
-// does not (or the file is huge) fall back to the plain link, which a host that sends "Content-Disposition: attachment" still saves in place.
-const DL_MAX = 150 * 1024 * 1024;
+// «تحميل» on an audio lesson. Where the host allows it (CORS) the file is fetched and saved under a readable name without leaving the page; the host
+// makkahscholars.org answers with "Content-Disposition: attachment", so a plain same-tab link already saves in place; anything else (or a fetch that
+// fails, e.g. CORS not enabled yet) opens the file in a new tab like an ordinary link. Files over 150 MB always take the plain route.
+const DL_MAX = 150 * 1024 * 1024, DL_FETCH = new Set(["media.drwasiullah.com", "archive.org"]), dlFailed = new Set();
+const saveFile = (href, name) => { const d = document.createElement("a"); d.href = href; if (name) d.download = name; d.rel = "noopener"; document.body.appendChild(d); d.click(); d.remove(); };
+const openTab = href => window.open(href, "_blank", "noopener");
 document.addEventListener("click", async e => {
   const a = e.target.closest("a[data-dl]");
   if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault();
   if (a.getAttribute("aria-busy")) return;
+  const host = new URL(a.href).hostname;
+  if (host === "makkahscholars.org") return saveFile(a.href);
+  if (!DL_FETCH.has(host) || dlFailed.has(host)) return openTab(a.href);
   const label = [...a.childNodes].reverse().find(n => n.nodeType === 3), text = label ? label.textContent : "";
-  const done = () => { a.removeAttribute("aria-busy"); if (label) label.textContent = text; };
-  a.setAttribute("aria-busy", "true"); if (label) label.textContent = " جارٍ التحميل…";
+  const say = t => { if (label) label.textContent = t; };
+  a.setAttribute("aria-busy", "true"); say(" جارٍ التحميل…");
   const name = (a.dataset.dl || "audio").replace(/[\\/:*?"<>|\u0000-\u001f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) + (/\.(mp3|m4a|ogg|wav)$/i.exec(new URL(a.href).pathname) || [".mp3"])[0];
-  const save = (href, fileName) => { const d = document.createElement("a"); d.href = href; if (fileName) d.download = fileName; d.rel = "noopener"; document.body.appendChild(d); d.click(); d.remove(); };
   try {
     const r = await fetch(a.href, { credentials: "omit", referrerPolicy: "no-referrer" });
-    if (!r.ok || (+r.headers.get("content-length") || 0) > DL_MAX) { r.body && r.body.cancel(); throw new Error("fallback"); }
-    const url = URL.createObjectURL(await r.blob());
-    save(url, name); setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } catch { save(a.href); }
-  finally { done(); }
+    const total = +r.headers.get("content-length") || 0;
+    if (!r.ok || total > DL_MAX || !r.body) { r.body && r.body.cancel(); throw new Error("plain"); }
+    const rd = r.body.getReader(), parts = []; let got = 0;
+    for (;;) {
+      const { done, value } = await rd.read(); if (done) break;
+      parts.push(value); got += value.length;
+      if (total) say(` ${Math.min(99, Math.floor(got * 100 / total)).toLocaleString("ar-EG")}٪`);
+    }
+    const url = URL.createObjectURL(new Blob(parts, { type: r.headers.get("content-type") || "audio/mpeg" }));
+    saveFile(url, name); setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch { dlFailed.add(host); openTab(a.href); }
+  finally { a.removeAttribute("aria-busy"); say(text); }
 });
 
 document.addEventListener("click", e => {

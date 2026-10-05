@@ -22,5 +22,5 @@ Audio later: `--kind audio --limit 20` to try a few, then without `--limit` (≈
 [{ "AllowedOrigins": ["https://drwasiullah.com"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"], "MaxAgeSeconds": 86400 }]
 ```
 
-Without it the button falls back to the plain link (the file opens or saves in the same tab, named by its hash). Files larger than 150 MB always use the plain link. Other hosts (archive.org, makkahscholars.org) save in place only if they send CORS headers; test from the console on the live site: `fetch(url).then(r => r.status)`.
+Without it the button opens the file in a new tab (named by its hash when saved). Files larger than 150 MB always use the plain link. archive.org allows it; makkahscholars.org does not send CORS headers, but its download link is an attachment, so it already saves in the same tab.
 
