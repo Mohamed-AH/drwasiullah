@@ -13,3 +13,14 @@ One-time, on your own computer (needs access to wordpress.com / archive.org):
 3. `python tools/mirror_media.py --dry-run` (list) → `python tools/mirror_media.py` (PDFs) → `python tools/mirror_media.py --verify` (checks https://media.drwasiullah.com serves each file).
 4. Commit `site/data/media.json` and merge. The site then links the R2 copy first and keeps the original as the fallback.
 Audio later: `--kind audio --limit 20` to try a few, then without `--limit` (≈ 12.8 GB; mind the storage budget in ROADMAP.md).
+
+## Saving audio from the lesson page (CORS)
+
+«تحميل» on an audio lesson fetches the file and saves it under a readable name without leaving the page. That needs the host to allow it. For our own bucket: Cloudflare dashboard → R2 → `drwasiullah-media` → Settings → CORS policy → add:
+
+```json
+[{ "AllowedOrigins": ["https://drwasiullah.com"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"], "MaxAgeSeconds": 86400 }]
+```
+
+Without it the button falls back to the plain link (the file opens or saves in the same tab, named by its hash). Files larger than 150 MB always use the plain link. Other hosts (archive.org, makkahscholars.org) save in place only if they send CORS headers; test from the console on the live site: `fetch(url).then(r => r.status)`.
+
