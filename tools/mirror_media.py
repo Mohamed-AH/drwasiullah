@@ -6,7 +6,8 @@
     python tools/mirror_media.py --dry-run                         # list what would be copied
     python tools/mirror_media.py                                   # PDFs only (default, ~0.2 GB)
     python tools/mirror_media.py --kind audio --limit 20           # try a few audio files first
-    python tools/mirror_media.py --verify                          # check every mirrored file is served by https://media.drwasiullah.com
+    python tools/mirror_media.py --verify --new                    # check only what the last run added (seconds)
+    python tools/mirror_media.py --verify                          # check every mirrored file is served by https://media.drwasiullah.com (parallel, ~1 minute)
     python tools/mirror_media.py --kind audio --series tirmidhi    # only these series (ids, several allowed)
     python tools/mirror_media.py --kind audio --ids fath-bari-2399 fath-bari-2400   # only these lessons (this also lets Makkah lessons through)
     python tools/mirror_media.py --kind audio --include-makkah     # everything, including all of Fath al-Bari (~10 GB)
@@ -90,19 +91,34 @@ def save(manifest):
     tmp.replace(MANIFEST)
 
 
-def verify(manifest, only=None):
-    bad = 0
-    for src, m in manifest.items():
-        if only and not m["key"].startswith(only + "/"): continue
+def new_entries(manifest):
+    """Entries that are not in the manifest as last committed (what a mirror run just added)."""
+    import subprocess
+    try:
+        old = json.loads(subprocess.run(["git", "show", "HEAD:site/data/media.json"], cwd=ROOT, capture_output=True, check=True, text=True, encoding="utf-8").stdout)
+    except Exception: return manifest                                   # no git / never committed: everything counts as new
+    return {k: v for k, v in manifest.items() if k not in old or old[k] != v}
+
+
+def verify(manifest, only=None, workers=16):
+    from concurrent.futures import ThreadPoolExecutor
+    todo = [(src, m) for src, m in manifest.items() if not only or m["key"].startswith(only + "/")]
+    def check(item):
+        _, m = item
         try:
             req = urllib.request.Request(m["url"], headers={**UA, "Range": "bytes=0-0"})
             with urllib.request.urlopen(req, timeout=30) as r:
                 cr = r.headers.get("Content-Range", ""); total = int(cr.rsplit("/", 1)[1]) if "/" in cr else int(r.headers.get("Content-Length", -1))
-            ok = total == m["size"]; why = f"size {total} != {m['size']}"
+            return (total == m["size"], f"size {total} != {m['size']}")
         except Exception as e:
-            ok, why = False, f"{type(e).__name__}: {e}"
-        if not ok: bad += 1; print(f"  BAD  {m['url']}  ({why})")
-    print(f"verify: {len(manifest) - bad} ok, {bad} bad")
+            return (False, f"{type(e).__name__}: {e}")
+    bad = 0
+    print(f"checking {len(todo)} files with {workers} parallel requests ...", file=sys.stderr)
+    with ThreadPoolExecutor(workers) as ex:
+        for i, ((src, m), (ok, why)) in enumerate(zip(todo, ex.map(check, todo)), 1):
+            if not ok: bad += 1; print(f"  BAD  {m['url']}  ({why})")
+            if i % 100 == 0: print(f"  {i}/{len(todo)}", file=sys.stderr)
+    print(f"verify: {len(todo) - bad} ok, {bad} bad")
     return bad == 0
 
 
@@ -116,11 +132,13 @@ def main(argv=None):
     ap.add_argument("--include-makkah", action="store_true", help="also copy the lessons hosted on makkahscholars.org (Fath al-Bari, ~10 GB)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--verify", action="store_true", help="only check the public URLs of already mirrored files")
+    ap.add_argument("--new", action="store_true", help="with --verify: only the files added since the last commit of media.json (fast)")
+    ap.add_argument("--workers", type=int, default=16, help="with --verify: parallel requests")
     a = ap.parse_args(argv)
     load_env()
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {}
     base = os.environ.get("MEDIA_BASE", "https://media.drwasiullah.com").rstrip("/")
-    if a.verify: return 0 if verify(manifest) else 1
+    if a.verify: return 0 if verify(new_entries(manifest) if a.new else manifest, workers=a.workers) else 1
 
     lib = load_library(a.library)
     todo = [(u, k) for u, k in items(lib, a.kind, set(a.series), set(a.ids), a.include_makkah) if u not in manifest]
