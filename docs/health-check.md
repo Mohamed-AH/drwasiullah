@@ -1,26 +1,34 @@
 # Health check
 
-Two free layers; neither needs a server of ours.
+Two free layers; neither needs a server of ours. Layer 1 is checked from outside by UptimeRobot, layer 2 by GitHub.
 
-## 1. Is the site up? (outside monitor, a few minutes' setup)
+## 1. The `/health` route (for UptimeRobot or any uptime monitor)
 
-Use one uptime service; it pings from outside Cloudflare and alerts by email or phone. Either works:
+`https://drwasiullah.com/health` is answered by a small Cloudflare Worker (`worker/index.js`; every other address is still served by the static site). It runs four checks and returns JSON:
 
-- **Better Stack** (free: 10 monitors, 3-minute checks, one status page; no commercial-use restriction) — recommended.
-- **UptimeRobot** (free: 50 monitors, 5-minute checks; its free plan is limited to personal, non-commercial use).
+```json
+{"status":"ok","time":"2026-10-07T13:27:43Z","checks":{"home":{"ok":true,"detail":"200"},"sitemap":{"ok":true,"detail":"3333 addresses"},"media":{"ok":true,"detail":"206, CORS ok"},"www":{"ok":true,"detail":"301 -> https://drwasiullah.com/"}}}
+```
 
-Create these monitors (HTTP, keyword type where noted):
+| Check | Passes when |
+|---|---|
+| `home` | the home page is served and contains the Sheikh's name |
+| `sitemap` | `sitemap.xml` is served and lists at least 2,000 addresses |
+| `media` | an audio file on `media.drwasiullah.com` answers a ranged request **and** allows the site's origin (CORS; this is what a stale cache or a lost bucket policy breaks) |
+| `www` | `www.drwasiullah.com` still answers (200, or a redirect to the main address) |
 
-| Monitor | URL | Alert if |
-|---|---|---|
-| Home | `https://drwasiullah.com/` | down, or the keyword `وصي الله` is missing |
-| Sitemap | `https://drwasiullah.com/sitemap.xml` | down, or `<urlset` is missing |
-| An audio file | `https://media.drwasiullah.com/audio/f89d25796bd0c3c8.mp3` | down (this is lesson Tadrib 2; any mirrored file works) |
-| `www` | `https://www.drwasiullah.com/` | down |
+The HTTP status is **200 when everything passes and 503 when any check fails**, so even a plain "HTTP 200" monitor is enough; the body says which check failed and why. Results are kept for 30 seconds, so frequent monitoring does not hammer the sources. The route costs nothing (the Workers free plan allows 100,000 requests a day; a 5-minute monitor uses 288).
 
-Turn on the alert by email, and by the service's Telegram or phone-app notification if you want a message on your phone. Also turn on its SSL-certificate expiry alert if it offers one.
+**In UptimeRobot** (you already have an account): Add New Monitor →
+1. Monitor type **HTTP(s)**, URL `https://drwasiullah.com/health`, interval 5 minutes. Alerts fire on any non-200.
+2. Optional, more precise: a second monitor of type **Keyword**, same URL, keyword `"status":"ok"`, alert when the keyword does **not** exist. (Keep both: the first catches the site being down, the second the checks failing.)
+3. Choose your alert contacts (email, or Telegram / the mobile app).
 
-## 2. Is the content healthy? (GitHub Action, already in the repo)
+Open the address in a browser to see the details whenever an alert arrives.
+
+Not covered by `/health` (the Action below does these): data counts, random media files, YouTube videos.
+
+## 2. Deeper content checks (GitHub Action, already in the repo)
 
 `.github/workflows/health.yml` runs `tools/health_check.py` every 6 hours (and on demand: Actions → Health check → Run workflow). It checks that:
 
@@ -42,7 +50,7 @@ It is a smoke test with small samples, not a link audit. For all files run `pyth
 
 | Alert | First thing to look at |
 |---|---|
-| Home or sitemap down | Cloudflare dashboard → Workers & Pages → the site → latest build. Fallback deploy: `git pull && npx wrangler deploy` |
-| Media file down, or "no CORS header" | purge the Cloudflare cache (Caching → Purge Everything), then check R2 → `drwasiullah-media` → CORS policy |
+| `/health` not answering, or `home` / `sitemap` failing | Cloudflare dashboard → Workers & Pages → the site → latest build. Fallback deploy: `git pull && npx wrangler deploy` |
+| `media` failing, or "no CORS header" | purge the Cloudflare cache (Caching → Purge Everything), then check R2 → `drwasiullah-media` → CORS policy |
 | YouTube video missing | the lesson was deleted or made private on YouTube; the daily sync marks it `REMOVED` and drops it on its next run |
 | Page content wrong | the last commit to `main`: `git log -5`, then revert it if needed |

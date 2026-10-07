@@ -44,3 +44,6 @@ tools/makkah_report.txt
 tools/makkah_scan.json
 tools/channel_report.txt
 tools/channel_hits.json
+
+# wrangler local state
+.wrangler/
