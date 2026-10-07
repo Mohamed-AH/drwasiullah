@@ -1,0 +1,25 @@
+name: Health check
+
+# Every 6 hours: smoke-test the live site (pages, data, a sample of media files with CORS, a sample of YouTube lessons) with tools/health_check.py.
+# A failure turns the run red and GitHub emails the repository's watchers; see docs/health-check.md. Free: public repos have unlimited Actions minutes.
+on:
+  schedule:
+    - cron: "41 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the live site
+        shell: bash
+        run: python3 tools/health_check.py | tee health.txt
+      - name: Summary
+        if: always()
+        run: |
+          { echo '```'; cat health.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
