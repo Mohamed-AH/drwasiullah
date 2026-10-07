@@ -7,15 +7,15 @@ Two free layers; neither needs a server of ours. Layer 1 is checked from outside
 `https://drwasiullah.com/health` is answered by a small Cloudflare Worker (`worker/index.js`; every other address is still served by the static site). It runs four checks and returns JSON:
 
 ```json
-{"status":"ok","time":"2026-10-07T13:27:43Z","checks":{"home":{"ok":true,"detail":"200"},"sitemap":{"ok":true,"detail":"3333 addresses"},"media":{"ok":true,"detail":"206, CORS ok"},"www":{"ok":true,"detail":"301 -> https://drwasiullah.com/"}}}
+{"status":"ok","time":"2026-10-07T13:27:43Z","checks":{"home":{"ok":true,"detail":"200"},"sitemap":{"ok":true,"detail":"3333 addresses"},"data":{"ok":true,"detail":"2348 audio lessons, 948 video lessons"},"media":{"ok":true,"detail":"206, CORS ok"}}}
 ```
 
 | Check | Passes when |
 |---|---|
 | `home` | the home page is served and contains the Sheikh's name |
 | `sitemap` | `sitemap.xml` is served and lists at least 2,000 addresses |
+| `data` | `library.json` and `catalogue.json` parse and hold a sane number of lessons (at least 2,000 audio and 900 video) |
 | `media` | an audio file on `media.drwasiullah.com` answers a ranged request **and** allows the site's origin (CORS; this is what a stale cache or a lost bucket policy breaks) |
-| `www` | `www.drwasiullah.com` still answers (200, or a redirect to the main address) |
 
 The HTTP status is **200 when everything passes and 503 when any check fails**, so even a plain "HTTP 200" monitor is enough; the body says which check failed and why. Results are kept for 30 seconds, so frequent monitoring does not hammer the sources. The route costs nothing (the Workers free plan allows 100,000 requests a day; a 5-minute monitor uses 288).
 
@@ -24,9 +24,11 @@ The HTTP status is **200 when everything passes and 503 when any check fails**, 
 2. Optional, more precise: a second monitor of type **Keyword**, same URL, keyword `"status":"ok"`, alert when the keyword does **not** exist. (Keep both: the first catches the site being down, the second the checks failing.)
 3. Choose your alert contacts (email, or Telegram / the mobile app).
 
-Open the address in a browser to see the details whenever an alert arrives.
+4. A separate plain **HTTP(s)** monitor for `https://www.drwasiullah.com/` (the `/health` route cannot check `www` itself: a Worker that fetches another hostname of its own domain gets a 522).
 
-Not covered by `/health` (the Action below does these): data counts, random media files, YouTube videos.
+Open the `/health` address in a browser to see the details whenever an alert arrives.
+
+Not covered by `/health` (the Action below does these): random media files beyond the one sample, YouTube videos.
 
 ## 2. Deeper content checks (GitHub Action, already in the repo)
 
