@@ -3,12 +3,16 @@
   // sitemap.xml, robots.txt, _redirects, 404.html) and wrangler publishes dist/. No npm dependencies are needed for the build.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "drwasiullah",
+  // worker/index.js answers only /health (for uptime monitors); every other path is served by the static assets below.
+  "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
   "build": {
     "command": "node scripts/build.mjs"
   },
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/health", "/health/"],
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
   }
