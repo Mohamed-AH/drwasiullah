@@ -28,7 +28,7 @@ export const SPINE_H = [318, 284, 300, 262, 292, 248, 276];
 export const PAGE = 60;
 
 /* ───────── Data (filled by init) ─────────  lookup tables have no prototype: "__proto__" is not an id */
-export const state = { DB: null, bio: null };
+export const state = { DB: null, bio: null, schedule: null };
 export const byId = Object.create(null), seriesById = Object.create(null), secById = Object.create(null);
 
 /* Make our own R2 copy (tools/mirror_media.py -> data/media.json) the primary link and keep the original as src_alt / url_alt.
@@ -45,7 +45,7 @@ export function applyMedia(lib = {}, media = null) {
 /* Library files that add to library.json (lessons imported from other sources, e.g. data/makkah.json). */
 export const mergeLibraries = (...libs) => libs.filter(Boolean).reduce((a, b) => ({ ...a, ...b, series: [...(a.series || []), ...(b.series || [])], lessons: [...(a.lessons || []), ...(b.lessons || [])], books: [...(a.books || []), ...(b.books || [])] }), {});
 
-export function init(cat, lib = {}, bio = null, media = null) {
+export function init(cat, lib = {}, bio = null, media = null, schedule = null) {
   lib = applyMedia(lib, media);
   SECTIONS.forEach(s => secById[s.id] = s);
   const DB = {
@@ -62,8 +62,27 @@ export function init(cat, lib = {}, bio = null, media = null) {
   });
   DB.series = DB.series.filter(s => s.count > 0);
   state.DB = DB;
+  state.schedule = cleanSchedule(schedule);   // optional: the weekly timetable (data/schedule.json)
   state.bio = bio && typeof bio === "object" && (bio.summary || (Array.isArray(bio.sections) && bio.sections.length)) ? bio : null;   // optional: supplied by the Sheikh's team
   return DB;
+}
+
+/* ───────── Weekly schedule ─────────  data/schedule.json -> { note, days: [{ i, day, slots: [{ time, title, series?, lang, note? }] }] } or null.
+   Everything is whitelisted: days by name, language by value, series must exist, strings are length-capped; slots marked "pending" never show. */
+export const WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];   // index = Date#getDay()
+export function cleanSchedule(raw) {
+  if (!raw || typeof raw !== "object" || !Array.isArray(raw.slots)) return null;
+  const str = (x, n) => typeof x === "string" ? x.replace(/[\u0000-\u001f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim().slice(0, n) : "";
+  const idx = d => WEEKDAYS.indexOf(str(d, 20).replace("الاثنين", "الإثنين"));
+  const byDay = WEEKDAYS.map(() => []);
+  raw.slots.forEach((x, k) => {
+    if (!x || typeof x !== "object" || x.pending) return;
+    const title = str(x.title, 120), time = str(x.time, 60); if (!title) return;
+    const slot = { time, title, lang: x.lang === "ur" ? "ur" : "ar", note: str(x.note, 160), series: typeof x.series === "string" && seriesById[x.series] ? x.series : "", order: Number.isFinite(x.order) ? x.order : 50, k };
+    (Array.isArray(x.days) ? x.days : []).map(idx).filter(i => i >= 0).forEach(i => byDay[i].push(slot));
+  });
+  const days = byDay.map((slots, i) => ({ i, day: WEEKDAYS[i], slots: slots.sort((a, b) => a.order - b.order || a.k - b.k) })).filter(d => d.slots.length);
+  return days.length ? { note: str(raw.note, 300), days } : null;
 }
 
 /* ───────── Helpers ───────── */
@@ -134,7 +153,7 @@ export const isFlat = secId => seriesIn(secId).length === 1;   // a section with
 
 /* ───────── URLs (real paths, root-relative) ───────── */
 export const href = {
-  home: () => "/", library: () => "/library/", books: () => "/books/", about: () => "/about/",
+  home: () => "/", library: () => "/library/", books: () => "/books/", about: () => "/about/", schedule: () => "/schedule/",
   series: id => `/series/${encodeURIComponent(id)}/`,
   lesson: id => `/lesson/${encodeURIComponent(id)}/`,
   search: (qs = "") => "/search/" + qs,

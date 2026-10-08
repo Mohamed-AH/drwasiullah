@@ -2,7 +2,7 @@
    Used by scripts/build.mjs (pre-rendering to real static HTML) and by js/app.js (client-side navigation). */
 import {
   SITE, NAME, NAME_FULL, OFFICIAL_PRE, FULL_NAME, ROLE, OFFICIAL_NAME, YT_CHANNEL, WP_SITE, SECTIONS, SPINE, SPINE_PALETTE, SPINE_H, PAGE, MAXQ,
-  state, byId, seriesById, secById, ic, esc, fmtNum, fmtYear, ldate, dur, isoDur, hours, dg, cleanQuery, oneOf, safeUrl, safeYt, safeLang, safeDecode, jsonLd,
+  state, WEEKDAYS, byId, seriesById, secById, ic, esc, fmtNum, fmtYear, ldate, dur, isoDur, hours, dg, cleanQuery, oneOf, safeUrl, safeYt, safeLang, safeDecode, jsonLd,
   kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
 } from "./core.js";
 
@@ -286,6 +286,23 @@ export function notFoundPage() {
     html: `<div class="empty"><h1>الصفحة غير موجودة</h1><p><a class="btn pri" href="/">العودة للرئيسية</a> <a class="btn" href="/search/">البحث في المكتبة</a></p></div>` });
 }
 
+/* ───────── Weekly schedule ───────── */
+function schedulePage() {
+  const sc = state.schedule; if (!sc) return null;
+  const c = crumbs([{ t: "جدول الدروس" }]);
+  const slot = x => `<li><span class="st">${esc(x.time)}</span><span class="sw">${x.series ? `<a href="${href.series(x.series)}">${esc(x.title)}</a>` : esc(x.title)}${x.lang === "ur" ? ' <span class="tag plain">بالأردية</span>' : ""}${x.note ? `<small>${esc(x.note)}</small>` : ""}</span></li>`;
+  const html = `${c.html}<div class="sched">
+    <header><h1 class="page-h">جدول الدروس الأسبوعي</h1><p class="lede">مواعيد دروس ${esc(NAME_FULL)} حفظه الله خلال الأسبوع، بتوقيت مكة المكرمة.</p></header>
+    <ol class="sched-days" aria-label="أيام الأسبوع">${sc.days.map(d => `<li class="sched-day" data-day="${d.i}"><h2>${esc(d.day)}</h2><ul class="sched-slots">${d.slots.map(slot).join("")}</ul></li>`).join("")}</ol>
+    <p class="sched-note">${esc(sc.note || "الجدول قابل للتغيير؛ تابع قناة الشيخ على يوتيوب لمعرفة أي تعديل.")}</p></div>`;
+  const titles = [...new Set(sc.days.flatMap(d => d.slots.map(x => x.title)))];
+  return mkPage({
+    nav: "schedule", path: "/schedule/", html, wire: { t: "schedule" },
+    title: withSite("جدول الدروس الأسبوعي"), description: clip(`مواعيد الدروس الأسبوعية للشيخ ${NAME_FULL}: ${titles.join("، ")}. بتوقيت مكة المكرمة.`, 160),
+    jsonld: [c.ld],
+  });
+}
+
 /* path -> page. Unknown or malformed paths give the 404 page. */
 export function resolve(pathname, params = new URLSearchParams()) {
   const raw = String(pathname).split("/").filter(Boolean);
@@ -297,6 +314,7 @@ export function resolve(pathname, params = new URLSearchParams()) {
   else if (segs.length === 1 && a === "library") p = library();
   else if (segs.length === 1 && a === "books") p = booksPage();
   else if (segs.length === 1 && a === "about") p = aboutPage();
+  else if (segs.length === 1 && a === "schedule") p = schedulePage();
   else if (segs.length === 1 && a === "search") p = searchPage(params);
   else if (segs.length === 2 && a === "section") p = sectionPage(b);
   else if (segs.length === 2 && a === "series") p = seriesPage(b);
@@ -307,6 +325,7 @@ export function resolve(pathname, params = new URLSearchParams()) {
 /* ───────── Chrome: header, drawer, bottom bar, footer, <head> ───────── */
 const navItems = () => {
   const items = [...visible().map(s => ({ id: s.id, t: s.title, i: s.icon, h: href.section(s), n: s.id === "books" ? 0 : sectionCount(s.id) }))];
+  if (state.schedule) items.push({ id: "schedule", t: "جدول الدروس", i: "calendar-days", h: href.schedule() });
   if (state.bio) items.push({ id: "about", t: "عن الشيخ", i: "book-marked", h: href.about() });
   return items;
 };
@@ -336,7 +355,7 @@ export function chromeBottom(nav) {
     <a class="bn" href="#" role="button" data-nav="more" id="bn-more"><span class="bn-i">${ic("menu", 22)}</span><span>المزيد</span></a></nav>`;
 }
 export const footer = () => `<footer class="foot"><div class="wrap">
-  <p class="foot-official"><strong>${esc(OFFICIAL_NAME)} حفظه الله</strong>، ${esc(ROLE)}.${state.bio ? ` <a href="${href.about()}">عن الشيخ</a>` : ""}</p>
+  <p class="foot-official"><strong>${esc(OFFICIAL_NAME)} حفظه الله</strong>، ${esc(ROLE)}.${[state.bio && `<a href="${href.about()}">عن الشيخ</a>`, state.schedule && `<a href="${href.schedule()}">جدول الدروس</a>`].filter(Boolean).map(x => " " + x).join(" ·")}</p>
   <p>الدروس المرئية على <a href="${YT_CHANNEL}" target="_blank" rel="noopener">قناة واحة السنة</a> في يوتيوب، والمواد الصوتية والكتب مأخوذة من <a href="${WP_SITE}" target="_blank" rel="noopener">مدونة الشيخ</a>، ويحفظ هذا الموقع نسخًا من الصوتيات والكتب لتسهيل الوصول إليها.</p>
   <p>آخر تحديث للفهرس: ${fmtDate(state.DB.updated)}</p></div></footer>`;
 

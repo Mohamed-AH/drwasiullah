@@ -73,6 +73,28 @@ python tools/import_haram.py --no-api   # offline: no lengths
 
 Videos YouTube no longer returns, or that are live with no length yet, are left out and listed (exit code 1); videos that cannot be embedded are kept and listed. `scripts/build.mjs` merges `haram.json` into the library like `makkah.json`; the lessons are `kind: "video"` with the YouTube id as `id`. Nothing here is refreshed by the daily sync.
 
+## Weekly schedule: `site/data/schedule.json`
+
+The page «جدول الدروس الأسبوعي» (`/schedule/`, linked in the header, drawer and footer) exists only while this file does. Edit the file to change the timetable; nothing else needs touching.
+
+```jsonc
+{
+  "note": "الجدول قابل للتغيير؛ …",                       // optional line under the table
+  "slots": [
+    { "days": ["الأحد", "الخميس", "السبت"],               // Arabic day names (الأحد الإثنين الثلاثاء الأربعاء الخميس الجمعة السبت)
+      "order": 2,                                         // lessons of the same day are listed by this number
+      "time": "بعد المغرب",                                // free text, shown as written
+      "title": "شرح صحيح مسلم",
+      "series": "muslim",                                 // optional: series id; the title then links to that series
+      "lang": "ar",                                       // "ar" (default) or "ur": «بالأردية» badge
+      "note": "…",                                        // optional small line
+      "pending": true }                                   // optional: kept in the file but NOT shown (use for anything not confirmed yet)
+  ]
+}
+```
+
+Times are Makkah time; the page highlights today's card (Makkah time). Days with no slot are not listed.
+
 ## Mirrored media: `site/data/media.json`
 
 Written by `tools/mirror_media.py`: `{ "<original URL>": { "url": "https://media.drwasiullah.com/…", "key", "sha256", "size" } }`. It is not sent to browsers. `scripts/build.mjs` merges it into `dist/data/library.json` (our copy becomes `src`/`url`, the original is kept as `src_alt`/`url_alt`), and the audio player falls back to `src_alt` if our copy fails. Setup: [mirror-setup.md](mirror-setup.md).

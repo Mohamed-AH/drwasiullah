@@ -6,7 +6,7 @@ import { createRequire } from "node:module";
 const axeSrc = (await import("node:fs")).readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 
 const BASE = (process.argv[2] || "http://localhost:8000").replace(/\/$/, "");
-const PAGES = ["/", "/library/", "/section/audio/", "/series/muslim/", "/series/tirmidhi/", "/series/khutab/", "/lesson/tirmidhi-0003/", "/lesson/BHlv9TkmsME/", "/books/", "/search/?q=%D9%85%D8%B3%D9%84%D9%85", "/about/", "/404.html"];
+const PAGES = ["/", "/library/", "/section/audio/", "/series/muslim/", "/series/tirmidhi/", "/series/khutab/", "/lesson/tirmidhi-0003/", "/lesson/BHlv9TkmsME/", "/books/", "/schedule/", "/search/?q=%D9%85%D8%B3%D9%84%D9%85", "/about/", "/404.html"];
 const browser = await chromium.launch();
 let total = 0;
 for (const [theme, w, h] of [["light", 1280, 800], ["dark", 1280, 800], ["light", 390, 844], ["dark", 390, 844]]) {
@@ -15,7 +15,7 @@ for (const [theme, w, h] of [["light", 1280, 800], ["dark", 1280, 800], ["light"
   for (const p of PAGES) {
     const page = await ctx.newPage();
     const r = await page.goto(BASE + p);
-    if (r.status() === 404 && p !== "/404.html" && p !== "/about/") { console.log(`skip ${p} (404)`); await page.close(); continue; }
+    if (r.status() === 404 && p !== "/404.html" && p !== "/about/" && p !== "/schedule/") { console.log(`skip ${p} (404)`); await page.close(); continue; }
     await page.waitForTimeout(1500);
     await page.evaluate(src => { (0, eval)(src); }, axeSrc);
     const res = await page.evaluate(async () => (await axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"], resultTypes: ["violations"] })).violations

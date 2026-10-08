@@ -13,7 +13,7 @@ const readJSON = (f, optional = false) => { try { return JSON.parse(fs.readFileS
 
 const t0 = Date.now();
 const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true), readJSON("data/haram.json", true));   // library.json + lessons imported from makkahscholars.org
-init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true));
+init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true), readJSON("data/schedule.json", true));
 const DB = state.DB;
 
 fs.rmSync(OUT, { recursive: true, force: true });
@@ -30,6 +30,7 @@ write("data/library.json", JSON.stringify(applyMedia(LIB, MEDIA)));   // the one
 const routes = ["/", "/library/", "/search/"];
 if (DB.books.length) routes.push("/books/");
 if (state.bio) routes.push("/about/");
+if (state.schedule) routes.push("/schedule/");
 for (const s of SECTIONS) if (s.id !== "books" && !isFlat(s.id) && DB.series.some(x => x.sec === s.id)) routes.push(`/section/${s.id}/`);
 for (const s of DB.series) routes.push(href.series(s.id));
 for (const l of DB.lessons) routes.push(href.lesson(l.id));

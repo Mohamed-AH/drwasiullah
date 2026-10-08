@@ -95,6 +95,7 @@ function wire(p, byNavigation) {
   if (w.t === "home") wireHome();
   else if (w.t === "series") wireSeries(w.id);
   else if (w.t === "search") wireSearch();
+  else if (w.t === "schedule") wireSchedule();
   else if (w.t === "lesson") wireLesson(w, byNavigation);
   wireShelves();
 }
@@ -114,6 +115,14 @@ function wireShelves() {
     };
     sh.addEventListener("scroll", update, { passive: true }); addEventListener("resize", update); update();
   });
+}
+
+// highlight today's column (Makkah time) on the schedule page
+function wireSchedule() {
+  let day = ""; try { day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Riyadh" }).format(new Date()); } catch { return; }
+  const i = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(day);
+  const el = app.querySelector(`.sched-day[data-day="${i}"]`);
+  if (el) { el.classList.add("today"); el.insertAdjacentHTML("afterbegin", '<span class="today-tag">اليوم</span>'); }
 }
 
 function wireHome() {
@@ -233,10 +242,10 @@ paintTheme();
 
 /* ───────── Boot ───────── */
 const getJSON = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
-const hasBio = !!document.querySelector('a[href="/about/"]');   // the build links /about/ only when data/bio.json exists: no 404 request while the bio is dormant
-Promise.all([getJSON("/catalogue.json"), getJSON("/data/library.json"), hasBio ? getJSON("/data/bio.json") : null]).then(([cat, lib, bio]) => {
+const hasBio = !!document.querySelector('a[href="/about/"]'), hasSchedule = !!document.querySelector('a[href="/schedule/"]');   // the build links /about/ only when data/bio.json exists: no 404 request while the bio is dormant
+Promise.all([getJSON("/catalogue.json"), getJSON("/data/library.json"), hasBio ? getJSON("/data/bio.json") : null, hasSchedule ? getJSON("/data/schedule.json") : null]).then(([cat, lib, bio, schedule]) => {
   if (!cat) throw new Error("no catalogue");
-  init(cat, lib || {}, bio);
+  init(cat, lib || {}, bio, null, schedule);
   const legacy = () => { if (location.hash.startsWith("#/")) { history.replaceState(null, "", hashToPath(location.hash)); return true; } return false; };   // old shared links (#/watch/ID …)
   legacy();
   addEventListener("hashchange", () => { if (legacy()) route(false); });
