@@ -126,6 +126,7 @@ function wireSchedule() {
 }
 
 function wireHome() {
+  wireSchedule();
   const f = app.querySelector("form.search"); if (!f) return;
   f.addEventListener("submit", e => { e.preventDefault(); const q = cleanQuery(f.q.value); go("/search/" + (q ? "?q=" + encodeURIComponent(q) : "")); });
 }

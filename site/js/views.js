@@ -60,6 +60,12 @@ function crumbs(items) {
 const mkPage = o => ({ status: 200, noindex: false, jsonld: [], image: OG_DEFAULT, ogType: "website", nav: "", wire: { t: "none" }, ...o });
 const withSite = t => `${t} | الموقع الرسمي للشيخ ${NAME.replace(/^الشيخ /, "")}`;
 
+/* ───────── Weekly schedule (shared by /schedule/ and the home page) ───────── */
+const scheduleDays = (sc, h = 3) => {
+  const slot = x => `<li><span class="st">${esc(x.time)}</span><span class="sw">${x.series ? `<a href="${href.series(x.series)}">${esc(x.title)}</a>` : esc(x.title)}${x.lang === "ur" ? ' <span class="tag plain">بالأردية</span>' : ""}${x.note ? `<small>${esc(x.note)}</small>` : ""}</span></li>`;
+  return `<ol class="sched-days" aria-label="أيام الأسبوع">${sc.days.map(d => `<li class="sched-day" data-day="${d.i}"><h${h}>${esc(d.day)}</h${h}><ul class="sched-slots">${d.slots.map(slot).join("")}</ul></li>`).join("")}</ol>`;
+};
+
 /* ───────── Pages ───────── */
 function home() {
   const DB = state.DB, vis = visible();
@@ -74,6 +80,7 @@ function home() {
       <p class="hero-p">فهرس منظّم لدروس الشيخ أ.د. وصي الله بن محمد عباس حفظه الله ومحاضراته وخطبه وكتبه، مرتّبة بحسب الأقسام والكتب لتصل إلى ما تريده بسرعة.</p>
       ${searchBox("ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج", "", "q", true)}
       <ul class="stats"><li><b>${fmtNum(DB.lessons.length)}</b>مادة علمية</li><li><b>${fmtNum(DB.series.length)}</b>سلسلة</li>${DB.books.length ? `<li><b>${fmtNum(DB.books.length)}</b>كتابًا</li>` : ""}</ul></section>
+    ${state.schedule ? `<section class="sched sched-home" aria-labelledby="sc-h"><div class="sec"><h2 id="sc-h">جدول الدروس الأسبوعي</h2><a href="${href.schedule()}">الجدول كاملًا ${ic("chevron-left", 15)}</a></div>${scheduleDays(state.schedule)}<p class="sched-note">بتوقيت مكة المكرمة؛ الجدول قابل للتغيير.</p></section>` : ""}
     ${bio ? `<section class="about-teaser" aria-labelledby="ab-h"><h2 id="ab-h">عن الشيخ</h2>${bio.summary ? `<p>${esc(bio.summary)}</p>` : ""}<a class="btn" href="${href.about()}">اقرأ المزيد ${ic("chevron-left", 16)}</a></section>` : ""}
     <div class="sec"><h2>الأقسام</h2></div>
     <div class="tiles">${vis.map(s => tile(s, sectionCount(s.id))).join("")}</div>
@@ -290,10 +297,9 @@ export function notFoundPage() {
 function schedulePage() {
   const sc = state.schedule; if (!sc) return null;
   const c = crumbs([{ t: "جدول الدروس" }]);
-  const slot = x => `<li><span class="st">${esc(x.time)}</span><span class="sw">${x.series ? `<a href="${href.series(x.series)}">${esc(x.title)}</a>` : esc(x.title)}${x.lang === "ur" ? ' <span class="tag plain">بالأردية</span>' : ""}${x.note ? `<small>${esc(x.note)}</small>` : ""}</span></li>`;
   const html = `${c.html}<div class="sched">
     <header><h1 class="page-h">جدول الدروس الأسبوعي</h1><p class="lede">مواعيد دروس ${esc(NAME_FULL)} حفظه الله خلال الأسبوع، بتوقيت مكة المكرمة.</p></header>
-    <ol class="sched-days" aria-label="أيام الأسبوع">${sc.days.map(d => `<li class="sched-day" data-day="${d.i}"><h2>${esc(d.day)}</h2><ul class="sched-slots">${d.slots.map(slot).join("")}</ul></li>`).join("")}</ol>
+    ${scheduleDays(sc, 2)}
     <p class="sched-note">${esc(sc.note || "الجدول قابل للتغيير؛ تابع قناة الشيخ على يوتيوب لمعرفة أي تعديل.")}</p></div>`;
   const titles = [...new Set(sc.days.flatMap(d => d.slots.map(x => x.title)))];
   return mkPage({
