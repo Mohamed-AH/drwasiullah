@@ -417,3 +417,20 @@ h2.sect{margin:0}
 
 @media (forced-colors:active){.spine,.tile-ic::before,.seal::before,.seal::after{forced-color-adjust:none}.btn,.pill,.icon-btn{border:1px solid ButtonText}}
 @media (prefers-contrast:more){:root{--rule:#6b5a3a;--ink-2:#3a2a18}:root[data-theme=dark]{--rule:#8a8a8a;--ink-2:#d6cbb0}}
+
+/* ───────── Weekly schedule ───────── */
+.sched .page-h{font-size:clamp(34px,5.2vw,60px);line-height:1.4}
+.sched-days{list-style:none;margin:26px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+.sched-day{position:relative;background:var(--paper-2);border:1px solid var(--rule);box-shadow:var(--shadow);padding:16px 20px 18px;border-radius:2px}
+.sched-day h2{font:700 26px var(--disp);color:var(--rubric);margin:0 0 8px;line-height:1.5}
+.sched-day.today{border-color:var(--gold);outline:1px solid var(--gold);outline-offset:3px}
+.today-tag{position:absolute;top:14px;left:14px;font:600 12.5px var(--kufi);color:var(--paper);background:var(--rubric-fill);padding:0 10px;border-radius:2px;line-height:1.8}
+.sched-slots{list-style:none;margin:0;padding:0}
+.sched-slots li{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-top:1px dashed var(--rule)}
+.sched-slots li:first-child{border-top:0}
+.sched-slots .st{font:600 14.5px var(--kufi);color:var(--ink-2)}
+.sched-slots .sw{font-size:19px;line-height:1.8;color:var(--ink)}
+.sched-slots .sw a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:5px}
+.sched-slots .sw a:hover,.sched-slots .sw a:focus-visible{color:var(--rubric);text-decoration-color:var(--rubric)}
+.sched-slots small{display:block;font-size:15px;color:var(--ink-2)}
+.sched-note{margin:26px 0 0;color:var(--ink-2);font-size:16px}
