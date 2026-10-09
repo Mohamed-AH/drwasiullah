@@ -49,8 +49,8 @@
    "description": "تسجيلات مرئية من قناة دروس المسجد الحرام على يوتيوب."
   },
   {
-   "id": "tawheed-urdu",
-   "title": "شرح كتاب التوحيد (بالأردية)",
+   "id": "tawheed-urdu-live",
+   "title": "شرح كتاب التوحيد (بالأردية) — بث مباشر",
    "sec": "urdu",
    "unit": "الدرس",
    "ordered": true,
@@ -495,7 +495,7 @@
   },
   {
    "id": "681nU8qYQW8",
-   "series": "tawheed-urdu",
+   "series": "tawheed-urdu-live",
    "title": "شرح كتاب التوحيد (بالأردية) — الدرس 1",
    "hd": "1446-11-18",
    "date": "2025-05-16",
@@ -559,7 +559,7 @@
   },
   {
    "id": "ZeEjxt6fSps",
-   "series": "tawheed-urdu",
+   "series": "tawheed-urdu-live",
    "title": "شرح كتاب التوحيد (بالأردية) — الدرس 2",
    "hd": "1446-12-15",
    "date": "2025-06-11",
@@ -567,7 +567,7 @@
   },
   {
    "id": "9pkph0Kh5vE",
-   "series": "tawheed-urdu",
+   "series": "tawheed-urdu-live",
    "title": "شرح كتاب التوحيد (بالأردية) — الدرس 3",
    "hd": "1446-12-16",
    "date": "2025-06-12",
@@ -575,7 +575,7 @@
   },
   {
    "id": "EH88lIUMyoA",
-   "series": "tawheed-urdu",
+   "series": "tawheed-urdu-live",
    "title": "شرح كتاب التوحيد (بالأردية) — الدرس 4",
    "hd": "1446-12-18",
    "date": "2025-06-14",
@@ -583,7 +583,7 @@
   },
   {
    "id": "YQnl9F5A8j4",
-   "series": "tawheed-urdu",
+   "series": "tawheed-urdu-live",
    "title": "شرح كتاب التوحيد (بالأردية) — الدرس 5",
    "hd": "1446-12-19",
    "date": "2025-06-15",
