@@ -123,6 +123,12 @@ function wireSchedule() {
   const i = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(day);
   const el = app.querySelector(`.sched-day[data-day="${i}"]`);
   if (el) { el.classList.add("today"); el.insertAdjacentHTML("afterbegin", '<span class="today-tag">اليوم</span>'); }
+  const line = app.querySelector("#live-today"); if (!line) return;
+  const cards = [...app.querySelectorAll(".sched-day")];
+  const text = card => { const li = [...card.querySelectorAll(".sched-slots li")]; return li.map(x => x.dataset.t).join(" ثم ") + (li.length && li[li.length - 1].dataset.w ? " — " + li[li.length - 1].dataset.w : ""); };
+  const next = cards.find(c => +c.dataset.day > i) || cards[0];
+  line.textContent = el ? "اليوم: " + text(el) : next ? `الدرس القادم يوم ${next.querySelector("h2,h3").textContent}: ${text(next)}` : "";
+  line.hidden = !line.textContent;
 }
 
 function wireHome() {

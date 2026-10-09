@@ -82,7 +82,9 @@ export function cleanSchedule(raw) {
     (Array.isArray(x.days) ? x.days : []).map(idx).filter(i => i >= 0).forEach(i => byDay[i].push(slot));
   });
   const days = byDay.map((slots, i) => ({ i, day: WEEKDAYS[i], slots: slots.sort((a, b) => a.order - b.order || a.k - b.k) })).filter(d => d.slots.length);
-  return days.length ? { note: str(raw.note, 300), days } : null;
+  let live = null;   // optional live-stream button: https link on mixlr.com only
+  if (raw.live && typeof raw.live === "object") { try { const u = new URL(String(raw.live.url)); if (u.protocol === "https:" && /^(www\.)?mixlr\.com$/.test(u.hostname)) live = { url: u.href, label: str(raw.live.label, 40) || "حضور البث المباشر", sub: str(raw.live.sub, 60) }; } catch {} }
+  return days.length ? { note: str(raw.note, 300), days, live } : null;
 }
 
 /* ───────── Helpers ───────── */
