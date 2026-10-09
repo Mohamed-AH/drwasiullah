@@ -128,7 +128,7 @@ ${totals.books ? `<tr><td>الكتب</td><td class="c">—</td><td class="c">${f
 <ul class="note">
   <li>كل التواريخ بالتقويم الهجري (أم القرى).</li>
   <li>الدروس الصوتية والخطب: التاريخ كما ورد في مصدر المادة.</li>
-  <li>الدروس المرئية على قناة يوتيوب: التاريخ هو <b>تاريخ نشر المقطع</b> (علامة †)، وقد يتأخر عن يوم الدرس.</li>
+  <li>الدروس المرئية على قناة يوتيوب: التاريخ هو <b>تاريخ نشر المقطع</b>، وقد يتأخر عن يوم الدرس.</li>
   <li>الشرطة (—) تعني أن تاريخ المادة غير متوفر في المصدر؛ عددها ${fmtNum(totals.undated)} مادة.</li>
 </ul>
 
@@ -143,12 +143,12 @@ ${groups.map(g => `<tr><td colspan="6" style="background:#efe3bf;font-weight:700
 <div class="bars">${bars}</div>`;
 };
 
-const dateCell = l => { const t = ldate(l); return t ? esc(t) + (upload(l) ? " †" : "") : "—"; };
+const dateCell = l => { const t = ldate(l); return t ? esc(t) : "—"; };
 const rows = (x, ls, video) => ls.map((l, i) => `<tr><td class="n">${fmtNum(l.n ?? "") || fmtNum(i + 1)}</td><td>${esc(dg(l.title))}</td><td class="d">${dateCell(l)}</td>${video ? `<td class="t">${l.duration ? esc(dg(dur(l.duration))) : "—"}</td>` : ""}</tr>`).join("");
 
 const seriesHtml = (x, idx) => {
   const video = x.ls.every(l => l.kind === "video");
-  const head = `<tr><th>الرقم</th><th>العنوان</th><th>${video && x.ls.some(upload) ? "التاريخ (†)" : "التاريخ"}</th>${video ? "<th>المدة</th>" : ""}</tr>`;
+  const head = `<tr><th>الرقم</th><th>العنوان</th><th>التاريخ</th>${video ? "<th>المدة</th>" : ""}</tr>`;
   const bySec = new Map();
   x.ls.forEach(l => { const k = l.section || ""; if (!bySec.has(k)) bySec.set(k, []); bySec.get(k).push(l); });
   const secs = [...bySec.entries()];
@@ -171,7 +171,7 @@ const notesHtml = () => {
 <p class="note">ما يلي ليس خطأً في الموقع بل نقص في معلومات المصدر، ويمكن استكماله إذا توفرت البيانات:</p>
 <h3>مواد بلا تاريخ</h3><ul class="note">${und || "<li>لا يوجد.</li>"}</ul>
 <h3 style="margin-top:10pt">مواد بلا رقم درس</h3><ul class="note">${unn || "<li>لا يوجد.</li>"}</ul>
-<h3 style="margin-top:10pt">تنبيه</h3><ul class="note"><li>† = تاريخ نشر المقطع على يوتيوب، وليس بالضرورة تاريخ الدرس.</li></ul>`;
+<h3 style="margin-top:10pt">تنبيه</h3><ul class="note"><li>تاريخ الدروس المرئية على قناة يوتيوب هو تاريخ نشر المقطع، وليس بالضرورة تاريخ الدرس.</li></ul>`;
 };
 
 const fullHtml = pages => {
