@@ -15,6 +15,10 @@ const t0 = Date.now();
 const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true), readJSON("data/haram.json", true));   // library.json + lessons imported from makkahscholars.org
 init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true), readJSON("data/schedule.json", true));
 const DB = state.DB;
+{ // two series (or lessons) with the same id would silently merge or duplicate: refuse to build
+  const dup = (xs, what) => { const seen = new Set(); for (const x of xs) { if (seen.has(x.id)) { console.error(`!! duplicate ${what} id: ${x.id}`); process.exit(1); } seen.add(x.id); } };
+  dup(DB.series, "series"); dup(DB.lessons, "lesson");
+}
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) && !/[\\/]data[\\/]media\.json$/.test(s) && !/[\\/]data[\\/](makkah|haram)\.json$/.test(s) });   // the manifest stays out of dist: the merged library below carries the mirrored links
