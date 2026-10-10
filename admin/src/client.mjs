@@ -2,9 +2,6 @@
    Builds the DOM with createElement/textContent only - nothing from files or the database is ever parsed as HTML. */
 export const JS = String.raw`(() => {
 "use strict";
-const root = document.getElementById("upload-root");
-if (!root) return;
-const SERIES = JSON.parse(document.getElementById("series-data").textContent);
 const PART_SIZE = 8 * 1024 * 1024, SOFT_MB = 100, MAX_MB = 200;
 const $ = id => document.getElementById(id);
 const el = (tag, props, ...kids) => {
@@ -18,6 +15,58 @@ const el = (tag, props, ...kids) => {
 };
 const AR = n => String(n).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
 
+let busy = false;
+/* ---- upload ---- */
+async function sha256hex(file) {
+  const h = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function post(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+  return j;
+}
+function putPart(url, blob, onProgress) {
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open("PUT", url); x.responseType = "json";
+    x.upload.onprogress = e => e.lengthComputable && onProgress(e.loaded);
+    x.onload = () => x.status === 200 ? resolve(x.response) : reject(new Error((x.response && x.response.error) || "HTTP " + x.status));
+    x.onerror = () => reject(new Error("انقطع الاتصال"));
+    x.send(blob);
+  });
+}
+/* upload one file (any kind the server accepts); progress(text) is called with short labels; returns {key, exists}. confirmReuse: ask when an audio file is already used. */
+async function uploadFile(file, progress, confirmReuse) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  progress("جارٍ حساب البصمة…");
+  const sha = await sha256hex(file);
+  const st = await post("/api/upload/start", { size: file.size, ext, sha256: sha });
+  if (confirmReuse && st.usedBy && !confirm("هذا الملف مستخدم من قبل في الدرس " + st.usedBy + ". هل تريد استخدامه مرة أخرى؟")) throw new Error("أُلغي: الملف مكرر");
+  if (st.exists) { progress("موجود مسبقًا ✓"); return { key: st.key, exists: true }; }
+  const parts = [], total = Math.ceil(file.size / PART_SIZE);
+  try {
+    for (let i = 0; i < total; i++) {
+      const blob = file.slice(i * PART_SIZE, (i + 1) * PART_SIZE);
+      let res, tries = 0;
+      for (;;) {
+        try {
+          res = await putPart("/api/upload/part?key=" + encodeURIComponent(st.key) + "&uploadId=" + encodeURIComponent(st.uploadId) + "&n=" + (i + 1), blob,
+            loaded => progress("رفع… " + AR(Math.min(99, Math.round((i * PART_SIZE + loaded) / file.size * 100))) + "٪"));
+          break;
+        } catch (e) { if (++tries >= 3) throw e; await new Promise(ok => setTimeout(ok, 1500 * tries)); }
+      }
+      parts.push({ partNumber: res.partNumber, etag: res.etag });
+    }
+    await post("/api/upload/complete", { key: st.key, uploadId: st.uploadId, parts });
+  } catch (e) { post("/api/upload/abort", { key: st.key, uploadId: st.uploadId }).catch(() => {}); throw e; }
+  progress("تم الرفع ✓");
+  return { key: st.key, exists: false };
+}
+
+function initUpload() {
+const SERIES = JSON.parse(document.getElementById("series-data").textContent);
 /* ---- Hijri helpers (Umm al-Qura through Intl) ---- */
 const HP = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Asia/Riyadh" });
 const RIYADH = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Riyadh" });
@@ -35,7 +84,6 @@ function hijriToGregorian(y, m, d) {                      // -> "YYYY-MM-DD" (Ri
 /* ---- state ---- */
 const rows = [];                                            // {file, tr, n, part, title, titleDirty, y, m, d, section, status, duration, state, ...}
 const sel = $("series"), info = $("series-info"), drop = $("drop"), picker = $("file"), tbody = $("rows"), go = $("go"), msg = $("msg"), tableWrap = $("table-wrap");
-let busy = false;
 
 for (const s of SERIES.list) sel.append(el("option", { value: s.id, text: s.title }));
 const wanted = new URLSearchParams(location.search).get("series");
@@ -119,52 +167,7 @@ function probe(r) {                                         // duration (and a b
   a.src = url;
 }
 
-/* ---- upload ---- */
-async function sha256hex(file) {
-  const h = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("");
-}
-async function post(path, body) {
-  const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
-  return j;
-}
-function putPart(url, blob, onProgress) {
-  return new Promise((resolve, reject) => {
-    const x = new XMLHttpRequest();
-    x.open("PUT", url); x.responseType = "json";
-    x.upload.onprogress = e => e.lengthComputable && onProgress(e.loaded);
-    x.onload = () => x.status === 200 ? resolve(x.response) : reject(new Error((x.response && x.response.error) || "HTTP " + x.status));
-    x.onerror = () => reject(new Error("انقطع الاتصال"));
-    x.send(blob);
-  });
-}
-async function uploadOne(r) {
-  const ext = r.file.name.split(".").pop().toLowerCase();
-  r.prog.textContent = "جارٍ حساب البصمة…";
-  const sha = await sha256hex(r.file);
-  const st = await post("/api/upload/start", { size: r.file.size, ext, sha256: sha });
-  if (st.usedBy && !confirm("هذا الملف مستخدم من قبل في الدرس " + st.usedBy + ". هل تريد استخدامه مرة أخرى؟")) throw new Error("أُلغي: الملف مكرر");
-  if (st.exists) { r.key = st.key; r.prog.textContent = "موجود مسبقًا ✓"; return; }
-  const parts = [], total = Math.ceil(r.file.size / PART_SIZE);
-  try {
-    for (let i = 0; i < total; i++) {
-      const blob = r.file.slice(i * PART_SIZE, (i + 1) * PART_SIZE);
-      let res, tries = 0;
-      for (;;) {
-        try {
-          res = await putPart("/api/upload/part?key=" + encodeURIComponent(st.key) + "&uploadId=" + encodeURIComponent(st.uploadId) + "&n=" + (i + 1), blob,
-            loaded => { r.prog.textContent = "رفع… " + AR(Math.min(99, Math.round((i * PART_SIZE + loaded) / r.file.size * 100))) + "٪"; });
-          break;
-        } catch (e) { if (++tries >= 3) throw e; await new Promise(ok => setTimeout(ok, 1500 * tries)); }
-      }
-      parts.push({ partNumber: res.partNumber, etag: res.etag });
-    }
-    await post("/api/upload/complete", { key: st.key, uploadId: st.uploadId, parts });
-  } catch (e) { post("/api/upload/abort", { key: st.key, uploadId: st.uploadId }).catch(() => {}); throw e; }
-  r.key = st.key; r.prog.textContent = "تم الرفع ✓";
-}
+async function uploadOne(r) { r.key = (await uploadFile(r.file, t => { r.prog.textContent = t; }, true)).key; }
 
 go.addEventListener("click", async () => {
   if (busy || !rows.length) return;
@@ -212,5 +215,41 @@ $("apply-date").addEventListener("click", () => {
 const t0 = hijriToday(); $("g-d").value = t0.d; $("g-m").value = t0.m; $("g-y").value = t0.y;
 describe(); toggleTable(); go.disabled = true;
 window.addEventListener("beforeunload", e => { if (busy) { e.preventDefault(); e.returnValue = ""; } });
+}
+
+/* ---- book form: add files (uploaded to R2 or an external link) to the list, then the normal form post saves everything ---- */
+function initBook() {
+  const body = $("book-files"), pick = $("book-file"), msg = $("book-msg"), ext = $("ext-url"), addExt = $("ext-add");
+  let idx = body.querySelectorAll("tr").length;
+  const say = (t, bad) => { msg.textContent = t; msg.className = bad ? "flash err" : "flash ok"; msg.hidden = !t; };
+  const row = (label, url) => {
+    const i = idx++;
+    const a = el("a", { href: url, target: "_blank", rel: "noopener noreferrer", class: "ltr", text: url.replace(/^https:\/\//, "").slice(0, 70) });
+    body.append(el("tr", {},
+      el("td", {}, el("input", { name: "file_label", value: label, maxlength: 60, "aria-label": "اسم الملف", required: "required" })),
+      el("td", { class: "ltr" }, a, el("input", { type: "hidden", name: "file_url", value: url })),
+      el("td", {}, el("label", {}, el("input", { type: "checkbox", name: "file_rm", value: String(i) }), " حذف"))));
+  };
+  pick.addEventListener("change", async () => {
+    const f = pick.files[0]; pick.value = "";
+    if (!f) return;
+    const e = f.name.split(".").pop().toLowerCase();
+    if (e !== "pdf" && e !== "epub") return say("الملف يجب أن يكون pdf أو epub.", true);
+    if (f.size > MAX_MB * 1048576) return say("الملف أكبر من " + MAX_MB + " ميغابايت.", true);
+    busy = true;
+    try { const r = await uploadFile(f, t => say(f.name + ": " + t, false)); row(e === "pdf" ? "تحميل PDF" : "تحميل EPUB", "https://media.drwasiullah.com/" + r.key); say("أُضيف الملف إلى القائمة. اضغط «حفظ» لإتمام التعديل.", false); }
+    catch (er) { say("فشل الرفع: " + er.message, true); }
+    busy = false;
+  });
+  addExt.addEventListener("click", () => {
+    let u; try { u = new URL(ext.value.trim()); } catch { return say("رابط غير صالح.", true); }
+    if (u.protocol !== "https:") return say("الرابط يجب أن يبدأ بـ https.", true);
+    row("تحميل", u.href); ext.value = ""; say("أُضيف الرابط إلى القائمة. اضغط «حفظ».", false);
+  });
+  window.addEventListener("beforeunload", e => { if (busy) { e.preventDefault(); e.returnValue = ""; } });
+}
+
+if ($("upload-root")) initUpload();
+if ($("book-root")) initBook();
 })();
 `;

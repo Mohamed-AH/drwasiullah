@@ -18,3 +18,5 @@ PID=$!; trap 'kill -- -$PID 2>/dev/null || true' EXIT
 for i in $(seq 1 40); do curl -s -o /dev/null "http://localhost:$PORT/" && break; sleep 1; done
 BASE=http://localhost:$PORT node tests/admin_http.mjs | grep -E "FAIL|passed|!!"
 BASE=http://localhost:$PORT AUDIO_DIR=$A node tests/admin_upload.mjs | grep -E "FAIL|passed|!!"
+VIDEO_ID=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("site/catalogue.json","utf8")).lessons[0].id)')
+BASE=http://localhost:$PORT AUDIO_DIR=$A VIDEO_ID=$VIDEO_ID node tests/admin_edit.mjs | grep -E "FAIL|passed|!!"

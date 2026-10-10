@@ -3,9 +3,11 @@
 import { auditStmt } from "./audit.mjs";
 
 export const MEDIA_BASE = "https://media.drwasiullah.com";
-const KEY = /^audio\/[0-9a-f]{16}\.(mp3|m4a)$/;
+/* kinds of file: audio for lessons, pdf/epub for books. Key = <folder>/<sha256[:16]>.<ext>, the same scheme as tools/mirror_media.py */
+const FOLDER = { mp3: "audio", m4a: "audio", pdf: "pdf", epub: "epub" };
+export const KEY = /^(audio\/[0-9a-f]{16}\.(mp3|m4a)|pdf\/[0-9a-f]{16}\.pdf|epub\/[0-9a-f]{16}\.epub)$/;
 const MAX_FILE = 200 * 1024 * 1024, MAX_PART = 16 * 1024 * 1024;
-const TYPES = { mp3: "audio/mpeg", m4a: "audio/mp4" };
+const TYPES = { mp3: "audio/mpeg", m4a: "audio/mp4", pdf: "application/pdf", epub: "application/epub+zip" };
 const PARTS = ["", "a", "b", "c", "d"];
 const PART_AR = { a: "الجزء الأول", b: "الجزء الثاني", c: "الجزء الثالث", d: "الجزء الرابع" };
 const clean = (s, n) => String(s ?? "").replace(/[\u0000-\u001f\u007f‎‏‪-‮⁦-⁩]/g, "").trim().slice(0, n);
@@ -17,9 +19,11 @@ async function body(request, max = 256 * 1024) {
   try { return await request.json(); } catch { throw Object.assign(new Error("bad json"), { status: 400 }); }
 }
 
-/* the first bytes must look like mp3 (ID3 tag or MPEG frame sync) or m4a (ftyp box) */
+/* the first bytes must look like the claimed type: mp3 (ID3 tag or MPEG frame sync), m4a (ftyp box), pdf ("%PDF-"), epub (a zip: "PK") */
 export function sniff(bytes, ext) {
   if (ext === "mp3") return (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0);
+  if (ext === "pdf") return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46 && bytes[4] === 0x2d;
+  if (ext === "epub") return bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
   return bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70;
 }
 
@@ -30,9 +34,9 @@ export async function handleUpload(request, env, user, path, url) {
     if (path === "/api/upload/start" && request.method === "POST") {
       const b = await body(request);
       const ext = String(b.ext), size = Number(b.size), sha = String(b.sha256 || "");
-      if (!TYPES[ext] || !Number.isInteger(size) || size < 1 || size > MAX_FILE || !/^[0-9a-f]{64}$/.test(sha)) return fail(400, "ملف غير صالح (mp3 أو m4a حتى ٢٠٠ ميغابايت)");
-      const key = `audio/${sha.slice(0, 16)}.${ext}`, src = `${MEDIA_BASE}/${key}`;
-      const used = await env.DB.prepare("SELECT id FROM lessons WHERE json_extract(data,'$.src') = ? LIMIT 1").bind(src).first();
+      if (!TYPES[ext] || !Number.isInteger(size) || size < 1 || size > MAX_FILE || !/^[0-9a-f]{64}$/.test(sha)) return fail(400, "ملف غير صالح (mp3 أو m4a أو pdf أو epub حتى ٢٠٠ ميغابايت)");
+      const key = `${FOLDER[ext]}/${sha.slice(0, 16)}.${ext}`, src = `${MEDIA_BASE}/${key}`;
+      const used = ext === "mp3" || ext === "m4a" ? await env.DB.prepare("SELECT id FROM lessons WHERE json_extract(data,'$.src') = ? LIMIT 1").bind(src).first() : null;
       const have = await R2.head(key);
       if (have && have.size === size) return json({ exists: true, key, usedBy: used ? used.id : null });
       if (have) return fail(409, "يوجد ملف مختلف بالبصمة نفسها؛ لن يُستبدل");        // never overwrite an existing object
@@ -55,7 +59,7 @@ export async function handleUpload(request, env, user, path, url) {
       const obj = await mp.complete(b.parts.map(p => ({ partNumber: +p.partNumber, etag: String(p.etag) })));
       const head = await R2.get(key, { range: { offset: 0, length: 12 } });
       const bytes = head ? new Uint8Array(await head.arrayBuffer()) : new Uint8Array(0);
-      if (!sniff(bytes, ext)) { await R2.delete(key); return fail(400, "الملف ليس صوتًا صالحًا (mp3/m4a)"); }
+      if (!sniff(bytes, ext)) { await R2.delete(key); return fail(400, "محتوى الملف لا يطابق نوعه (mp3 / m4a / pdf / epub)"); }
       return json({ key, size: obj.size });
     }
     if (path === "/api/upload/abort" && request.method === "POST") {
@@ -84,7 +88,7 @@ export async function addLessons(request, env, user) {
     const n = Number(it.n), part = String(it.part || ""), key = String(it.key || "");
     const status = it.status === "draft" ? "draft" : "published";
     if (!Number.isInteger(n) || n < 1 || n > 9999 || !PARTS.includes(part)) return fail(400, "رقم الدرس غير صالح");
-    if (!KEY.test(key)) return fail(400, "ملف غير صالح");
+    if (!KEY.test(key) || !key.startsWith("audio/")) return fail(400, "ملف غير صالح");
     let title = clean(it.title, 200) || `الدرس ${n}`;
     const id = `${series}-${String(n).padStart(4, "0")}${part}`;
     if (seen.has(id)) return fail(409, `الرقم مكرر في القائمة: ${n}${part}`);

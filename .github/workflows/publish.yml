@@ -1,7 +1,7 @@
 name: Publish from the admin portal
 
 # Started by the admin portal's "نشر" button (workflow_dispatch through the GitHub API). Exports the content database (Cloudflare D1)
-# into site/data/library.json, checks the site still builds, commits to main; Cloudflare then builds and deploys as usual.
+# into site/data/library.json (+ makkah.json and haram.json, which are database-owned too), checks the site still builds, commits to main; Cloudflare then builds and deploys as usual.
 # Only the published rows are exported (drafts and hidden items stay in D1). See docs/admin-portal-spec.md.
 on:
   workflow_dispatch:
@@ -38,12 +38,12 @@ jobs:
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::error::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set (docs/d1-setup.md)"; exit 1; fi
           npx --yes wrangler@4 d1 export drwasiullah --remote --output "$RUNNER_TEMP/d1.sql"
-          node --no-warnings scripts/db.mjs export --from-sql "$RUNNER_TEMP/d1.sql" --out site --only data/library.json
+          node --no-warnings scripts/db.mjs export --from-sql "$RUNNER_TEMP/d1.sql" --out site --only data/library.json,data/makkah.json,data/haram.json
           node scripts/build.mjs | tail -3                       # the site must still build with the new data
-          if git diff --quiet -- site/data/library.json; then echo "Nothing new to publish."; exit 0; fi
+          if git diff --quiet -- site/data/library.json site/data/makkah.json site/data/haram.json; then echo "Nothing new to publish."; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site/data/library.json
+          git add site/data/library.json site/data/makkah.json site/data/haram.json
           WHO=$(printf '%s' "$ACTOR" | tr -cd 'A-Za-z0-9@._+-' | cut -c1-80)
           git commit -m "Publish from the admin portal${WHO:+ (by $WHO)}"
           for i in 1 2 3; do

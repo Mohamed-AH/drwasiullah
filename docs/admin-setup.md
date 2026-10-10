@@ -56,3 +56,11 @@ The public site counts, anonymously, three things per lesson and day: **plays** 
 One-time setup after merging: create the table with `npx wrangler d1 migrations apply drwasiullah --remote` (answer `y`), then redeploy the **public site** as usual (merge to `main`; the public Worker now also answers `POST /api/event`) and the admin Worker (`npx wrangler deploy -c admin/wrangler.jsonc`). Admins see the numbers under «الإحصاءات» (top lessons, per series, last 14 days).
 Free-tier note: one counted event = one D1 row written (limit 100,000 a day); if traffic ever exceeded that, counting would silently stop for the rest of the day and the site itself would be unaffected.
 Test: `tests/analytics_run.sh`.
+
+## Editing lessons, series and books (phase 4a)
+- **Lesson:** open a series, click a lesson title → edit the title, number, section (الباب), Hijri date (empty = no date) and status. The id and the audio file never change (the id is in the lesson's web address). If someone else changed the same lesson while you were editing, the save is refused and you reload (nobody silently overwrites anybody).
+- **Series:** «تعديل السلسلة» on the series page: title, section of the site, unit name, numbered or not, short description, status. Hiding a series hides all its lessons.
+- **Books:** «الكتب» → click a book to edit, or «+ كتاب جديد». Title, group (pick one or type a new one), language, note, status, and the files: remove a file, add a **PDF or EPUB** (uploaded to our storage like the audio) or paste an external https link. A book needs at least one file.
+- **Which items can be edited:** everything from the old archive.org library, the Fath al-Bari import and the Haram-channel import. **YouTube lessons and series come from the daily sync, so they are read-only here** until the sync itself moves into the database (next step of phase 4).
+- **Publish now ships three files** from the database (`library.json`, `makkah.json`, `haram.json`) — all three are database-owned from now on; do not edit them by hand in git.
+- Every edit is in the audit log with the before/after values.

@@ -60,7 +60,7 @@ await p.setInputFiles("#file", [`${DIR}/fake.mp3`]);
 await p.waitForSelector("#rows tr");
 await p.click("#go");
 await p.waitForFunction(() => /فشل/.test(document.querySelector("#rows").textContent), null, { timeout: 15000 });
-check("random bytes named .mp3 are refused after upload", /ليس صوتًا صالحًا/.test(await p.textContent("#rows")), await p.textContent("#rows"));
+check("random bytes named .mp3 are refused after upload", /لا يطابق نوعه/.test(await p.textContent("#rows")), await p.textContent("#rows"));
 
 /* uploading the same file again: reuse is detected */
 await p.goto(BASE + "/upload?series=muslim-audio");
