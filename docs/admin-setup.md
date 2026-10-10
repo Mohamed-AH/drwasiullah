@@ -49,3 +49,10 @@ The workflow file must be on `main` for the button to work (merge the branch fir
 **What an Editor does to add a lecture:** «رفع درس» → choose the series (the next number is filled in) → drop the files → check number, title and Hijri date → «رفع وحفظ» → «النشر». Lessons saved as «مسودة» or hidden are kept but not shipped. A hidden/draft series hides all its lessons, and a series appears on the site only when it has at least one published lesson.
 
 Tests: `tests/admin_run_all.sh` runs the token, HTTP and browser-upload tests on a throw-away local setup (needs ffmpeg and Playwright).
+
+## Usage counters (phase 3b)
+The public site counts, anonymously, three things per lesson and day: **plays** (audio: 30 seconds really listened, seeking forward does not count; once per page), **downloads** (the «تحميل» button) and **watches** (the video play button). Nothing about the visitor is stored (no cookie, no IP, no identifier), nothing is sent for visitors with Do Not Track / Global Privacy Control, and the counters live in the D1 table `stats_daily` (never in git). Page views are already measured by Cloudflare Web Analytics.
+
+One-time setup after merging: create the table with `npx wrangler d1 migrations apply drwasiullah --remote` (answer `y`), then redeploy the **public site** as usual (merge to `main`; the public Worker now also answers `POST /api/event`) and the admin Worker (`npx wrangler deploy -c admin/wrangler.jsonc`). Admins see the numbers under «الإحصاءات» (top lessons, per series, last 14 days).
+Free-tier note: one counted event = one D1 row written (limit 100,000 a day); if traffic ever exceeded that, counting would silently stop for the rest of the day and the site itself would be unaffected.
+Test: `tests/analytics_run.sh`.

@@ -21,7 +21,11 @@ check("unknown email: 403", (await get("/", "nobody@example.com")).status === 40
 check("off@ is not active yet: still allowed", (await get("/", "off@example.com")).status === 200);
 
 const home = await (await get("/", "boss@example.com")).text();
-check("dashboard counts 3,298 lessons / 29 series / 24 books", ["٣,٢٩٨", "٢٩", "٢٤"].every(x => home.includes(`<b>${x}</b>`)));
+const fsx = await import("node:fs"), rd = f => JSON.parse(fsx.readFileSync(new URL("../site/" + f, import.meta.url), "utf8"));
+const parts = ["catalogue.json", "data/library.json", "data/makkah.json", "data/haram.json"].map(rd);
+const AR = n => String(n.toLocaleString("en-US")).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
+const expect = [parts.reduce((a, x) => a + x.lessons.length, 0), parts.reduce((a, x) => a + x.series.length, 0), parts[1].books.length];
+check(`dashboard counts match the data files (${expect.join(" / ")})`, expect.every(x => home.includes(`<b>${AR(x)}</b>`)), expect);
 check("series list", (await get("/series", "boss@example.com")).status === 200);
 const muslim = await get("/series/muslim", "boss@example.com");
 check("series page + pagination", muslim.status === 200 && (await muslim.text()).includes("صفحة"));

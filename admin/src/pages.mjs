@@ -134,3 +134,25 @@ export async function publishPage(db, user, flash) {
 ${recent.length ? `<h2>آخر التغييرات</h2>${auditTable(recent)}` : ""}`;
   return layout({ title: "النشر", user, path: "/publish", body, flash });
 }
+
+/* ---- usage counters (anonymous, written by the public site) ---- */
+export async function analyticsPage(db, user) {
+  const since = d => `day >= date('now', '+3 hours', '-${d} days')`;
+  const [tot, daily, top, bySeries] = await Promise.all([
+    one(db, `SELECT COALESCE(SUM(CASE WHEN event='play' AND ${since(7)} THEN n END),0) p7, COALESCE(SUM(CASE WHEN event='play' THEN n END),0) p30,
+      COALESCE(SUM(CASE WHEN event='download' THEN n END),0) d30, COALESCE(SUM(CASE WHEN event='watch' THEN n END),0) w30 FROM stats_daily WHERE ${since(30)}`),
+    all(db, `SELECT day, SUM(CASE WHEN event='play' THEN n END) p, SUM(CASE WHEN event='download' THEN n END) d, SUM(CASE WHEN event='watch' THEN n END) w FROM stats_daily WHERE ${since(14)} GROUP BY day ORDER BY day DESC`),
+    all(db, `SELECT s.lesson_id id, SUM(s.n) c, json_extract(l.data,'$.title') title, ser.title series, l.series_id sid FROM stats_daily s JOIN lessons l ON l.id = s.lesson_id LEFT JOIN series ser ON ser.id = l.series_id
+      WHERE s.event = 'play' AND ${since(30).replace("day", "s.day")} GROUP BY s.lesson_id ORDER BY c DESC LIMIT 25`),
+    all(db, `SELECT ser.id, ser.title, SUM(CASE WHEN s.event='play' THEN s.n END) p, SUM(CASE WHEN s.event='download' THEN s.n END) d, SUM(CASE WHEN s.event='watch' THEN s.n END) w
+      FROM stats_daily s JOIN lessons l ON l.id = s.lesson_id JOIN series ser ON ser.id = l.series_id WHERE ${since(30).replace("day", "s.day")} GROUP BY ser.id ORDER BY (COALESCE(SUM(CASE WHEN s.event='play' THEN s.n END),0) + COALESCE(SUM(CASE WHEN s.event='watch' THEN s.n END),0)) DESC LIMIT 25`),
+  ]);
+  const cards = [[tot.p7, "استماع (٧ أيام)"], [tot.p30, "استماع (٣٠ يومًا)"], [tot.d30, "تحميل (٣٠ يومًا)"], [tot.w30, "مشاهدة فيديو (٣٠ يومًا)"]].map(([n, l]) => `<div class="card"><b>${num(n)}</b><span>${l}</span></div>`).join("");
+  const T = (head, rows) => `<div class="scroll" tabindex="0" role="region" aria-label="${head[0]}"><table><thead><tr>${head[1].map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows || `<tr><td colspan="${head[1].length}" class="muted">لا بيانات بعد.</td></tr>`}</tbody></table></div>`;
+  const body = `<div class="cards">${cards}</div>
+<p class="muted">أعداد مجهولة الهوية: لا تُحفظ أي بيانات عن الزائر. «استماع» = ٣٠ ثانية استماع فعلية، «مشاهدة» = ضغط زر تشغيل الفيديو، ويُستثنى من يفعّل «عدم التتبع».</p>
+<h2>أكثر الدروس استماعًا (٣٠ يومًا)</h2>${T(["أكثر الدروس", ["الدرس", "السلسلة", "الاستماع"]], top.map(r => `<tr><td>${esc(r.title)}</td><td><a href="/series/${encodeURIComponent(r.sid)}">${esc(r.series || "")}</a></td><td>${num(r.c)}</td></tr>`).join(""))}
+<h2>حسب السلسلة (٣٠ يومًا)</h2>${T(["حسب السلسلة", ["السلسلة", "استماع", "تحميل", "مشاهدة"]], bySeries.map(r => `<tr><td><a href="/series/${encodeURIComponent(r.id)}">${esc(r.title)}</a></td><td>${num(r.p)}</td><td>${num(r.d)}</td><td>${num(r.w)}</td></tr>`).join(""))}
+<h2>آخر ١٤ يومًا</h2>${T(["الأيام", ["اليوم", "استماع", "تحميل", "مشاهدة"]], daily.map(r => `<tr><td>${esc(hijri(null, r.day))}</td><td>${num(r.p)}</td><td>${num(r.d)}</td><td>${num(r.w)}</td></tr>`).join(""))}`;
+  return layout({ title: "الإحصاءات", user, path: "/analytics", body });
+}

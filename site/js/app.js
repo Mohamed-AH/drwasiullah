@@ -48,12 +48,21 @@ addEventListener("popstate", () => route(false));
 // makkahscholars.org answers with "Content-Disposition: attachment", so a plain same-tab link already saves in place; anything else (or a fetch that
 // fails, e.g. CORS not enabled yet) opens the file in a new tab like an ordinary link. Files over 150 MB always take the plain route.
 const DL_MAX = 150 * 1024 * 1024, DL_FETCH = new Set(["media.drwasiullah.com", "archive.org"]), dlFailed = new Set();
+/* Anonymous usage counters: one tiny POST per event (play = 30 s really listened, download = the button, watch = the video play button).
+   Only the lesson id and the kind are sent (no cookie, no IP stored, nothing that identifies a visitor); skipped when the browser says Do Not Track / Global Privacy Control. */
+const track = (id, e) => {
+  try {
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id || "") || navigator.doNotTrack === "1" || navigator.globalPrivacyControl) return;
+    navigator.sendBeacon("/api/event", new Blob([JSON.stringify({ id, e })], { type: "text/plain" }));
+  } catch { /* counting must never break the page */ }
+};
 const saveFile = (href, name) => { const d = document.createElement("a"); d.href = href; if (name) d.download = name; d.rel = "noopener"; document.body.appendChild(d); d.click(); d.remove(); };
 const openTab = href => window.open(href, "_blank", "noopener");
 document.addEventListener("click", async e => {
   const a = e.target.closest("a[data-dl]");
   if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault();
+  track(a.dataset.lid, "download");
   if (a.getAttribute("aria-busy")) return;
   const host = new URL(a.href).hostname;
   if (host === "makkahscholars.org") return saveFile(a.href);
@@ -186,6 +195,7 @@ function wireLesson(w, byNavigation) {
     const f = document.createElement("iframe");
     f.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`; f.title = $(".w-title")?.textContent || "";
     f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen"; 
+    track(id, "watch");
     lite.classList.remove("lite"); lite.replaceChildren(f); f.focus();
   });
 
@@ -199,6 +209,13 @@ function wireLesson(w, byNavigation) {
       aud.insertAdjacentHTML("afterend", `<p class="ap-err" role="alert">تعذّر تشغيل هذا التسجيل الآن (الملف غير متاح عند المصدر). ${w.next ? "يمكنك الانتقال إلى الدرس التالي." : ""}</p>`);
     });
     if (byNavigation) aud.play().catch(() => {});       // the visitor just clicked a lesson: start it (never on a cold page load)
+    let heard = 0, lastT = 0, counted = false;          // a play counts after 30 s of real listening (seeking forward does not count)
+    aud.addEventListener("seeking", () => { lastT = aud.currentTime; });
+    aud.addEventListener("timeupdate", () => {
+      const t = aud.currentTime, d = t - lastT; lastT = t;
+      if (counted || aud.paused || !(d > 0 && d < 5)) return;
+      heard += d; if (heard >= 30) { counted = true; track(aud.dataset.lid, "play"); }
+    });
     aud.addEventListener("ended", () => { if (w.next) go(w.next); });
     $(".speeds").addEventListener("click", e => {
       const b = e.target.closest("button"); if (!b) return;
