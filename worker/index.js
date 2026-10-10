@@ -46,9 +46,31 @@ export async function runChecks(env, fetcher = timed) {
   return { status: Object.values(checks).every(c => c.ok) ? "ok" : "fail", time: new Date().toISOString(), checks };
 }
 
+/* POST /api/event {id, e}: anonymous counters in D1 (table stats_daily). Same-origin only; only lessons that exist are counted; always answers 204
+   (a failure to count must never show in the page). One upsert = one row written, far below D1's free 100k/day. Nothing about the visitor is kept. */
+const EVENTS = ["play", "download", "watch"];
+async function countEvent(request, env, url) {
+  if (request.method !== "POST") return new Response(null, { status: 405, headers: { allow: "POST" } });
+  const origin = request.headers.get("origin");
+  let same = request.headers.get("sec-fetch-site") === "same-origin";
+  if (!same && origin) { try { same = new URL(origin).host === url.host; } catch { /* malformed */ } }
+  if (!same) return new Response(null, { status: 403 });
+  try {
+    if (+request.headers.get("content-length") > 300) return new Response(null, { status: 413 });
+    const b = JSON.parse(await request.text());
+    if (b && typeof b.id === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(b.id) && EVENTS.includes(b.e) && env.DB) {
+      const day = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);      // Makkah calendar day
+      await env.DB.prepare("INSERT INTO stats_daily (day, lesson_id, event, n) SELECT ?1, ?2, ?3, 1 WHERE EXISTS (SELECT 1 FROM lessons WHERE id = ?2) ON CONFLICT (day, lesson_id, event) DO UPDATE SET n = n + 1")
+        .bind(day, b.id, b.e).run();
+    }
+  } catch (e) { console.error("count failed:", e && e.message); }
+  return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/event") return countEvent(request, env, url);
     if (url.pathname !== "/health" && url.pathname !== "/health/") return env.ASSETS.fetch(request);
     if (!memo || Date.now() - memo.at > CACHE_MS) memo = { at: Date.now(), body: await runChecks(env) };
     const body = memo.body;

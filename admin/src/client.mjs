@@ -193,7 +193,7 @@ go.addEventListener("click", async () => {
     done.replaceChildren(
       el("p", { class: "flash ok", text: "تم حفظ " + AR(out.ids.length) + " درس في «" + s.title + "»." }),
       el("p", {}, el("a", { href: "/publish", text: "← انتقل إلى النشر ليظهر في الموقع" }), " · ", el("a", { href: "/series/" + encodeURIComponent(s.id), text: "عرض السلسلة" }), " · ", el("a", { href: "/upload?series=" + encodeURIComponent(s.id), text: "رفع المزيد" })));
-    say("", "ok");
+    say("", "ok"); busy = false;                            // finished: the "leave this page?" guard must not stay on
   } catch (e) { busy = false; checkConflicts(); say("تم رفع الملفات لكن تعذّر حفظ الدروس: " + e.message, "err"); }
 });
 

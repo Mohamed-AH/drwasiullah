@@ -26,6 +26,7 @@ const NAV = [
   ["/books", "الكتب", "view"],
   ["/upload", "رفع درس", "content.edit"],
   ["/publish", "النشر", "content.publish"],
+  ["/analytics", "الإحصاءات", "analytics.view"],
   ["/users", "المستخدمون", "users.manage"],
   ["/audit", "السجل", "audit.view"],
 ];

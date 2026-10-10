@@ -98,6 +98,7 @@ export default {
       else if (path === "/books") html = await P.booksList(env.DB, user);
       else if (path === "/upload" && can(user.role, "content.edit")) html = await P.uploadPage(env.DB, user);
       else if (path === "/publish" && can(user.role, "content.publish")) html = await P.publishPage(env.DB, user, flash);
+      else if (path === "/analytics" && can(user.role, "analytics.view")) html = await P.analyticsPage(env.DB, user);
       else if (path === "/users" && can(user.role, "users.manage")) html = await P.usersPage(env.DB, user, flash);
       else if (path === "/audit" && can(user.role, "audit.view")) html = await P.auditPage(env.DB, user);
       if (!html) return done(message("غير موجود", "الصفحة المطلوبة غير موجودة.", 404));
