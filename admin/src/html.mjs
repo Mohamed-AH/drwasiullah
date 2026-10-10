@@ -24,16 +24,20 @@ const NAV = [
   ["/", "الرئيسية", "view"],
   ["/series", "السلاسل", "view"],
   ["/books", "الكتب", "view"],
+  ["/upload", "رفع درس", "content.edit"],
+  ["/publish", "النشر", "content.publish"],
   ["/users", "المستخدمون", "users.manage"],
   ["/audit", "السجل", "audit.view"],
 ];
 
 export const FLASH = {
   added: "تمت إضافة المستخدم.", updated: "تم حفظ التعديل.",
+  series_added: "تم إنشاء السلسلة. يمكنك الآن رفع دروسها.", series_exists: "معرّف السلسلة مستخدم من قبل.", status_saved: "تم تغيير الحالة.", unknown_lesson: "الدرس غير موجود.",
+  requested: "تم طلب النشر. يظهر التحديث في الموقع خلال دقيقتين تقريبًا.", gh_missing: "النشر غير مهيّأ بعد (راجع docs/admin-setup.md).", gh_failed: "تعذّر طلب النشر من GitHub. حاول لاحقًا أو راجع المدير.", wait: "تم طلب النشر قبل لحظات؛ انتظر دقيقة.",
   invalid: "البيانات غير صحيحة.", exists: "هذا البريد مسجّل من قبل.", last_admin: "لا يمكن ترك النظام بلا مدير فعّال.", unknown: "المستخدم غير موجود.",
 };
 
-export function layout({ title, user, path, body, flash }) {
+export function layout({ title, user, path, body, flash, scripts }) {
   const nav = NAV.filter(([, , perm]) => can(user.role, perm))
     .map(([href, label]) => `<a href="${href}"${(href === "/" ? path === "/" : path.startsWith(href)) ? ' aria-current="page"' : ""}>${label}</a>`).join("");
   const f = flash && FLASH[flash.code] ? `<p class="flash ${flash.kind === "ok" ? "ok" : "err"}" role="status">${esc(FLASH[flash.code])}</p>` : "";
@@ -42,7 +46,7 @@ export function layout({ title, user, path, body, flash }) {
 <header class="top"><div class="brand">لوحة التحرير <small>موقع الشيخ وصي الله بن محمد عباس</small></div>
 <nav aria-label="التنقل">${nav}</nav>
 <div class="who"><span dir="ltr">${esc(user.email)}</span> · ${esc(ROLE_AR[user.role] || user.role)} · <a href="/cdn-cgi/access/logout">خروج</a></div></header>
-<main><h1>${esc(title)}</h1>${f}${body}</main></body></html>`;
+<main><h1>${esc(title)}</h1>${f}${body}</main>${scripts ? `<script src="/admin.js" defer></script>` : ""}</body></html>`;
 }
 
 export const page = (html, status = 200) => new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8" } });
@@ -67,5 +71,11 @@ form.inline{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}input,selec
 button{background:var(--red);color:var(--onred);border-color:var(--red);cursor:pointer}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .flash{padding:.5rem .9rem;border-radius:8px;border:1px solid}.flash.ok{color:var(--ok);border-color:var(--ok)}.flash.err{color:var(--bad);border-color:var(--bad)}
+#drop{border:2px dashed var(--line);border-radius:12px;padding:1.6rem;text-align:center;background:var(--card);cursor:pointer;margin:1rem 0}#drop.over,#drop:hover{border-color:var(--red)}
+.num{width:5.2rem}.num.sm{width:3.6rem}.num.md{width:5.2rem}.wide{width:100%;min-width:14rem;margin-bottom:.3rem}.fname{font-size:.85rem;word-break:break-all}.hdate{white-space:nowrap}
+tr.conflict{background:rgba(155,44,44,.1)}.warn,.prog.bad{color:var(--bad);font-size:.85rem}.prog{font-size:.85rem;color:var(--ink2)}
+button[disabled]{opacity:.5;cursor:not-allowed}button.secondary{background:var(--card);color:var(--ink);border-color:var(--line)}[hidden]{display:none!important}
+fieldset{border:1px solid var(--line);border-radius:10px;padding:.6rem 1rem;margin:1rem 0}legend{padding:0 .4rem;color:var(--ink2)}label{display:inline-block;margin:.2rem .6rem .2rem 0}textarea{font:inherit;width:100%;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);padding:.35rem .6rem}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .muted{color:var(--ink2)}.pager{display:flex;gap:1rem;margin:1rem 0}code,.ltr{direction:ltr;unicode-bidi:embed}
 `;

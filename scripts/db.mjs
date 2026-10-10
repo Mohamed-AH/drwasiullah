@@ -2,7 +2,7 @@
 /* Content database tool (Cloudflare D1 = SQLite). Phase 1 of docs/admin-portal-spec.md. No dependencies (Node 22 `node:sqlite`).
 
    node scripts/db.mjs seed   [--site site] [--out db/seed.sql]     site data files -> SQL that fills an EMPTY or existing D1 (it clears the content tables first)
-   node scripts/db.mjs export --out DIR [--from-sql dump.sql | --db file.sqlite] [--all]
+   node scripts/db.mjs export --out DIR [--from-sql dump.sql | --db file.sqlite] [--all] [--only data/library.json,...]
                                                                     database -> the same data files (published rows only, unless --all)
    node scripts/db.mjs verify [--site site]                         seed -> scratch database -> export -> byte-compare with the files in git
 
@@ -83,15 +83,21 @@ export function seedSql(siteDir) {
 }
 
 /* ---------- export ---------- */
-export function exportFiles(db, outDir, { all = false } = {}) {
+export function exportFiles(db, outDir, { all = false, only = null } = {}) {
   const written = [];
-  const where = all ? "" : "WHERE status = 'published'";
+  /* what ships to the site: published rows only; a lesson also needs its series to be published (hiding a series hides its lessons),
+     and a series with no published lesson is left out (an empty shelf book makes no sense). `all` = everything (backups). */
+  const where = {
+    series: all ? "" : "WHERE status = 'published' AND EXISTS (SELECT 1 FROM lessons l WHERE l.series_id = series.id AND l.status = 'published')",
+    lessons: all ? "" : "WHERE status = 'published' AND (series_id IS NULL OR series_id IN (SELECT id FROM series WHERE status = 'published'))",
+    books: all ? "" : "WHERE status = 'published'",
+  };
   const get = (sql, ...a) => db.prepare(sql).all(...a);
   const docs = Object.fromEntries(get("SELECT name, data FROM docs").map(r => [r.name, JSON.parse(r.data)]));
   const lay = Object.fromEntries(get("SELECT * FROM files").map(r => [r.name, r]));
   for (const f of FILES) {
     const l = lay[f.name];
-    if (!l) continue;                                                        // file did not exist in the seed
+    if (!l || (only && !only.includes(f.name))) continue;                  // file did not exist in the seed / not asked for
     const keys = JSON.parse(l.keys);
     let obj;
     if (f.map) obj = Object.fromEntries(get("SELECT src, data FROM media ORDER BY pos").map(r => [r.src, JSON.parse(r.data)]));
@@ -100,7 +106,7 @@ export function exportFiles(db, outDir, { all = false } = {}) {
       const meta = f.meta ? docs[f.meta] : {};
       obj = {};
       for (const k of keys) obj[k] = f.lists.includes(k)
-        ? get(`SELECT data FROM ${TABLE[k]} ${where ? where + " AND" : "WHERE"} origin = ? ORDER BY pos`, f.origin).map(r => JSON.parse(r.data))
+        ? get(`SELECT data FROM ${TABLE[k]} ${where[k] ? where[k] + " AND" : "WHERE"} origin = ? ORDER BY pos`, f.origin).map(r => JSON.parse(r.data))
         : meta[k];
     }
     const file = path.join(outDir, f.name);
@@ -150,7 +156,7 @@ if (cmd === "seed") {
   if (arg("db")) db = new DatabaseSync(arg("db"), { readOnly: true });
   else if (arg("from-sql")) { db = new DatabaseSync(":memory:"); db.exec(fs.readFileSync(arg("from-sql"), "utf8")); }
   else { console.error("give --db file.sqlite or --from-sql dump.sql"); process.exit(2); }
-  const w = exportFiles(db, path.resolve(outDir), { all: flag("all") });
+  const w = exportFiles(db, path.resolve(outDir), { all: flag("all"), only: arg("only") ? arg("only").split(",") : null });
   console.log(`wrote ${w.length} files to ${outDir}: ${w.join(", ")}`);
 } else if (cmd === "verify") {
   verify(path.resolve(arg("site", path.join(ROOT, "site"))));

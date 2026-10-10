@@ -16,7 +16,7 @@ const post = (path, email, body, headers = { "sec-fetch-site": "same-origin" }) 
 const loc = r => r.headers.get("location");
 
 const anon = await fetch(BASE + "/", { redirect: "manual" });
-check("no token and not configured: refused (503)", anon.status === 503, anon.status);
+check("no Access token: refused (401)", anon.status === 401, anon.status);
 check("unknown email: 403", (await get("/", "nobody@example.com")).status === 403);
 check("off@ is not active yet: still allowed", (await get("/", "off@example.com")).status === 200);
 
@@ -32,6 +32,10 @@ check("books", (await get("/books", "boss@example.com")).status === 200);
 check("editor cannot open /users", (await get("/users", "ed@example.com")).status === 404);
 check("editor cannot open /audit", (await get("/audit", "ed@example.com")).status === 404);
 check("editor menu has no users link", !(await (await get("/", "ed@example.com")).text()).includes('href="/users"'));
+check("editor sees upload and publish pages", (await get("/upload", "ed@example.com")).status === 200 && (await get("/publish", "ed@example.com")).status === 200);
+check("API refuses cross-site calls", (await fetch(BASE + "/api/lessons", as("ed@example.com", { method: "POST", body: "{}", headers: { "sec-fetch-site": "cross-site", "content-type": "application/json" } }))).status === 403);
+check("API: bad lesson payload refused (400)", (await fetch(BASE + "/api/lessons", as("ed@example.com", { method: "POST", body: JSON.stringify({ series: "nope", items: [] }), headers: { "sec-fetch-site": "same-origin", "content-type": "application/json" } }))).status === 400);
+check("API: part upload with a bad key refused", (await fetch(BASE + "/api/upload/part?key=../../etc&uploadId=x&n=1", as("ed@example.com", { method: "PUT", body: "x", headers: { "sec-fetch-site": "same-origin" } }))).status === 400);
 check("editor cannot POST users", (await post("/users/add", "ed@example.com", { email: "x@example.com", role: "admin" })).status === 403);
 check("cross-site POST refused", (await post("/users/add", "boss@example.com", { email: "x@example.com", role: "admin" }, { "sec-fetch-site": "cross-site", origin: "https://evil.example" })).status === 403);
 check("POST without origin info refused", (await post("/users/add", "boss@example.com", { email: "x@example.com", role: "admin" }, {})).status === 403);
@@ -49,8 +53,9 @@ const audit = await (await get("/audit", "boss@example.com")).text();
 check("audit log records add and update", audit.includes("user.add") && audit.includes("user.update"));
 
 const h = (await get("/", "boss@example.com")).headers;
-check("CSP forbids scripts", /default-src 'none'/.test(h.get("content-security-policy")) && !/script-src/.test(h.get("content-security-policy")));
+const csp = h.get("content-security-policy");
+check("CSP: scripts only from our own origin, never inline", /default-src 'none'/.test(csp) && /script-src 'self'(;|$)/.test(csp) && !/unsafe-inline|unsafe-eval/.test(csp), csp);
 check("noindex + no-store + frame deny", /noindex/.test(h.get("x-robots-tag")) && h.get("cache-control") === "no-store" && h.get("x-frame-options") === "DENY");
-check("PUT refused", (await fetch(BASE + "/", as("boss@example.com", { method: "PUT" }))).status === 405);
+check("PUT outside the API refused", [403, 405].includes((await fetch(BASE + "/", as("boss@example.com", { method: "PUT", headers: { "sec-fetch-site": "same-origin" } }))).status));
 if (bad) { console.error(`!! ${bad} failed`); process.exit(1); }
 console.log("all admin HTTP checks passed");
