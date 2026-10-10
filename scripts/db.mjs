@@ -33,7 +33,7 @@ const js = v => JSON.stringify(v);
 const int = v => Number.isInteger(v) ? v : null;
 
 function layout(text) {                       // how the file was written: indent width (null = minified) and trailing newline
-  const m = /^\{\n( +)"/.exec(text);
+  const m = /^\{\r?\n( +)"/.exec(text);   // files checked out on Windows may have CRLF line ends
   return { indent: m ? m[1].length : null, nl: text.endsWith("\n") ? 1 : 0 };
 }
 const render = (obj, f) => JSON.stringify(obj, null, f.indent ?? undefined) + (f.trailing_nl ? "\n" : "");
@@ -127,7 +127,7 @@ function verify(siteDir) {
   const written = exportFiles(db, tmp);
   let bad = 0;
   for (const name of written) {
-    const a = fs.readFileSync(path.join(siteDir, name)), b = fs.readFileSync(path.join(tmp, name));
+    const a = Buffer.from(fs.readFileSync(path.join(siteDir, name), "utf8").replace(/\r\n/g, "\n")), b = fs.readFileSync(path.join(tmp, name));   // a Windows checkout may have CRLF: line ends are not content
     const same = a.equals(b);
     if (!same) bad++;
     console.log(`${same ? "ok  " : "DIFF"} ${name} (${a.length} bytes)`);
