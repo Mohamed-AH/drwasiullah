@@ -1,0 +1,21 @@
+{
+  // The admin portal Worker (phase 2 of docs/admin-portal-spec.md). Deployed SEPARATELY from the public site:
+  //   npx wrangler deploy -c admin/wrangler.jsonc
+  // The address admin.drwasiullah.com is created by the deploy itself (custom_domain). Cloudflare Access in front of it
+  // decides who may reach the page; the Worker then checks the Access token again and looks the person up in the users table.
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "drwasiullah-admin",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,            // no *.workers.dev address: the only way in is admin.drwasiullah.com (behind Access)
+  "preview_urls": false,
+  "routes": [{ "pattern": "admin.drwasiullah.com", "custom_domain": true }],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "drwasiullah", "database_id": "32c9ae0a-c5bf-4e18-9be2-f28ef8e92924", "migrations_dir": "../db/migrations" }
+  ],
+  // Not secrets (both are visible to anyone who can see the Access login page). Empty = the portal refuses every request.
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "",       // e.g. "yourteam.cloudflareaccess.com"  (Zero Trust > Settings > Team domain)
+    "ACCESS_AUD": ""                // the Application Audience (AUD) tag of the Access application for admin.drwasiullah.com
+  }
+}
