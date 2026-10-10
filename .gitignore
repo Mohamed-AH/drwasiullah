@@ -47,3 +47,4 @@ tools/channel_hits.json
 
 # wrangler local state
 .wrangler/
+db/seed.sql
