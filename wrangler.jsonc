@@ -9,6 +9,11 @@
   "build": {
     "command": "node scripts/build.mjs"
   },
+  // Content database (phase 1 of docs/admin-portal-spec.md). Not used by the public pages yet; the binding also lets
+  // `npx wrangler d1 migrations apply drwasiullah --remote` find db/migrations. The id is not a secret.
+  "d1_databases": [
+    { "binding": "DB", "database_name": "drwasiullah", "database_id": "32c9ae0a-c5bf-4e18-9be2-f28ef8e92924", "migrations_dir": "db/migrations" }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
