@@ -13,9 +13,12 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "drwasiullah", "database_id": "32c9ae0a-c5bf-4e18-9be2-f28ef8e92924", "migrations_dir": "../db/migrations" }
   ],
+  // R2 bucket that serves media.drwasiullah.com: the upload screen writes new audio here (multipart, through the Worker).
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "drwasiullah-media" }],
   // Not secrets (both are visible to anyone who can see the Access login page). Empty = the portal refuses every request.
   "vars": {
     "ACCESS_TEAM_DOMAIN": "mojed.cloudflareaccess.com",       // e.g. "yourteam.cloudflareaccess.com"  (Zero Trust > Settings > Team domain)
-    "ACCESS_AUD": "3c48c8123cfa5750938e8ad6a39219b90a3503427492e46bcd97ba615bd539df"                // the Application Audience (AUD) tag of the Access application for admin.drwasiullah.com
+    "ACCESS_AUD": "3c48c8123cfa5750938e8ad6a39219b90a3503427492e46bcd97ba615bd539df",               // the Application Audience (AUD) tag of the Access application for admin.drwasiullah.com
+    "GH_REPO": "Mohamed-AH/drwasiullah"   // Publish asks this repository to run .github/workflows/publish.yml (needs the secret GH_DISPATCH_TOKEN, see docs/admin-setup.md)
   }
 }

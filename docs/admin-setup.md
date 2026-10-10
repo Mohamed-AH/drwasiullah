@@ -6,7 +6,7 @@ The portal is a separate Cloudflare Worker (`admin/`) at **https://admin.drwasiu
 
 So a new team member must be added in **both** places: the Access policy (step 1 below) and the portal's «المستخدمون» page.
 
-What this phase contains: login, roles, audit log (every user change is recorded with who/when/before/after), read-only browsing of series, lessons and books, and user management (Admin only). Uploading and editing content comes in phases 3–4. Editors see the content pages only; Admins also see «المستخدمون» and «السجل».
+What the portal contains now: login, roles, audit log (every change is recorded with who/when/before/after), browsing of series, lessons and books, user management (Admin only), and the **audio upload workflow** (phase 3): «رفع درس» (drag files into an existing series, numbers continue automatically, Hijri date, upload straight to R2, save), «سلسلة جديدة», hide/show per lesson, and «النشر» (Publish). Editing titles, books, standalone items and so on come in phase 4. Editors see the content pages only; Admins also see «المستخدمون» and «السجل».
 
 ## Owner steps (once)
 Menu names in the Cloudflare dashboard move around; the words in **bold** are what to look for.
@@ -34,3 +34,18 @@ Run both after touching `admin/`.
 - The Worker has **no `workers.dev` address** and refuses requests without a valid Access token; the local-development shortcut (`x-dev-email`) only works when the variable `ENV=dev` is passed on the command line and is not in `wrangler.jsonc`.
 - Pages are plain HTML forms with a strict CSP (no scripts at all), POSTs are accepted from the same origin only, all text is escaped, nothing from the portal is public.
 - The `users` and `audit_log` tables never leave D1 (the nightly git backup excludes them). D1 Time Travel can restore them for 7 days.
+
+## Audio upload and Publish (phase 3) — one-time setup
+Uploads need no extra keys: the Worker is bound to the R2 bucket `drwasiullah-media` directly (`MEDIA` in `admin/wrangler.jsonc`), so redeploying `npx wrangler deploy -c admin/wrangler.jsonc` is enough for «رفع درس».
+
+**Publish** (the «نشر الآن» button) asks GitHub to run `.github/workflows/publish.yml`, which exports the published rows from D1 into `site/data/library.json`, checks the site builds and commits to `main`; Cloudflare then deploys (about 2 minutes). It needs:
+1. The repository secrets `CLOUDFLARE_API_TOKEN` (permission D1 **Edit**) and `CLOUDFLARE_ACCOUNT_ID` — already set for the backup.
+2. A GitHub token for the portal: GitHub → Settings → Developer settings → **Fine-grained personal access tokens** → Generate. Resource owner: your account · Repository access: **Only select repositories → drwasiullah** · Permissions → Repository permissions → **Actions: Read and write** (nothing else) · pick an expiry (you will have to renew it; the portal then says «تعذّر طلب النشر»).
+3. Give the token to the Worker (it is a secret, never put it in a file): `npx wrangler secret put GH_DISPATCH_TOKEN -c admin/wrangler.jsonc` and paste it.
+The workflow file must be on `main` for the button to work (merge the branch first).
+
+**Important — who owns `site/data/library.json` from now on:** the database. Every Publish overwrites that file with the export of D1, so do **not** edit it by hand or re-run `import_wordpress.py` any more (change the data in the portal instead). The YouTube catalogue (`catalogue.json`) is still written by the daily sync and is not touched. `site/data/media.json` (mirror manifest) is unchanged.
+
+**What an Editor does to add a lecture:** «رفع درس» → choose the series (the next number is filled in) → drop the files → check number, title and Hijri date → «رفع وحفظ» → «النشر». Lessons saved as «مسودة» or hidden are kept but not shipped. A hidden/draft series hides all its lessons, and a series appears on the site only when it has at least one published lesson.
+
+Tests: `tests/admin_run_all.sh` runs the token, HTTP and browser-upload tests on a throw-away local setup (needs ffmpeg and Playwright).
