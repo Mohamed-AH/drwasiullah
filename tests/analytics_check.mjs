@@ -61,15 +61,16 @@ if (VIDEO) {
   await s.ctx.close();
 }
 
-s = await session(true);
+s = await session(true);                      // Do Not Track / Global Privacy Control browsers (Brave) are counted too: only an id and a kind are sent
+await s.ctx.addInitScript(() => Object.defineProperty(navigator, "globalPrivacyControl", { value: true }));
 await s.p.goto(`${BASE}/lesson/${AUDIO}/`); await s.p.waitForSelector("#aud");
 await s.p.click("a[data-dl]"); await s.p.waitForTimeout(800);
-check("Do Not Track: nothing is sent", s.events.length === 0, s.events.join());
+check("Do Not Track / GPC browsers are counted, sending only id and kind", s.events.length === 1 && Object.keys(JSON.parse(s.events[0])).sort().join() === "e,id", s.events.join());
 await s.ctx.close(); await browser.close();
 
 r = rows();
 const get = (id, e) => (r.find(x => x.lesson_id === id && x.event === e) || {}).n;
-check("stored counts: play 3 (2 direct + 1 browser), download 1", get(AUDIO, "play") === 3 && get(AUDIO, "download") === 1, JSON.stringify(r));
+check("stored counts: play 3 (2 direct + 1 browser), download 2 (one from a DNT/GPC browser)", get(AUDIO, "play") === 3 && get(AUDIO, "download") === 2, JSON.stringify(r));
 if (VIDEO) check("stored: watch 1", get(VIDEO, "watch") === 1, JSON.stringify(r));
 if (bad) { console.error(`!! ${bad} failed`); process.exit(1); }
 console.log("all analytics checks passed");

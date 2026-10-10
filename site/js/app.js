@@ -49,10 +49,11 @@ addEventListener("popstate", () => route(false));
 // fails, e.g. CORS not enabled yet) opens the file in a new tab like an ordinary link. Files over 150 MB always take the plain route.
 const DL_MAX = 150 * 1024 * 1024, DL_FETCH = new Set(["media.drwasiullah.com", "archive.org"]), dlFailed = new Set();
 /* Anonymous usage counters: one tiny POST per event (play = 30 s really listened, download = the button, watch = the video play button).
-   Only the lesson id and the kind are sent (no cookie, no IP stored, nothing that identifies a visitor); skipped when the browser says Do Not Track / Global Privacy Control. */
+   Only the lesson id and the kind are sent: no cookie, no IP stored, nothing that identifies or follows a visitor, so there is nothing to opt out of
+   (Do Not Track / Global Privacy Control are about identifying data; skipping them only made the numbers wrong: Brave sends GPC by default). */
 const track = (id, e) => {
   try {
-    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id || "") || navigator.doNotTrack === "1" || navigator.globalPrivacyControl) return;
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id || "")) return;
     navigator.sendBeacon("/api/event", new Blob([JSON.stringify({ id, e })], { type: "text/plain" }));
   } catch { /* counting must never break the page */ }
 };

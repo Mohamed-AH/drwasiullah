@@ -150,7 +150,7 @@ export async function analyticsPage(db, user) {
   const cards = [[tot.p7, "استماع (٧ أيام)"], [tot.p30, "استماع (٣٠ يومًا)"], [tot.d30, "تحميل (٣٠ يومًا)"], [tot.w30, "مشاهدة فيديو (٣٠ يومًا)"]].map(([n, l]) => `<div class="card"><b>${num(n)}</b><span>${l}</span></div>`).join("");
   const T = (head, rows) => `<div class="scroll" tabindex="0" role="region" aria-label="${head[0]}"><table><thead><tr>${head[1].map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows || `<tr><td colspan="${head[1].length}" class="muted">لا بيانات بعد.</td></tr>`}</tbody></table></div>`;
   const body = `<div class="cards">${cards}</div>
-<p class="muted">أعداد مجهولة الهوية: لا تُحفظ أي بيانات عن الزائر. «استماع» = ٣٠ ثانية استماع فعلية، «مشاهدة» = ضغط زر تشغيل الفيديو، ويُستثنى من يفعّل «عدم التتبع».</p>
+<p class="muted">أعداد مجهولة الهوية: لا تُحفظ أي بيانات عن الزائر (يُرسل رقم الدرس ونوع الحدث فقط). «استماع» = ٣٠ ثانية استماع فعلية في الصفحة الواحدة، «مشاهدة» = ضغط زر تشغيل الفيديو.</p>
 <h2>أكثر الدروس استماعًا (٣٠ يومًا)</h2>${T(["أكثر الدروس", ["الدرس", "السلسلة", "الاستماع"]], top.map(r => `<tr><td>${esc(r.title)}</td><td><a href="/series/${encodeURIComponent(r.sid)}">${esc(r.series || "")}</a></td><td>${num(r.c)}</td></tr>`).join(""))}
 <h2>حسب السلسلة (٣٠ يومًا)</h2>${T(["حسب السلسلة", ["السلسلة", "استماع", "تحميل", "مشاهدة"]], bySeries.map(r => `<tr><td><a href="/series/${encodeURIComponent(r.id)}">${esc(r.title)}</a></td><td>${num(r.p)}</td><td>${num(r.d)}</td><td>${num(r.w)}</td></tr>`).join(""))}
 <h2>آخر ١٤ يومًا</h2>${T(["الأيام", ["اليوم", "استماع", "تحميل", "مشاهدة"]], daily.map(r => `<tr><td>${esc(hijri(null, r.day))}</td><td>${num(r.p)}</td><td>${num(r.d)}</td><td>${num(r.w)}</td></tr>`).join(""))}`;
