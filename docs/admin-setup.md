@@ -107,3 +107,12 @@ Portal menu «الصفحة الرئيسية». The hero (name + search) is fixed
 - Changes need **«النشر»** (Publish exports `site/data/home.json`; without the file the site shows exactly the default layout, as before). No D1 migration is needed (it uses the existing `docs` table).
 - A block with nothing to show (no bio, no schedule, no announcements) stays hidden even if switched on.
 - Two people saving at once: the second save is refused with a «conflict» message (version token), like the schedule.
+
+## Analytics dashboard (phase 7, admin only)
+Portal menu «الإحصاءات». No migration, no Publish, nothing to deploy except the admin Worker (it reads the counters the public site has been collecting since phase 3b).
+- **Filters** (a plain form): period (7 / 30 / 90 days, a year, all time), one series or all, and which count orders the top-lessons table (listening / download / video / all).
+- **Cards**: listening, downloads, video plays for the period, with the change against the previous period of the same length.
+- **Chart**: stacked bars (daily up to 90 days, weekly up to a year, monthly beyond); oldest on the right, as the page reads. Hover a bar for the exact numbers; «عرض الجدول» shows the same data as a table.
+- **Tables**: top 25 lessons; per-series totals with their share (click a series to filter by it).
+- **CSV**: «تنزيل CSV» gives per-lesson totals for the chosen period (opens correctly in Excel, Arabic included).
+- Counts are anonymous (lesson id + kind of event per day; nothing about the visitor). A «listen» = 30 s of real listening; days are Makkah time. Counts start from when phase 3b went live; history cannot be back-filled.

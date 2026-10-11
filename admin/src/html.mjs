@@ -63,7 +63,7 @@ export const message = (title, text, status) => page(`<!doctype html><html lang=
 
 export const CSS = `
 :root{--paper:#f6efe0;--card:#fffaf0;--ink:#2a2118;--ink2:#5b4d3c;--line:#d9ccb2;--red:#8c2b22;--gold:#7a5a14;--ok:#2f6b3a;--bad:#9b2c2c;--onred:#fff}
-@media (prefers-color-scheme:dark){:root{--paper:#17130f;--card:#211b15;--ink:#f1e8d6;--ink2:#c2b69f;--line:#3a3025;--red:#e07a6d;--gold:#d6aa4d;--ok:#7fc58b;--bad:#f08a8a;--onred:#1a120d}}
+@media (prefers-color-scheme:dark){.s-play{fill:#3987e5;background:#3987e5}.s-download{fill:#d95926;background:#d95926}.s-watch{fill:#199e70;background:#199e70}:root{--paper:#17130f;--card:#211b15;--ink:#f1e8d6;--ink2:#c2b69f;--line:#3a3025;--red:#e07a6d;--gold:#d6aa4d;--ok:#7fc58b;--bad:#f08a8a;--onred:#1a120d}}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 "Noto Naskh Arabic","Segoe UI",Tahoma,sans-serif}
 a{color:var(--red)}h1{font-size:1.5rem;margin:.2rem 0 1rem}h2{font-size:1.15rem;margin:1.6rem 0 .6rem}
 .top{display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;align-items:center;padding:.7rem 1rem;background:var(--card);border-bottom:2px solid var(--line)}
@@ -81,6 +81,7 @@ button{background:var(--red);color:var(--onred);border-color:var(--red);cursor:p
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .flash{padding:.5rem .9rem;border-radius:8px;border:1px solid}.flash.ok{color:var(--ok);border-color:var(--ok)}.flash.err{color:var(--bad);border-color:var(--bad)}
 #drop{border:2px dashed var(--line);border-radius:12px;padding:1.6rem;text-align:center;background:var(--card);cursor:pointer;margin:1rem 0}#drop.over,#drop:hover{border-color:var(--red)}
+form.inline select{max-width:100%}form.inline label{max-width:100%}.chartbox{overflow-x:auto}.chart{min-width:560px}.chartbox{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.5rem}.chart{display:block;width:100%;height:auto;max-height:300px;min-width:560px}.chart .gl{stroke:var(--line);stroke-width:1}.chart .ax{fill:var(--ink2);font-size:11px;font-family:inherit}.chart .hit{fill:transparent}.chart .hit:hover{fill:rgba(128,128,128,.12)}.chart .seg{stroke:var(--card);stroke-width:2}.s-play{fill:#2a78d6;background:#2a78d6}.s-download{fill:#eb6834;background:#eb6834}.s-watch{fill:#1baf7a;background:#1baf7a}.legend{display:flex;gap:1.2rem;list-style:none;padding:0;margin:.4rem 0}.legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-inline-end:.4rem;vertical-align:-1px}
 .homeblocks{list-style:none;padding:0;margin:0 0 1rem}.homeblock{border:1px solid var(--line);border-radius:8px;padding:.6rem .9rem;margin-bottom:.6rem;background:var(--card)}.homeblock p{margin:.35rem 0}.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:.25rem .8rem;max-height:18rem;overflow:auto;padding:.3rem}button:disabled{opacity:.45;cursor:not-allowed}
 .num{width:5.2rem}.num.sm{width:3.6rem}.num.md{width:5.2rem}.wide{width:100%;min-width:14rem;margin-bottom:.3rem}.fname{font-size:.85rem;word-break:break-all}.hdate{white-space:nowrap}
 tr.conflict{background:rgba(155,44,44,.1)}.warn,.prog.bad{color:var(--bad);font-size:.85rem}.prog{font-size:.85rem;color:var(--ink2)}

@@ -9,6 +9,7 @@ import { requestPublish } from "./publish.mjs";
 import { saveOrder, resetOrder } from "./order.mjs";
 import * as L from "./live.mjs";
 import * as LP from "./live_pages.mjs";
+import { analyticsPage, analyticsCsv } from "./analytics.mjs";
 import * as H from "./home.mjs";
 import * as P from "./pages.mjs";
 
@@ -118,6 +119,7 @@ export default {
       if (path === "/favicon.ico") return done(new Response(null, { status: 204 }));
       if (path === "/admin.css") return done(new Response(CSS, { headers: { "content-type": "text/css; charset=utf-8" } }));
       if (path === "/admin.js") return done(new Response(JS, { headers: { "content-type": "text/javascript; charset=utf-8" } }));
+      if (path === "/analytics.csv" && can(user.role, "analytics.view")) return done(await analyticsCsv(env.DB, url.searchParams));
       const flash = url.searchParams.get("ok") ? { kind: "ok", code: url.searchParams.get("ok") } : url.searchParams.get("err") ? { kind: "err", code: url.searchParams.get("err") } : null;
       const pageNo = Math.min(Math.max(parseInt(url.searchParams.get("page") || "1", 10) || 1, 1), 1000);
 
@@ -134,7 +136,7 @@ export default {
       else if (path === "/books") html = await P.booksList(env.DB, user, flash);
       else if (path === "/upload" && can(user.role, "content.edit")) html = await P.uploadPage(env.DB, user);
       else if (path === "/publish" && can(user.role, "content.publish")) html = await P.publishPage(env.DB, user, flash);
-      else if (path === "/analytics" && can(user.role, "analytics.view")) html = await P.analyticsPage(env.DB, user);
+      else if (path === "/analytics" && can(user.role, "analytics.view")) html = await analyticsPage(env.DB, user, url.searchParams);
       else if (path === "/banners" && can(user.role, "banners.edit")) html = await LP.bannersPage(env.DB, user, flash);
       else if ((m = /^\/banners\/(\d{1,9})$/.exec(path)) && can(user.role, "banners.edit")) html = await LP.bannerEditPage(env.DB, user, +m[1], flash);
       else if (path === "/announcements" && can(user.role, "announcements.edit")) html = await LP.announcementsPage(env.DB, user, flash);
