@@ -38,6 +38,7 @@ const routes = ["/", "/library/", "/search/"];
 if (DB.books.length) routes.push("/books/");
 if (state.bio) routes.push("/about/");
 if (state.schedule) routes.push("/schedule/");
+routes.push("/news/");                                   // announcements: filled in the browser from /api/live
 for (const s of SECTIONS) if (s.id !== "books" && !isFlat(s.id) && DB.series.some(x => x.sec === s.id)) routes.push(`/section/${s.id}/`);
 for (const s of DB.series) routes.push(href.series(s.id));
 for (const l of DB.lessons) routes.push(href.lesson(l.id));

@@ -7,6 +7,8 @@ import { handleUpload, addLessons, json } from "./upload.mjs";
 import { newSeries, lessonStatus, editLesson, editSeries, saveBook, resetOverride } from "./content.mjs";
 import { requestPublish } from "./publish.mjs";
 import { saveOrder, resetOrder } from "./order.mjs";
+import * as L from "./live.mjs";
+import * as LP from "./live_pages.mjs";
 import * as P from "./pages.mjs";
 
 const HEADERS = {
@@ -35,6 +37,22 @@ async function post(request, env, user, path) {
   if (path === "/publish" && can(user.role, "content.publish")) {
     const code = await requestPublish(env, user);
     return redirect("/publish", code, code === "requested" ? "ok" : "err");
+  }
+  if (can(user.role, "banners.edit")) {
+    if (path === "/banners/save") return L.saveBanner(f, env, user, redirect);
+    if (path === "/banners/toggle") return L.toggleBanner(f, env, user, redirect);
+    if (path === "/banners/delete") return L.deleteBanner(f, env, user, redirect);
+  }
+  if (can(user.role, "announcements.edit")) {
+    if (path === "/announcements/save") return L.saveAnnouncement(f, env, user, redirect);
+    if (path === "/announcements/delete") return L.deleteAnnouncement(f, env, user, redirect);
+  }
+  if (can(user.role, "schedule.edit")) {
+    if (path === "/schedule/slot") return L.saveSlot(f, env, user, redirect);
+    if (path === "/schedule/slot-delete") return L.deleteSlot(f, env, user, redirect);
+    if (path === "/schedule/meta") return L.saveScheduleMeta(f, env, user, redirect);
+    if (path === "/notices/add") return L.addNotice(f, env, user, redirect);
+    if (path === "/notices/delete") return L.deleteNotice(f, env, user, redirect);
   }
   if (!can(user.role, "users.manage")) return null;
   if (path === "/users/add") {
@@ -112,6 +130,11 @@ export default {
       else if (path === "/upload" && can(user.role, "content.edit")) html = await P.uploadPage(env.DB, user);
       else if (path === "/publish" && can(user.role, "content.publish")) html = await P.publishPage(env.DB, user, flash);
       else if (path === "/analytics" && can(user.role, "analytics.view")) html = await P.analyticsPage(env.DB, user);
+      else if (path === "/banners" && can(user.role, "banners.edit")) html = await LP.bannersPage(env.DB, user, flash);
+      else if ((m = /^\/banners\/(\d{1,9})$/.exec(path)) && can(user.role, "banners.edit")) html = await LP.bannerEditPage(env.DB, user, +m[1], flash);
+      else if (path === "/announcements" && can(user.role, "announcements.edit")) html = await LP.announcementsPage(env.DB, user, flash);
+      else if ((m = /^\/announcements\/(\d{1,9})$/.exec(path)) && can(user.role, "announcements.edit")) html = await LP.announcementEditPage(env.DB, user, +m[1], flash);
+      else if (path === "/schedule" && can(user.role, "schedule.edit")) html = await LP.schedulePageAdmin(env.DB, user, flash);
       else if (path === "/users" && can(user.role, "users.manage")) html = await P.usersPage(env.DB, user, flash);
       else if (path === "/audit" && can(user.role, "audit.view")) html = await P.auditPage(env.DB, user);
       if (!html) return done(message("غير موجود", "الصفحة المطلوبة غير موجودة.", 404));

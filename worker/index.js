@@ -67,9 +67,35 @@ async function countEvent(request, env, url) {
   return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
 }
 
+/* GET /api/live: what changes without a rebuild (banners, announcements, schedule notices), from D1, cached 60 s per edge location so visitors do not touch the
+   database. Plain JSON, no personal data. Any failure answers an empty document (the site simply shows nothing). `LIVE_TTL` (seconds) can be lowered in tests. */
+async function liveDoc(env) {
+  const all = sql => env.DB.prepare(sql).all().then(r => r.results);
+  const [banners, announcements, notices] = await Promise.all([
+    all("SELECT id, text, link, kind, dismissible FROM banners WHERE active = 1 AND (starts_at IS NULL OR starts_at <= datetime('now')) AND (ends_at IS NULL OR ends_at > datetime('now')) ORDER BY id DESC LIMIT 3"),
+    all("SELECT id, title, body, link, link_label, pinned, COALESCE(publish_at, created_at) AS at FROM announcements WHERE status = 'published' AND (publish_at IS NULL OR publish_at <= datetime('now')) ORDER BY pinned DESC, COALESCE(publish_at, created_at) DESC, id DESC LIMIT 20"),
+    all("SELECT slot, day, kind, note FROM schedule_notices WHERE day >= date('now', '+3 hours') ORDER BY day, id LIMIT 50"),
+  ]);
+  return { banners, announcements, notices };
+}
+async function live(request, env, ctx, url) {
+  if (request.method !== "GET" && request.method !== "HEAD") return new Response(null, { status: 405, headers: { allow: "GET, HEAD" } });
+  const ttl = env.LIVE_TTL === undefined ? 60 : Math.max(0, Number(env.LIVE_TTL) || 0);
+  const key = new Request(url.origin + "/api/live");              // one cache entry whatever the query string
+  const cache = ttl && typeof caches !== "undefined" ? caches.default : null;
+  const hit = cache && await cache.match(key);
+  if (hit) return hit;
+  let doc = { banners: [], announcements: [], notices: [] }, ok = true;
+  try { if (env.DB) doc = await liveDoc(env); } catch (e) { ok = false; console.error("live failed:", e && e.message); }
+  const res = new Response(request.method === "HEAD" ? null : JSON.stringify(doc), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": `public, max-age=${ok ? ttl : 10}`, "x-robots-tag": "noindex" } });
+  if (cache && ok) ctx.waitUntil(cache.put(key, res.clone()));
+  return res;
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/live") return live(request, env, ctx, url);
     if (url.pathname === "/api/event") return countEvent(request, env, url);
     if (url.pathname !== "/health" && url.pathname !== "/health/") return env.ASSETS.fetch(request);
     if (!memo || Date.now() - memo.at > CACHE_MS) memo = { at: Date.now(), body: await runChecks(env) };

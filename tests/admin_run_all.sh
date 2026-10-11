@@ -21,10 +21,11 @@ BASE=http://localhost:$PORT AUDIO_DIR=$A node tests/admin_upload.mjs | grep -E "
 VIDEO_ID=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("site/catalogue.json","utf8")).lessons[0].id)')
 BASE=http://localhost:$PORT AUDIO_DIR=$A VIDEO_ID=$VIDEO_ID node tests/admin_edit.mjs | grep -E "FAIL|passed|!!"
 BASE=http://localhost:$PORT node tests/admin_order.mjs | grep -E "FAIL|passed|!!"
+BASE=http://localhost:$PORT node tests/admin_live.mjs | grep -E "FAIL|passed|!!"
 
 # the chain steps below overwrite these tracked data files temporarily: keep copies and put them back on exit
-KEEP=$(mktemp -d); for f in overrides order; do [ -f "site/data/$f.json" ] && cp "site/data/$f.json" "$KEEP/$f.json"; done
-restore() { for f in overrides order; do if [ -f "$KEEP/$f.json" ]; then cp "$KEEP/$f.json" "site/data/$f.json"; else rm -f "site/data/$f.json"; fi; done; kill -- -$PID 2>/dev/null || true; }
+KEEP=$(mktemp -d); for f in overrides order schedule; do [ -f "site/data/$f.json" ] && cp "site/data/$f.json" "$KEEP/$f.json"; done
+restore() { for f in overrides order schedule; do if [ -f "$KEEP/$f.json" ]; then cp "$KEEP/$f.json" "site/data/$f.json"; else rm -f "site/data/$f.json"; fi; done; kill -- -$PID 2>/dev/null || true; }
 trap restore EXIT
 # --- chain: patches saved in the portal -> overrides.json (Publish) -> build; and the daily mirror must leave the patches alone ---
 DB=$(ls "$P"/v3/d1/miniflare-D1DatabaseObject/*.sqlite | head -1)
@@ -62,3 +63,14 @@ const page = fs.readFileSync("dist/series/tadrib/index.html", "utf8");
 const ok = t && t.length === 110 && t[0] === "tadrib-0002" && !/rel="prev"/.test(first) && /rel="next"/.test(first) && page.indexOf("/lesson/tadrib-0002/") < page.indexOf("/lesson/tadrib-0001/") && !o.muslim;
 console.log(ok ? "ok   saved order -> order.json -> built site (series page and previous/next follow it; the reset series is not listed)" : "FAIL order chain: " + JSON.stringify(t && t.slice(0, 4))); process.exit(ok ? 0 : 1)' "$P"
 cp "$KEEP/order.json" site/data/order.json 2>/dev/null || rm -f site/data/order.json
+
+# --- chain: schedule edits made in the portal -> schedule.json (Publish) -> the pre-rendered /schedule/ page ---
+node --no-warnings scripts/db.mjs export --db "$DB" --out "$P/pub" --only data/schedule.json
+cp "$P/pub/data/schedule.json" site/data/schedule.json
+node scripts/build.mjs | tail -1
+grep -q "ملاحظة جديدة" dist/schedule/index.html && grep -q "حضور" dist/schedule/index.html && echo "ok   schedule edits -> schedule.json -> built /schedule/ page (note and live button)" || { echo "FAIL schedule chain"; exit 1; }
+node -e '
+const o = JSON.parse(require("fs").readFileSync(process.argv[1] + "/pub/data/schedule.json", "utf8"));
+const ok = o.slots.every(s => /^[a-z0-9-]{1,20}$/.test(s.id)) && new Set(o.slots.map(s => s.id)).size === o.slots.length && o.note === "ملاحظة جديدة" && o.live && o.live.url === "https://mixlr.com/wahatualsunnah";
+console.log(ok ? "ok   exported schedule: every slot has a unique id, note and live button saved" : "FAIL schedule doc: " + JSON.stringify(o).slice(0, 300)); process.exit(ok ? 0 : 1)' "$P"
+cp "$KEEP/schedule.json" site/data/schedule.json 2>/dev/null || true

@@ -453,3 +453,28 @@ h2.sect{margin:0}
 .live-go .ic{position:absolute;inset:0;margin:auto;color:#fbf3df}
 .live-today{margin:10px 2px 0;font-size:17px;color:var(--ink)}
 @media (max-width:600px){.live-cta{padding:14px 16px;gap:12px}.live-t strong{font-size:22px}}
+
+/* ───────── Live layer: banners, announcements, schedule notices ───────── */
+#live-banner:empty{display:none}
+.banner{background:var(--paper-2);color:var(--ink);border-bottom:2px solid var(--gold);font-size:15px;line-height:1.7}
+.banner-in{display:flex;align-items:center;gap:12px;padding-block:8px}
+.banner .b-text{flex:1}
+.banner .b-link{color:inherit;font-weight:700;text-decoration:underline;white-space:nowrap}
+.banner .b-x{position:relative;width:32px;height:32px;border:0;background:transparent;color:inherit;font-size:24px;line-height:1;cursor:pointer;border-radius:50%}
+.banner .b-x:hover{background:rgba(127,127,127,.2)}
+.banner-notice{background:#1f3556;color:#fff;border-bottom-color:#1f3556}
+.banner-urgent{background:#a8321f;color:#fff;border-bottom-color:#7d2415}
+:root[data-theme=dark] .banner-notice{background:#9db6dd;color:#0f1b2e;border-bottom-color:#9db6dd}
+:root[data-theme=dark] .banner-urgent{background:#b83a2a;color:#fff;border-bottom-color:#b83a2a}
+.news{margin-top:28px}
+.news-list{display:grid;gap:14px;margin-top:14px}
+.news-item{background:var(--paper-2);border:1px solid var(--rule);box-shadow:var(--shadow);padding:16px 20px;border-radius:2px}
+.news-item.pinned{border-inline-start:5px solid var(--gold)}
+.news-item h2,.news-item h3{margin:0 0 4px;font-size:1.15em}
+.news-when{display:block;color:var(--ink-2);font-size:.9em;margin-bottom:6px}
+.news-body{margin:6px 0 10px;white-space:pre-line}
+.notice-badge{display:inline-block;margin-inline-start:8px;padding:0 8px;border-radius:99px;font-size:.85em;font-weight:700}
+.notice-cancelled{background:#a8321f;color:#fff}
+.notice-changed{background:var(--gold);color:#17120b}
+li.slot-off .sw>a,li.slot-off .sw{text-decoration-color:var(--rubric)}
+@media (prefers-reduced-motion:no-preference){.banner{animation:bn .3s ease-out}@keyframes bn{from{opacity:0}to{opacity:1}}}
