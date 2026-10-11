@@ -2,6 +2,7 @@ import { esc, layout, hijri, statusTag, num, stamp } from "./html.mjs";
 import { ROLES, ROLE_AR, can } from "./roles.mjs";
 import { NEW_SERIES_SECTIONS, EDITABLE, verOf, hijriOf, getPatch, withPatch, catVer } from "./content.mjs";
 import { pendingChanges } from "./publish.mjs";
+import { orderState } from "./order.mjs";
 
 const PER = 100;
 const SEC_AR = { duroos: "الدروس المرئية", audio: "الدروس الصوتية", lectures: "المحاضرات", khutab: "الخطب", urdu: "الدروس بالأردية" };
@@ -34,9 +35,9 @@ const SERIES_FROM = "series s LEFT JOIN overrides o ON o.kind = 'series' AND o.i
 const editableOrigin = o => EDITABLE.includes(o) || o === "catalogue";
 
 export async function seriesList(db, user) {
-  const rows = await all(db, `SELECT ${SERIES_EFF}, (SELECT COUNT(*) FROM lessons_eff l WHERE l.series_id = s.id) c FROM ${SERIES_FROM} ORDER BY s.sec, s.origin, s.pos`);
+  const rows = await all(db, `SELECT ${SERIES_EFF}, (SELECT COUNT(*) FROM lessons_eff l WHERE l.series_id = s.id) c, EXISTS (SELECT 1 FROM series_order so WHERE so.series_id = s.id) AS manual FROM ${SERIES_FROM} ORDER BY s.sec, s.origin, s.pos`);
   const body = `${can(user.role, "content.edit") ? `<p><a href="/series/new">+ سلسلة جديدة</a> · <a href="/upload">رفع دروس</a></p>` : ""}<div class="scroll" tabindex="0" role="region" aria-label="جدول"><table><thead><tr><th>السلسلة</th><th>القسم</th><th>الدروس</th><th>الحالة</th></tr></thead><tbody>${
-    rows.map(r => `<tr><td><a href="/series/${encodeURIComponent(r.id)}">${esc(r.title)}</a></td><td>${esc(SEC_AR[r.sec] || r.sec || "—")}</td><td>${num(r.c)}</td><td>${statusTag(r.status)}</td></tr>`).join("")}</tbody></table></div>`;
+    rows.map(r => `<tr><td><a href="/series/${encodeURIComponent(r.id)}">${esc(r.title)}</a>${r.manual ? ` <span class="tag tag-draft">ترتيب يدوي</span>` : ""}</td><td>${esc(SEC_AR[r.sec] || r.sec || "—")}</td><td>${num(r.c)}</td><td>${statusTag(r.status)}</td></tr>`).join("")}</tbody></table></div>`;
   return layout({ title: "السلاسل", user, path: "/series", body });
 }
 
@@ -51,7 +52,7 @@ export async function seriesDetail(db, user, id, pageNo, flash) {
   const pages = Math.max(1, Math.ceil(total / PER)), p = Math.min(Math.max(1, pageNo), pages);
   const rows = await all(db, `SELECT id, n, section, status, title, hd, date FROM lessons_eff WHERE series_id = ? ORDER BY (n IS NULL), n, pos LIMIT ? OFFSET ?`, id, PER, (p - 1) * PER);
   const pager = pages > 1 ? `<div class="pager">${p > 1 ? `<a href="?page=${p - 1}">السابق</a>` : ""}<span>صفحة ${num(p)} من ${num(pages)}</span>${p < pages ? `<a href="?page=${p + 1}">التالي</a>` : ""}</div>` : "";
-  const body = `<p class="muted">${esc(SEC_AR[s.sec] || s.sec || "")} · ${num(total)} درس · ${statusTag(s.status)} · <a href="/series">كل السلاسل</a>${can(user.role, "content.edit") ? ` · <a href="/upload?series=${encodeURIComponent(s.id)}">رفع دروس إلى هذه السلسلة</a>${editableOrigin(s.origin) ? ` · <a href="/series/${encodeURIComponent(s.id)}/edit">تعديل السلسلة</a>` : ""}` : ""}</p><div class="scroll" tabindex="0" role="region" aria-label="جدول"><table><thead><tr><th>الرقم</th><th>العنوان</th><th>الباب</th><th>التاريخ الهجري</th><th>الحالة</th></tr></thead><tbody>${
+  const body = `<p class="muted">${esc(SEC_AR[s.sec] || s.sec || "")} · ${num(total)} درس · ${statusTag(s.status)} · <a href="/series">كل السلاسل</a>${can(user.role, "content.edit") ? ` · <a href="/upload?series=${encodeURIComponent(s.id)}">رفع دروس إلى هذه السلسلة</a>${editableOrigin(s.origin) ? ` · <a href="/series/${encodeURIComponent(s.id)}/edit">تعديل السلسلة</a>` : ""} · <a href="/series/${encodeURIComponent(s.id)}/order">ترتيب الدروس</a>` : ""}</p><div class="scroll" tabindex="0" role="region" aria-label="جدول"><table><thead><tr><th>الرقم</th><th>العنوان</th><th>الباب</th><th>التاريخ الهجري</th><th>الحالة</th></tr></thead><tbody>${
     rows.map(r => `<tr><td>${r.n == null ? "—" : num(r.n)}</td><td>${canEdit ? `<a href="/lessons/${encodeURIComponent(r.id)}">${esc(r.title)}</a>` : esc(r.title)}</td><td>${esc(r.section || "")}</td><td>${esc(hijri(r.hd, r.date))}</td><td>${statusTag(r.status)}${canEdit ? statusForm(r, id, p) : ""}</td></tr>`).join("")}</tbody></table></div>${pager}`;
   return layout({ title: s.title, user, path: "/series", body, flash });
 }
@@ -259,4 +260,39 @@ async function catalogueSeriesPage(db, user, s, flash) {
 <p><label>الحالة <select name="status">${STATUS_OPTS(patch.hidden ? "hidden" : "published", ["published", "hidden"])}</select></label> <span class="muted">إخفاء السلسلة يُخفي كل دروسها.</span></p>
 <p><button>حفظ</button></p></form>${patched ? resetForm("/series/reset", s.id) : ""}`;
   return layout({ title: "تعديل سلسلة (يوتيوب)", user, path: "/series", body, flash });
+}
+
+/* ---------- arrange the lessons of a series (phase 4c) ---------- */
+export async function orderPage(db, user, id, flash) {
+  const s = await one(db, `SELECT ${SERIES_EFF} FROM ${SERIES_FROM} WHERE s.id = ?`, id);
+  if (!s) return null;
+  const st = await orderState(db, id);
+  const btn = (act, label, text) => `<button type="button" class="mv secondary" data-act="${act}" aria-label="${label}" title="${label}">${text}</button>`;
+  const rows = st.list.map(r => `<li data-id="${esc(r.id)}" data-n="${esc(r.n ?? "")}" data-date="${esc(r.date ?? "")}" data-title="${esc(r.title)}" data-section="${esc(r.section ?? "")}"${st.fresh.has(r.id) ? ' data-new="1"' : ""}>
+<button type="button" class="grip secondary" aria-label="نقل: ${esc(r.title)}. اضغط مسافة للالتقاط ثم الأسهم للتحريك ثم مسافة للإفلات" aria-pressed="false">⋮⋮</button>
+<label class="pick"><input type="checkbox" aria-label="تحديد: ${esc(r.title)}"></label><span class="pos" aria-hidden="true"></span>
+<span class="main"><span class="t">${esc(r.title)}</span><span class="meta muted">${r.n != null ? `رقم ${num(r.n)}` : "بلا رقم"}${r.section ? ` · ${esc(r.section)}` : ""} · ${esc(hijri(r.hd, r.date))} ${statusTag(r.status)}${st.fresh.has(r.id) ? ` <span class="tag tag-draft newtag">جديد: لم يُرتَّب بعد</span>` : ""}</span></span>
+<span class="acts">${btn("top", "إلى الأول", "⤒")}${btn("up", "خطوة للأعلى", "▲")}${btn("down", "خطوة للأسفل", "▼")}${btn("bottom", "إلى الآخر", "⤓")}</span></li>`).join("");
+  const body = `<p class="muted"><a href="/series/${encodeURIComponent(id)}">رجوع إلى السلسلة</a> · ${num(st.list.length)} درس · ${st.manual ? "ترتيب يدوي محفوظ" : "الترتيب التلقائي (كما يراه الزائر الآن)"}</p>
+<p class="muted">اسحب المقبض ⋮⋮ (أو اضغط مسافة عليه ثم الأسهم)، أو استخدم أزرار الأسهم. الترتيب هنا هو ما يراه الزائر في الصفحة وفي زرّي «السابق / التالي»؛ أرقام الدروس وعناوينها لا تتغير.</p>
+${st.fresh.size ? `<p class="flash err">${num(st.fresh.size)} درس جديد لم يُرتَّب بعد؛ وُضع في آخر القائمة (مظلَّل).</p>` : ""}
+<div id="order-root" data-series="${esc(id)}" data-ver="${esc(st.ver)}" data-manual="${st.manual ? 1 : 0}">
+<div class="ord-bar">
+<label>بحث <input id="ord-q" type="search" maxlength="60" placeholder="عنوان أو باب"></label>
+<label>ترتيب جاهز <select id="ord-sort"><option value="">— اختر —</option><option value="n">بحسب الرقم</option><option value="date-asc">التاريخ: الأقدم أولًا</option><option value="date-desc">التاريخ: الأحدث أولًا</option><option value="title">بحسب العنوان</option><option value="reverse">عكس القائمة</option></select></label>
+<button type="button" class="secondary" id="ord-undo" disabled>تراجع</button>
+</div>
+<div class="ord-bar" role="group" aria-label="نقل المحدَّد">
+<span id="ord-sel" class="muted">لا شيء محدد</span>
+<button type="button" class="secondary" data-bulk="top" disabled>المحدد إلى الأول</button>
+<button type="button" class="secondary" data-bulk="bottom" disabled>المحدد إلى الآخر</button>
+<label>إلى الموضع <input id="ord-to" type="number" min="1" max="${st.list.length}" class="num" disabled></label>
+<button type="button" class="secondary" data-bulk="to" disabled>نقل</button>
+</div>
+<ol id="ord-list" class="sortable">${rows}</ol>
+<p class="ord-save"><button type="button" id="ord-save" disabled>حفظ الترتيب</button> <span id="ord-dirty" class="muted"></span>${st.manual ? ` <button type="button" class="secondary" id="ord-reset">العودة إلى الترتيب التلقائي</button>` : ""}</p>
+<p id="ord-msg" class="flash ok" role="status" hidden></p>
+<div id="ord-live" class="sr" aria-live="polite"></div>
+</div>`;
+  return layout({ title: `ترتيب الدروس — ${s.title}`, user, path: "/series", body, flash, scripts: true });
 }

@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { init, applyMedia, applyOverrides, mergeLibraries, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href } from "../site/js/core.js";
+import { init, applyMedia, applyOverrides, applyOrder, mergeLibraries, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href } from "../site/js/core.js";
 import { resolve, notFoundPage, chromeTop, chromeBottom, footer, headHtml } from "../site/js/views.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -12,8 +12,9 @@ const SRC = path.join(ROOT, "site"), OUT = path.join(ROOT, "dist");
 const readJSON = (f, optional = false) => { try { return JSON.parse(fs.readFileSync(path.join(SRC, f), "utf8")); } catch (e) { if (optional) return null; throw e; } };
 
 const t0 = Date.now();
-const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true), readJSON("data/haram.json", true));   // library.json + lessons imported from makkahscholars.org
-const CAT = applyOverrides(readJSON("catalogue.json"), readJSON("data/overrides.json", true));   // the YouTube catalogue + the editors' patches (admin portal)
+const LIB0 = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true), readJSON("data/haram.json", true));   // library.json + lessons imported from makkahscholars.org
+const CAT0 = applyOverrides(readJSON("catalogue.json"), readJSON("data/overrides.json", true));   // the YouTube catalogue + the editors' patches (admin portal)
+const { cat: CAT, lib: LIB } = applyOrder(CAT0, LIB0, readJSON("data/order.json", true));         // + the editors' saved display order of series (admin portal)
 init(CAT, LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true), readJSON("data/schedule.json", true));
 const DB = state.DB;
 { // two series (or lessons) with the same id would silently merge or duplicate: refuse to build
@@ -22,7 +23,7 @@ const DB = state.DB;
 }
 
 fs.rmSync(OUT, { recursive: true, force: true });
-fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) && !/[\\/]data[\\/](media|overrides)\.json$/.test(s) && !/[\\/]data[\\/](makkah|haram)\.json$/.test(s) });   // the manifest stays out of dist: the merged library below carries the mirrored links
+fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) && !/[\\/]data[\\/](media|overrides|order)\.json$/.test(s) && !/[\\/]data[\\/](makkah|haram)\.json$/.test(s) });   // the manifest stays out of dist: the merged library below carries the mirrored links
 
 const shell = fs.readFileSync(path.join(SRC, "shell.html"), "utf8");
 const fill = (tpl, map) => tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => map[k]);   // single pass: page content is never re-scanned for placeholders

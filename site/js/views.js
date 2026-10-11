@@ -133,7 +133,7 @@ export function seriesInfo(id) {
   if (_info.has(id)) return _info.get(id);
   const s = seriesById[id]; if (!s) return null;
   const all = state.DB.lessons.filter(l => l.series === id);
-  const ordered = !!s.ordered || all.some(l => l.n != null);
+  const ordered = !!s.ordered || !!s.manual || all.some(l => l.n != null);
   const when = l => l.date || String(l.o).padStart(8, "0"), first = {};
   all.forEach(l => { if (l.section && (!first[l.section] || when(l) < first[l.section])) first[l.section] = when(l); });
   const sections = Object.keys(first).sort((x, y) => first[x].localeCompare(first[y]));   // chronological: by when each book was first taught
