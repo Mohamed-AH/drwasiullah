@@ -1,0 +1,31 @@
+{
+  "blocks": [
+    {
+      "id": "news",
+      "on": true
+    },
+    {
+      "id": "schedule",
+      "on": true
+    },
+    {
+      "id": "about",
+      "on": true
+    },
+    {
+      "id": "sections",
+      "on": true
+    },
+    {
+      "id": "shelf",
+      "on": true,
+      "count": 10,
+      "series": []
+    },
+    {
+      "id": "latest",
+      "on": false,
+      "count": 8
+    }
+  ]
+}
