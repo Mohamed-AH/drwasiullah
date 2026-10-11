@@ -9,6 +9,7 @@ import { requestPublish } from "./publish.mjs";
 import { saveOrder, resetOrder } from "./order.mjs";
 import * as L from "./live.mjs";
 import * as LP from "./live_pages.mjs";
+import * as H from "./home.mjs";
 import * as P from "./pages.mjs";
 
 const HEADERS = {
@@ -53,6 +54,10 @@ async function post(request, env, user, path) {
     if (path === "/schedule/meta") return L.saveScheduleMeta(f, env, user, redirect);
     if (path === "/notices/add") return L.addNotice(f, env, user, redirect);
     if (path === "/notices/delete") return L.deleteNotice(f, env, user, redirect);
+  }
+  if (can(user.role, "layout.edit")) {
+    if (path === "/home/save") return H.saveHome(f, env, user, redirect);
+    if (path === "/home/reset") return H.resetHome(f, env, user, redirect);
   }
   if (!can(user.role, "users.manage")) return null;
   if (path === "/users/add") {
@@ -135,6 +140,7 @@ export default {
       else if (path === "/announcements" && can(user.role, "announcements.edit")) html = await LP.announcementsPage(env.DB, user, flash);
       else if ((m = /^\/announcements\/(\d{1,9})$/.exec(path)) && can(user.role, "announcements.edit")) html = await LP.announcementEditPage(env.DB, user, +m[1], flash);
       else if (path === "/schedule" && can(user.role, "schedule.edit")) html = await LP.schedulePageAdmin(env.DB, user, flash);
+      else if (path === "/home" && can(user.role, "layout.edit")) html = await H.homePage(env.DB, user, flash);
       else if (path === "/users" && can(user.role, "users.manage")) html = await P.usersPage(env.DB, user, flash);
       else if (path === "/audit" && can(user.role, "audit.view")) html = await P.auditPage(env.DB, user);
       if (!html) return done(message("غير موجود", "الصفحة المطلوبة غير موجودة.", 404));

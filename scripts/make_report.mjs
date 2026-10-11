@@ -18,7 +18,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 
 /* ───────── data (same merge as scripts/build.mjs) ───────── */
 const { cat: CAT, lib: LIB } = applyOrder(applyOverrides(readJSON("catalogue.json"), readJSON("data/overrides.json", true)), mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true), readJSON("data/haram.json", true)), readJSON("data/order.json", true));
-init(CAT, LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true), readJSON("data/schedule.json", true));
+init(CAT, LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true), readJSON("data/schedule.json", true), readJSON("data/home.json", true));
 const DB = state.DB;
 
 /* a sortable key (YYYYMMDD in the Hijri calendar) for any lesson: from the source's Hijri date, else converted from the Gregorian one */

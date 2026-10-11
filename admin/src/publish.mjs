@@ -7,7 +7,7 @@ export async function lastPublish(db) {
 }
 export async function pendingChanges(db) {
   const last = await lastPublish(db);
-  const r = await db.prepare("SELECT COUNT(*) c FROM audit_log WHERE id > ? AND (action LIKE 'lesson.%' OR action LIKE 'series.%' OR action LIKE 'book.%' OR action LIKE 'schedule.%')").bind(last ? last.id : 0).first();
+  const r = await db.prepare("SELECT COUNT(*) c FROM audit_log WHERE id > ? AND (action LIKE 'lesson.%' OR action LIKE 'series.%' OR action LIKE 'book.%' OR action LIKE 'schedule.%' OR action LIKE 'home.%')").bind(last ? last.id : 0).first();
   return { last, count: r.c };
 }
 

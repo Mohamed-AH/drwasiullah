@@ -135,7 +135,7 @@ export async function newSeriesPage(db, user, flash) {
 
 export async function publishPage(db, user, flash) {
   const { last, count } = await pendingChanges(db);
-  const recent = await all(db, "SELECT at, actor, action, entity, entity_id FROM audit_log WHERE action LIKE 'lesson.%' OR action LIKE 'series.%' OR action LIKE 'book.%' OR action LIKE 'schedule.%' ORDER BY id DESC LIMIT 10");
+  const recent = await all(db, "SELECT at, actor, action, entity, entity_id FROM audit_log WHERE action LIKE 'lesson.%' OR action LIKE 'series.%' OR action LIKE 'book.%' OR action LIKE 'schedule.%' OR action LIKE 'home.%' ORDER BY id DESC LIMIT 10");
   const body = `<p>${count ? `<b>${num(count)}</b> تغيير لم يُنشر بعد.` : "لا توجد تغييرات جديدة منذ آخر نشر."} ${last ? `<span class="muted">آخر نشر: ${stamp(last.at)} (${esc(last.actor)})</span>` : ""}</p>
 <form method="post" action="/publish"><button>نشر الآن</button></form>
 <p class="muted">يُنشر المنشور فقط (المسودات والمخفي لا يظهران). يصل التحديث إلى الموقع خلال دقيقتين تقريبًا.</p>

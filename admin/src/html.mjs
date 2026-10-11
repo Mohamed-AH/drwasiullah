@@ -29,6 +29,7 @@ const NAV = [
   ["/banners", "البانرات", "banners.edit"],
   ["/announcements", "الإعلانات", "announcements.edit"],
   ["/schedule", "الجدول", "schedule.edit"],
+  ["/home", "الصفحة الرئيسية", "layout.edit"],
   ["/analytics", "الإحصاءات", "analytics.view"],
   ["/users", "المستخدمون", "users.manage"],
   ["/audit", "السجل", "audit.view"],
@@ -40,6 +41,7 @@ export const FLASH = {
   requested: "تم طلب النشر. يظهر التحديث في الموقع خلال دقيقتين تقريبًا.", gh_missing: "النشر غير مهيّأ بعد (راجع docs/admin-setup.md).", gh_failed: "تعذّر طلب النشر من GitHub. حاول لاحقًا أو راجع المدير.", wait: "تم طلب النشر قبل لحظات؛ انتظر دقيقة.",
   reset_done: "تم التراجع: يتبع العنصر المزامنة من جديد. اضغط «النشر».", saved: "تم حفظ التعديل. اضغط «النشر» ليظهر في الموقع.", nochange: "لا تغيير لحفظه.", conflict: "عُدِّل هذا العنصر من مستخدم آخر أثناء تحريرك؛ أعد فتح الصفحة وحاول مرة أخرى.", not_editable: "هذا العنصر يأتي من مزامنة يوتيوب ولا يُعدَّل هنا.",
   bad_date: "هذا التاريخ الهجري غير موجود.", need_file: "أضف ملفًا واحدًا على الأقل للكتاب.", bad_url: "رابط أو اسم ملف غير صالح (الرابط يجب أن يبدأ بـ https).", book_added: "تمت إضافة الكتاب. اضغط «النشر» ليظهر في الموقع.", book_saved: "تم حفظ الكتاب. اضغط «النشر» ليظهر في الموقع.",
+  home_saved: "تم حفظ ترتيب الصفحة الرئيسية. اضغط «النشر» ليظهر في الموقع.",
   banner_saved: "تم حفظ البانر؛ يظهر في الموقع خلال دقيقة.", announcement_saved: "تم حفظ الإعلان؛ يظهر في الموقع خلال دقيقة.", notice_saved: "تم حفظ الإشعار؛ يظهر في الموقع خلال دقيقة.", schedule_saved: "تم حفظ الجدول. اضغط «النشر» ليظهر في الموقع.", deleted: "تم الحذف.",
   invalid: "البيانات غير صحيحة.", exists: "هذا البريد مسجّل من قبل.", last_admin: "لا يمكن ترك النظام بلا مدير فعّال.", unknown: "المستخدم غير موجود.",
 };
@@ -79,6 +81,7 @@ button{background:var(--red);color:var(--onred);border-color:var(--red);cursor:p
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .flash{padding:.5rem .9rem;border-radius:8px;border:1px solid}.flash.ok{color:var(--ok);border-color:var(--ok)}.flash.err{color:var(--bad);border-color:var(--bad)}
 #drop{border:2px dashed var(--line);border-radius:12px;padding:1.6rem;text-align:center;background:var(--card);cursor:pointer;margin:1rem 0}#drop.over,#drop:hover{border-color:var(--red)}
+.homeblocks{list-style:none;padding:0;margin:0 0 1rem}.homeblock{border:1px solid var(--line);border-radius:8px;padding:.6rem .9rem;margin-bottom:.6rem;background:var(--card)}.homeblock p{margin:.35rem 0}.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:.25rem .8rem;max-height:18rem;overflow:auto;padding:.3rem}button:disabled{opacity:.45;cursor:not-allowed}
 .num{width:5.2rem}.num.sm{width:3.6rem}.num.md{width:5.2rem}.wide{width:100%;min-width:14rem;margin-bottom:.3rem}.fname{font-size:.85rem;word-break:break-all}.hdate{white-space:nowrap}
 tr.conflict{background:rgba(155,44,44,.1)}.warn,.prog.bad{color:var(--bad);font-size:.85rem}.prog{font-size:.85rem;color:var(--ink2)}
 button[disabled]{opacity:.5;cursor:not-allowed}button.secondary{background:var(--card);color:var(--ink);border-color:var(--line)}[hidden]{display:none!important}

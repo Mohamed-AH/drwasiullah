@@ -69,27 +69,31 @@ const scheduleDays = (sc, h = 3) => {
 
 /* ───────── Pages ───────── */
 function home() {
-  const DB = state.DB, vis = visible();
-  const top = DB.series.slice().sort((a, b) => b.count - a.count).slice(0, 10);
-  const latest = DB.lessons.filter(l => l.date).slice(0, 8);
+  const DB = state.DB, vis = visible(), cfg = Object.fromEntries(state.home.blocks.map(b => [b.id, b]));
   const bio = state.bio;
-  const html = `
+  const hd = (id, dflt) => esc(cfg[id].title || dflt);                         // an optional custom heading from the portal (plain text)
+  const top = (cfg.shelf.series.length ? cfg.shelf.series.map(i => seriesById[i]) : DB.series.slice().sort((a, b) => b.count - a.count)).slice(0, cfg.shelf.count);
+  const latest = DB.lessons.filter(l => l.date).slice(0, cfg.latest.count);
+  const hero = `
     <section class="hero"><p class="bism">بسم الله الرحمن الرحيم</p>
       <h1><span class="h1-pre">${OFFICIAL_PRE}</span><span class="nm"><em>وصي الله</em></span> <span class="nm">بن محمد عباس</span> <span class="nm">بن أحمد عباس</span><span class="dua"> حفظه الله</span></h1>
       <p class="role">${ROLE}</p>
       <div class="orn" aria-hidden="true">${STAR}</div>
       <p class="hero-p">فهرس منظّم لدروس الشيخ أ.د. وصي الله بن محمد عباس حفظه الله ومحاضراته وخطبه وكتبه، مرتّبة بحسب الأقسام والكتب لتصل إلى ما تريده بسرعة.</p>
       ${searchBox("ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج", "", "q", true)}
-      <ul class="stats"><li><b>${fmtNum(DB.lessons.length)}</b>مادة علمية</li><li><b>${fmtNum(DB.series.length)}</b>سلسلة</li>${DB.books.length ? `<li><b>${fmtNum(DB.books.length)}</b>كتابًا</li>` : ""}</ul></section>
-    <section class="news" id="live-news" aria-labelledby="nw-h" hidden><div class="sec"><h2 id="nw-h">آخر الإعلانات</h2><a href="/news/">كل الإعلانات ${ic("chevron-left", 15)}</a></div><div class="news-list"></div></section>
-    ${state.schedule ? `<section class="sched sched-home" aria-labelledby="sc-h"><div class="sec"><h2 id="sc-h">جدول الدروس الأسبوعي</h2><a href="${href.schedule()}">الجدول كاملًا ${ic("chevron-left", 15)}</a></div>${liveBanner(state.schedule)}${scheduleDays(state.schedule)}<p class="sched-note">بتوقيت مكة المكرمة؛ الجدول قابل للتغيير.</p></section>` : ""}
-    ${bio ? `<section class="about-teaser" aria-labelledby="ab-h"><h2 id="ab-h">عن الشيخ</h2>${bio.summary ? `<p>${esc(bio.summary)}</p>` : ""}<a class="btn" href="${href.about()}">اقرأ المزيد ${ic("chevron-left", 16)}</a></section>` : ""}
-    <div class="sec"><h2>الأقسام</h2></div>
-    <div class="tiles">${vis.map(s => tile(s, sectionCount(s.id))).join("")}</div>
-    <div class="sec"><h2>خزانة الكتب</h2><a href="${href.library()}">كل الأقسام ${ic("chevron-left", 15)}</a></div>
-    ${shelf(top)}
-    <div class="sec"><h2>أحدث المواد</h2><a href="${href.search()}">الكل ${ic("chevron-left", 15)}</a></div>
-    <div class="grid">${latest.map(lessonCard).join("")}</div>`;
+      <ul class="stats"><li><b>${fmtNum(DB.lessons.length)}</b>مادة علمية</li><li><b>${fmtNum(DB.series.length)}</b>سلسلة</li>${DB.books.length ? `<li><b>${fmtNum(DB.books.length)}</b>كتابًا</li>` : ""}</ul></section>`;
+  const block = {
+    news: () => `<section class="news" id="live-news" aria-labelledby="nw-h" hidden><div class="sec"><h2 id="nw-h">${hd("news", "آخر الإعلانات")}</h2><a href="/news/">كل الإعلانات ${ic("chevron-left", 15)}</a></div><div class="news-list"></div></section>`,
+    schedule: () => state.schedule ? `<section class="sched sched-home" aria-labelledby="sc-h"><div class="sec"><h2 id="sc-h">${hd("schedule", "جدول الدروس الأسبوعي")}</h2><a href="${href.schedule()}">الجدول كاملًا ${ic("chevron-left", 15)}</a></div>${liveBanner(state.schedule)}${scheduleDays(state.schedule)}<p class="sched-note">بتوقيت مكة المكرمة؛ الجدول قابل للتغيير.</p></section>` : "",
+    about: () => bio ? `<section class="about-teaser" aria-labelledby="ab-h"><h2 id="ab-h">${hd("about", "عن الشيخ")}</h2>${bio.summary ? `<p>${esc(bio.summary)}</p>` : ""}<a class="btn" href="${href.about()}">اقرأ المزيد ${ic("chevron-left", 16)}</a></section>` : "",
+    sections: () => `<div class="sec"><h2>${hd("sections", "الأقسام")}</h2></div>
+    <div class="tiles">${vis.map(s => tile(s, sectionCount(s.id))).join("")}</div>`,
+    shelf: () => `<div class="sec"><h2>${hd("shelf", "خزانة الكتب")}</h2><a href="${href.library()}">كل الأقسام ${ic("chevron-left", 15)}</a></div>
+    ${shelf(top)}`,
+    latest: () => `<div class="sec"><h2>${hd("latest", "أحدث المواد")}</h2><a href="${href.search()}">الكل ${ic("chevron-left", 15)}</a></div>
+    <div class="grid">${latest.map(lessonCard).join("")}</div>`,
+  };
+  const html = hero + "\n    " + state.home.blocks.filter(b => b.on).map(b => block[b.id]()).filter(Boolean).join("\n    ");
   return mkPage({
     nav: "home", path: "/", html, wire: { t: "home" },
     title: `${OFFICIAL_PRE} ${FULL_NAME.replace(" بن أحمد عباس", "")} حفظه الله — دروس الشيخ وصي الله عباس`,
@@ -351,7 +355,7 @@ const cur = (nav, id) => nav === id ? ' class="on" aria-current="page"' : "";
 export function chromeTop(nav) {
   const items = navItems();
   const drawerItems = [{ id: "home", t: "الرئيسية", i: "house", h: "/" }, { id: "library", t: "كل الأقسام", i: "layout-grid", h: href.library() }, { id: "search", t: "بحث", i: "search", h: href.search() }, ...items];
-  return `<div id="live-banner" aria-live="polite"></div><header class="top"><div class="wrap top-in">
+  return `<div id="live-banner" aria-live="polite"${state.homeCustom ? " data-home" : ""}></div><header class="top"><div class="wrap top-in">
     <a class="brand" href="/" aria-label="${esc(NAME_FULL)} — الرئيسية"><span class="seal" aria-hidden="true"></span><span><strong>${NAME} <span class="hd">حفظه الله</span></strong><small>الموقع الرسمي · دروس الشيخ وصي الله عباس</small></span></a>
     <nav class="nav" id="nav" aria-label="الأقسام"><a href="/" data-nav="home"${cur(nav, "home")}>الرئيسية</a>${items.map(x => `<a href="${x.h}" data-nav="${x.id}"${cur(nav, x.id)}>${x.t}</a>`).join("")}</nav>
     <a class="icon-btn" id="hsearch" href="${href.search()}" aria-label="بحث">${ic("search", 20)}</a>

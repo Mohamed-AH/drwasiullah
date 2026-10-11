@@ -101,3 +101,9 @@ Three new pages in the portal menu (Admin role only; change the matrix in `admin
 
 Safety: everything is plain text (no HTML anywhere), links must be https (the live button only mixlr.com), the live endpoint returns only the fields the site shows, and if it is down or empty the site simply shows nothing extra.
 Setup after merging: `npx wrangler d1 migrations apply drwasiullah --remote` (adds `banners`, `announcements`, `schedule_notices`), redeploy the admin Worker, and the public site deploys on merge as usual. Tests: `tests/admin_live.mjs` (inside `tests/admin_run_all.sh`) and `tests/live_run.sh` (the public side: endpoint, banners, announcements, badges, empty/failed endpoint, accessibility).
+
+## Home page layout (phase 6, admin only)
+Portal menu «الصفحة الرئيسية». The hero (name + search) is fixed at the top; below it there is a fixed palette of six blocks: announcements, weekly schedule, about the Sheikh, sections, book shelf, latest materials. Per block: show/hide, move up/down (the arrows save the whole form, then move one step), an optional plain-text heading, and for the shelf (3–16) and latest (4–24) how many items. The shelf can show **hand-picked series** (shown in the list's order) instead of the automatic biggest ones. «إعادة الترتيب الافتراضي» stores the default layout again.
+- Changes need **«النشر»** (Publish exports `site/data/home.json`; without the file the site shows exactly the default layout, as before). No D1 migration is needed (it uses the existing `docs` table).
+- A block with nothing to show (no bio, no schedule, no announcements) stays hidden even if switched on.
+- Two people saving at once: the second save is refused with a «conflict» message (version token), like the schedule.

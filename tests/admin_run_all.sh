@@ -22,10 +22,11 @@ VIDEO_ID=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("site/cata
 BASE=http://localhost:$PORT AUDIO_DIR=$A VIDEO_ID=$VIDEO_ID node tests/admin_edit.mjs | grep -E "FAIL|passed|!!"
 BASE=http://localhost:$PORT node tests/admin_order.mjs | grep -E "FAIL|passed|!!"
 BASE=http://localhost:$PORT node tests/admin_live.mjs | grep -E "FAIL|passed|!!"
+BASE=http://localhost:$PORT node tests/admin_home.mjs | grep -E "FAIL|passed|!!"
 
 # the chain steps below overwrite these tracked data files temporarily: keep copies and put them back on exit
-KEEP=$(mktemp -d); for f in overrides order schedule; do [ -f "site/data/$f.json" ] && cp "site/data/$f.json" "$KEEP/$f.json"; done
-restore() { for f in overrides order schedule; do if [ -f "$KEEP/$f.json" ]; then cp "$KEEP/$f.json" "site/data/$f.json"; else rm -f "site/data/$f.json"; fi; done; kill -- -$PID 2>/dev/null || true; }
+KEEP=$(mktemp -d); for f in overrides order schedule home; do [ -f "site/data/$f.json" ] && cp "site/data/$f.json" "$KEEP/$f.json"; done
+restore() { for f in overrides order schedule home; do if [ -f "$KEEP/$f.json" ]; then cp "$KEEP/$f.json" "site/data/$f.json"; else rm -f "site/data/$f.json"; fi; done; kill -- -$PID 2>/dev/null || true; }
 trap restore EXIT
 # --- chain: patches saved in the portal -> overrides.json (Publish) -> build; and the daily mirror must leave the patches alone ---
 DB=$(ls "$P"/v3/d1/miniflare-D1DatabaseObject/*.sqlite | head -1)
@@ -74,3 +75,16 @@ const o = JSON.parse(require("fs").readFileSync(process.argv[1] + "/pub/data/sch
 const ok = o.slots.every(s => /^[a-z0-9-]{1,20}$/.test(s.id)) && new Set(o.slots.map(s => s.id)).size === o.slots.length && o.note === "ملاحظة جديدة" && o.live && o.live.url === "https://mixlr.com/wahatualsunnah";
 console.log(ok ? "ok   exported schedule: every slot has a unique id, note and live button saved" : "FAIL schedule doc: " + JSON.stringify(o).slice(0, 300)); process.exit(ok ? 0 : 1)' "$P"
 cp "$KEEP/schedule.json" site/data/schedule.json 2>/dev/null || true
+
+# --- chain: the home layout saved in the portal -> home.json (Publish) -> the pre-rendered home page and the client's data file ---
+node --no-warnings scripts/db.mjs export --db "$DB" --out "$P/pub" --only data/home.json
+cp "$P/pub/data/home.json" site/data/home.json
+node scripts/build.mjs | tail -1
+node -e '
+const fs = require("fs"), o = JSON.parse(fs.readFileSync(process.argv[1] + "/pub/data/home.json", "utf8")), h = fs.readFileSync("dist/index.html", "utf8");
+const at = s => h.indexOf(s), cards = (h.match(/<article class="card/g) || []).length;
+const ok = o.blocks.map(b => b.id).join() === "latest,schedule,about,sections,shelf,news" && o.blocks[5].on === false && !h.includes("id=\"live-news\"")
+  && at("أحدث المواد") > 0 && at("أحدث المواد") < at("جدول الدروس الأسبوعي") && at("رفّ مختار") > at("الأقسام") && !h.includes("خزانة الكتب</h2>")
+  && h.includes("id=\"live-banner\" aria-live=\"polite\" data-home") && fs.existsSync("dist/data/home.json") && (h.match(/<a class="spine/g) || []).length === 5;
+console.log(ok ? "ok   home layout -> home.json -> built home page (order, hidden block, custom heading, sizes) and shipped for the client" : "FAIL home chain: " + JSON.stringify(o).slice(0, 400) + " cards=" + cards); process.exit(ok ? 0 : 1)' "$P"
+cp "$KEEP/home.json" site/data/home.json 2>/dev/null || rm -f site/data/home.json

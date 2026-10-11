@@ -28,7 +28,7 @@ export const SPINE_H = [318, 284, 300, 262, 292, 248, 276];
 export const PAGE = 60;
 
 /* ───────── Data (filled by init) ─────────  lookup tables have no prototype: "__proto__" is not an id */
-export const state = { DB: null, bio: null, schedule: null };
+export const state = { DB: null, bio: null, schedule: null, home: null, homeCustom: false };
 export const byId = Object.create(null), seriesById = Object.create(null), secById = Object.create(null);
 
 /* Make our own R2 copy (tools/mirror_media.py -> data/media.json) the primary link and keep the original as src_alt / url_alt.
@@ -107,7 +107,7 @@ export function applyOrder(cat, lib, order) {
 /* Library files that add to library.json (lessons imported from other sources, e.g. data/makkah.json). */
 export const mergeLibraries = (...libs) => libs.filter(Boolean).reduce((a, b) => ({ ...a, ...b, series: [...(a.series || []), ...(b.series || [])], lessons: [...(a.lessons || []), ...(b.lessons || [])], books: [...(a.books || []), ...(b.books || [])] }), {});
 
-export function init(cat, lib = {}, bio = null, media = null, schedule = null) {
+export function init(cat, lib = {}, bio = null, media = null, schedule = null, home = null) {
   lib = applyMedia(lib, media);
   SECTIONS.forEach(s => secById[s.id] = s);
   const DB = {
@@ -125,8 +125,30 @@ export function init(cat, lib = {}, bio = null, media = null, schedule = null) {
   DB.series = DB.series.filter(s => s.count > 0);
   state.DB = DB;
   state.schedule = cleanSchedule(schedule);   // optional: the weekly timetable (data/schedule.json)
+  state.home = cleanHome(home); state.homeCustom = !!home;               // optional: order/visibility of the home page blocks (data/home.json); without it the default layout
   state.bio = bio && typeof bio === "object" && (bio.summary || (Array.isArray(bio.sections) && bio.sections.length)) ? bio : null;   // optional: supplied by the Sheikh's team
   return DB;
+}
+
+/* ───────── Home layout ─────────  data/home.json -> { blocks: [{ id, on, title?, count?, series? }] }. The hero stays first and fixed.
+   A fixed palette of blocks (not a page builder): unknown ids are dropped, missing ones are appended with their defaults, everything else is clamped. */
+export const HOME_BLOCKS = [
+  { id: "news", name: "آخر الإعلانات" }, { id: "schedule", name: "جدول الدروس الأسبوعي" }, { id: "about", name: "عن الشيخ" },
+  { id: "sections", name: "الأقسام" }, { id: "shelf", name: "خزانة الكتب", count: 10, min: 3, max: 16 }, { id: "latest", name: "أحدث المواد", count: 8, min: 4, max: 24 },
+];
+export function cleanHome(raw) {
+  const given = raw && typeof raw === "object" && Array.isArray(raw.blocks) ? raw.blocks : [], seen = new Set(), out = [];
+  const clip = (v, n) => String(v ?? "").replace(/[\u0000-\u001f\u007f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "").replace(/\s+/g, " ").trim().slice(0, n);
+  const one = (def, x) => {
+    const b = { id: def.id, on: x ? x.on !== false : true };
+    const title = clip(x && x.title, 60); if (title) b.title = title;
+    if (def.count) { const c = Number.parseInt(x && x.count, 10); b.count = Number.isInteger(c) ? Math.min(def.max, Math.max(def.min, c)) : def.count; }
+    if (def.id === "shelf") { const ids = Array.isArray(x && x.series) ? x.series.filter(i => typeof i === "string" && seriesById[i]) : []; b.series = [...new Set(ids)].slice(0, def.max); }
+    return b;
+  };
+  for (const x of given) { const def = x && HOME_BLOCKS.find(d => d.id === x.id); if (!def || seen.has(def.id)) continue; seen.add(def.id); out.push(one(def, x)); }
+  for (const def of HOME_BLOCKS) if (!seen.has(def.id)) out.push(one(def, null));
+  return { blocks: out };
 }
 
 /* ───────── Weekly schedule ─────────  data/schedule.json -> { note, days: [{ i, day, slots: [{ time, title, series?, lang, note? }] }] } or null.
