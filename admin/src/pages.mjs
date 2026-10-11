@@ -1,6 +1,6 @@
 import { esc, layout, hijri, statusTag, num, stamp } from "./html.mjs";
 import { ROLES, ROLE_AR, can } from "./roles.mjs";
-import { NEW_SERIES_SECTIONS, EDITABLE, verOf, hijriOf } from "./content.mjs";
+import { NEW_SERIES_SECTIONS, EDITABLE, verOf, hijriOf, getPatch, withPatch, catVer } from "./content.mjs";
 import { pendingChanges } from "./publish.mjs";
 
 const PER = 100;
@@ -25,8 +25,16 @@ export async function dashboard(db, user) {
 <p class="muted">هذه النسخة للاطّلاع وإدارة المستخدمين. رفع الدروس وتعديلها يأتي في المرحلة التالية.</p>` });
 }
 
+/* series as the site will show them: the stored row with the editors' patch applied (YouTube series can be renamed/hidden through patches) */
+const SERIES_EFF = `s.id, s.origin, s.pos,
+  CASE WHEN json_type(o.patch, '$.title') IS NOT NULL THEN json_extract(o.patch, '$.title') ELSE s.title END AS title,
+  CASE WHEN json_type(o.patch, '$.sec')   IS NOT NULL THEN json_extract(o.patch, '$.sec')   ELSE s.sec   END AS sec,
+  CASE WHEN json_extract(o.patch, '$.hidden') = 1 THEN 'hidden' ELSE s.status END AS status`;
+const SERIES_FROM = "series s LEFT JOIN overrides o ON o.kind = 'series' AND o.id = s.id";
+const editableOrigin = o => EDITABLE.includes(o) || o === "catalogue";
+
 export async function seriesList(db, user) {
-  const rows = await all(db, "SELECT s.id, s.title, s.sec, s.status, s.origin, (SELECT COUNT(*) FROM lessons l WHERE l.series_id = s.id) c FROM series s ORDER BY s.sec, s.origin, s.pos");
+  const rows = await all(db, `SELECT ${SERIES_EFF}, (SELECT COUNT(*) FROM lessons_eff l WHERE l.series_id = s.id) c FROM ${SERIES_FROM} ORDER BY s.sec, s.origin, s.pos`);
   const body = `${can(user.role, "content.edit") ? `<p><a href="/series/new">+ سلسلة جديدة</a> · <a href="/upload">رفع دروس</a></p>` : ""}<div class="scroll" tabindex="0" role="region" aria-label="جدول"><table><thead><tr><th>السلسلة</th><th>القسم</th><th>الدروس</th><th>الحالة</th></tr></thead><tbody>${
     rows.map(r => `<tr><td><a href="/series/${encodeURIComponent(r.id)}">${esc(r.title)}</a></td><td>${esc(SEC_AR[r.sec] || r.sec || "—")}</td><td>${num(r.c)}</td><td>${statusTag(r.status)}</td></tr>`).join("")}</tbody></table></div>`;
   return layout({ title: "السلاسل", user, path: "/series", body });
@@ -37,14 +45,13 @@ const statusForm = (r, series, page) => `<form class="inline" method="post" acti
 
 export async function seriesDetail(db, user, id, pageNo, flash) {
   const canEdit = can(user.role, "content.hide");
-  const s = await one(db, "SELECT id, title, sec, status, origin FROM series WHERE id = ?", id);
+  const s = await one(db, `SELECT ${SERIES_EFF} FROM ${SERIES_FROM} WHERE s.id = ?`, id);
   if (!s) return null;
-  const total = (await one(db, "SELECT COUNT(*) c FROM lessons WHERE series_id = ?", id)).c;
+  const total = (await one(db, "SELECT COUNT(*) c FROM lessons_eff WHERE series_id = ?", id)).c;
   const pages = Math.max(1, Math.ceil(total / PER)), p = Math.min(Math.max(1, pageNo), pages);
-  const rows = await all(db, `SELECT id, n, section, status, json_extract(data,'$.title') title, json_extract(data,'$.hd') hd, json_extract(data,'$.date') date
-    FROM lessons WHERE series_id = ? ORDER BY (n IS NULL), n, pos LIMIT ? OFFSET ?`, id, PER, (p - 1) * PER);
+  const rows = await all(db, `SELECT id, n, section, status, title, hd, date FROM lessons_eff WHERE series_id = ? ORDER BY (n IS NULL), n, pos LIMIT ? OFFSET ?`, id, PER, (p - 1) * PER);
   const pager = pages > 1 ? `<div class="pager">${p > 1 ? `<a href="?page=${p - 1}">السابق</a>` : ""}<span>صفحة ${num(p)} من ${num(pages)}</span>${p < pages ? `<a href="?page=${p + 1}">التالي</a>` : ""}</div>` : "";
-  const body = `<p class="muted">${esc(SEC_AR[s.sec] || s.sec || "")} · ${num(total)} درس · ${statusTag(s.status)} · <a href="/series">كل السلاسل</a>${can(user.role, "content.edit") ? ` · <a href="/upload?series=${encodeURIComponent(s.id)}">رفع دروس إلى هذه السلسلة</a>${EDITABLE.includes(s.origin) ? ` · <a href="/series/${encodeURIComponent(s.id)}/edit">تعديل السلسلة</a>` : ""}` : ""}</p><div class="scroll" tabindex="0" role="region" aria-label="جدول"><table><thead><tr><th>الرقم</th><th>العنوان</th><th>الباب</th><th>التاريخ الهجري</th><th>الحالة</th></tr></thead><tbody>${
+  const body = `<p class="muted">${esc(SEC_AR[s.sec] || s.sec || "")} · ${num(total)} درس · ${statusTag(s.status)} · <a href="/series">كل السلاسل</a>${can(user.role, "content.edit") ? ` · <a href="/upload?series=${encodeURIComponent(s.id)}">رفع دروس إلى هذه السلسلة</a>${editableOrigin(s.origin) ? ` · <a href="/series/${encodeURIComponent(s.id)}/edit">تعديل السلسلة</a>` : ""}` : ""}</p><div class="scroll" tabindex="0" role="region" aria-label="جدول"><table><thead><tr><th>الرقم</th><th>العنوان</th><th>الباب</th><th>التاريخ الهجري</th><th>الحالة</th></tr></thead><tbody>${
     rows.map(r => `<tr><td>${r.n == null ? "—" : num(r.n)}</td><td>${canEdit ? `<a href="/lessons/${encodeURIComponent(r.id)}">${esc(r.title)}</a>` : esc(r.title)}</td><td>${esc(r.section || "")}</td><td>${esc(hijri(r.hd, r.date))}</td><td>${statusTag(r.status)}${canEdit ? statusForm(r, id, p) : ""}</td></tr>`).join("")}</tbody></table></div>${pager}`;
   return layout({ title: s.title, user, path: "/series", body, flash });
 }
@@ -164,6 +171,7 @@ const SEC_OPTS = cur => Object.entries(SEC_AR).map(([k, v]) => `<option value="$
 export async function lessonEditPage(db, user, id, flash) {
   const l = await one(db, "SELECT l.id, l.origin, l.series_id, l.status, l.data, s.title series FROM lessons l LEFT JOIN series s ON s.id = l.series_id WHERE l.id = ?", id);
   if (!l) return null;
+  if (l.origin === "catalogue") return catalogueLessonPage(db, user, l, flash);
   const d = JSON.parse(l.data), h = hijriOf(d) || {}, editable = EDITABLE.includes(l.origin);
   const same = d.n == null ? [] : await all(db, "SELECT id FROM lessons WHERE series_id = ? AND n = ? AND id != ? LIMIT 5", l.series_id, d.n, id);
   const info = `<p class="muted">${esc(l.series || "")} · <span class="ltr">${esc(l.id)}</span> · ${esc(d.kind === "video" ? "فيديو" : "صوتي")}${d.src ? ` · <a class="ltr" href="${esc(d.src)}" target="_blank" rel="noopener noreferrer">الملف</a>` : ""} · <a href="/series/${encodeURIComponent(l.series_id)}">رجوع إلى السلسلة</a></p>`;
@@ -183,7 +191,8 @@ export async function seriesEditPage(db, user, id, flash) {
   const s = await one(db, "SELECT id, origin, status, data FROM series WHERE id = ?", id);
   if (!s) return null;
   const d = JSON.parse(s.data);
-  if (!EDITABLE.includes(s.origin)) return layout({ title: d.title, user, path: "/series", body: `<p class="flash err">هذه السلسلة تأتي من مزامنة يوتيوب ولا تُعدَّل هنا (قريبًا).</p>`, flash });
+  if (s.origin === "catalogue") return catalogueSeriesPage(db, user, s, flash);
+  if (!EDITABLE.includes(s.origin)) return layout({ title: d.title, user, path: "/series", body: `<p class="flash err">لا تُعدَّل هذه السلسلة هنا.</p>`, flash });
   const body = `<p class="muted"><span class="ltr">${esc(s.id)}</span> · <a href="/series/${encodeURIComponent(s.id)}">رجوع إلى السلسلة</a></p>
 <form method="post" action="/series/save"><input type="hidden" name="id" value="${esc(s.id)}"><input type="hidden" name="ver" value="${await verOf(s.data)}">
 <p><label>العنوان<br><input name="title" class="wide" required maxlength="150" value="${esc(d.title)}"></label></p>
@@ -218,4 +227,36 @@ export async function bookEditPage(db, user, id, flash) {            // id === n
 <p id="book-msg" class="flash ok" role="status" hidden></p>
 <p><button>حفظ</button> <a href="/books">إلغاء</a></p></form></div>`;
   return layout({ title: id ? "تعديل كتاب" : "كتاب جديد", user, path: "/books", body, flash, scripts: true });
+}
+
+/* ---------- YouTube items: the same forms, saved as patches on top of the daily sync ---------- */
+const PATCH_NOTE = `<p class="muted">هذا من يوتيوب: تعديلاتك تُحفظ كتصحيحات فوق المزامنة اليومية ولا تُمحى بها، وما لا تعدّله يبقى يتبع المزامنة. زر التراجع (يظهر بعد أول تعديل) يعيده كما تنتجه المزامنة.</p>`;
+const resetForm = (action, id) => `<form method="post" action="${action}" class="inline"><input type="hidden" name="id" value="${esc(id)}"><button class="secondary">التراجع عن تعديلاتي</button></form>`;
+
+async function catalogueLessonPage(db, user, l, flash) {
+  const base = JSON.parse(l.data), patch = await getPatch(db, "lesson", l.id), eff = withPatch(base, patch), h = hijriOf(eff) || {};
+  const all_ = await all(db, `SELECT ${SERIES_EFF} FROM ${SERIES_FROM} ORDER BY s.sec, s.origin, s.pos`);
+  const cur = eff.series, patched = Object.keys(patch).length > 0;
+  const info = `<p class="muted"><span class="ltr">${esc(l.id)}</span> · فيديو · <a class="ltr" href="https://www.youtube.com/watch?v=${encodeURIComponent(l.id)}" target="_blank" rel="noopener noreferrer">يوتيوب</a> · <a href="/series/${encodeURIComponent(cur)}">رجوع إلى السلسلة</a>${patched ? ` · <span class="tag tag-draft">معدَّل</span>` : ""}</p>`;
+  const body = `${info}${PATCH_NOTE}
+<form method="post" action="/lessons/save"><input type="hidden" name="id" value="${esc(l.id)}"><input type="hidden" name="ver" value="${await catVer(l, patch)}">
+<p><label>العنوان<br><input name="title" class="wide" required maxlength="200" value="${esc(eff.title)}"></label></p>
+<p><label>السلسلة <select name="series">${all_.map(x => `<option value="${esc(x.id)}"${x.id === cur ? " selected" : ""}>${esc(x.title)}</option>`).join("")}</select></label></p>
+<p><label>الرقم <input name="n" type="number" min="1" max="9999" class="num" value="${esc(eff.n ?? "")}"></label> <label>الباب <input name="section" maxlength="120" value="${esc(eff.section ?? "")}"></label></p>
+<fieldset><legend>التاريخ الهجري (يوم / شهر / سنة) — الأصل: تاريخ رفع الفيديو</legend><span class="hdate"><input name="hd" type="number" min="1" max="30" class="num sm" aria-label="اليوم" value="${esc(h.d ?? "")}"> / <input name="hm" type="number" min="1" max="12" class="num sm" aria-label="الشهر" value="${esc(h.m ?? "")}"> / <input name="hy" type="number" min="1300" max="1600" class="num md" aria-label="السنة" value="${esc(h.y ?? "")}"></span></fieldset>
+<p><label>الحالة <select name="status">${STATUS_OPTS(patch.hidden ? "hidden" : "published", ["published", "hidden"])}</select></label></p>
+<p><button>حفظ</button></p></form>${patched ? resetForm("/lessons/reset", l.id) : ""}`;
+  return layout({ title: "تعديل درس (يوتيوب)", user, path: "/series", body, flash });
+}
+
+async function catalogueSeriesPage(db, user, s, flash) {
+  const base = JSON.parse(s.data), patch = await getPatch(db, "series", s.id), eff = withPatch(base, patch), patched = Object.keys(patch).length > 0;
+  const body = `<p class="muted"><span class="ltr">${esc(s.id)}</span> · <a href="/series/${encodeURIComponent(s.id)}">رجوع إلى السلسلة</a>${patched ? ` · <span class="tag tag-draft">معدَّل</span>` : ""}</p>${PATCH_NOTE}
+<form method="post" action="/series/save"><input type="hidden" name="id" value="${esc(s.id)}"><input type="hidden" name="ver" value="${await catVer(s, patch)}">
+<p><label>العنوان<br><input name="title" class="wide" required maxlength="150" value="${esc(eff.title)}"></label></p>
+<p><label>القسم <select name="sec">${SEC_OPTS(eff.sec)}</select></label></p>
+<p><label>وصف قصير<br><textarea name="description" maxlength="300" rows="2">${esc(eff.description ?? "")}</textarea></label></p>
+<p><label>الحالة <select name="status">${STATUS_OPTS(patch.hidden ? "hidden" : "published", ["published", "hidden"])}</select></label> <span class="muted">إخفاء السلسلة يُخفي كل دروسها.</span></p>
+<p><button>حفظ</button></p></form>${patched ? resetForm("/series/reset", s.id) : ""}`;
+  return layout({ title: "تعديل سلسلة (يوتيوب)", user, path: "/series", body, flash });
 }

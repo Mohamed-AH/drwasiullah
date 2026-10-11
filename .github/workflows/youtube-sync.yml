@@ -74,3 +74,17 @@ jobs:
             done
             echo "::error::Could not push to main (branch protection? set the repository variable SYNC_MODE=pr)"; exit 1
           fi
+
+      # Keep the admin portal's copy of the YouTube catalogue (Cloudflare D1) in step with what was just published, so new videos can be edited there.
+      # Editors' patches live in a separate table and are never touched. Does nothing until the two Cloudflare secrets exist; a failure here never fails the sync.
+      - name: Refresh the portal's copy of the catalogue (D1)
+        if: success() && vars.SYNC_MODE != 'pr'
+        continue-on-error: true
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::notice::Cloudflare secrets not set: portal copy not refreshed"; exit 0; fi
+          node --no-warnings scripts/db.mjs mirror-catalogue --out "$RUNNER_TEMP/mirror.sql"
+          npx --yes wrangler@4 d1 execute drwasiullah --remote --yes --file "$RUNNER_TEMP/mirror.sql"

@@ -8,7 +8,7 @@ import path from "node:path";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { init, applyMedia, mergeLibraries, state, seriesById, SECTIONS, secOfSeries, seriesOrder, fmtNum, fmtDate, ldate, dur, hours, dg, OFFICIAL_NAME } from "../site/js/core.js";
+import { init, applyMedia, applyOverrides, mergeLibraries, state, seriesById, SECTIONS, secOfSeries, seriesOrder, fmtNum, fmtDate, ldate, dur, hours, dg, OFFICIAL_NAME } from "../site/js/core.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.join(ROOT, "site");
@@ -18,7 +18,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 
 /* ───────── data (same merge as scripts/build.mjs) ───────── */
 const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true), readJSON("data/haram.json", true));
-init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true), readJSON("data/schedule.json", true));
+init(applyOverrides(readJSON("catalogue.json"), readJSON("data/overrides.json", true)), LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true), readJSON("data/schedule.json", true));
 const DB = state.DB;
 
 /* a sortable key (YYYYMMDD in the Hijri calendar) for any lesson: from the source's Hijri date, else converted from the Gregorian one */
