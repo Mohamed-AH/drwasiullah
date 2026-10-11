@@ -249,7 +249,164 @@ function initBook() {
   window.addEventListener("beforeunload", e => { if (busy) { e.preventDefault(); e.returnValue = ""; } });
 }
 
+
+/* ---- arrange the lessons of a series: drag (pointer events: mouse, touch, pen), keyboard, step/top/bottom buttons, bulk move, ready-made sorts, search, undo ---- */
+function initOrder() {
+  const root = $("order-root"), list = $("ord-list"), series = root.dataset.series;
+  const live = $("ord-live"), msg = $("ord-msg"), saveBtn = $("ord-save"), undoBtn = $("ord-undo"), q = $("ord-q"), selInfo = $("ord-sel");
+  let ver = root.dataset.ver, dirty = false, filtering = false, grabbed = null, grabbedFrom = null;
+  const undo = [];
+  const rows = () => [...list.children];
+  const vis = () => rows().filter(r => !r.hidden);
+  const ids = () => rows().map(r => r.dataset.id);
+  let saved = ids().join("|");
+  const say = (t, bad) => { msg.textContent = t; msg.className = "flash " + (bad ? "err" : "ok"); msg.hidden = !t; };
+  const announce = t => { live.textContent = ""; setTimeout(() => { live.textContent = t; }, 30); };
+  const title = r => r.querySelector(".t").textContent;
+  const renumber = () => rows().forEach((r, i) => { r.querySelector(".pos").textContent = AR(i + 1); });
+  const mark = () => { dirty = ids().join("|") !== saved; saveBtn.disabled = !dirty; $("ord-dirty").textContent = dirty ? "تغييرات غير محفوظة" : ""; undoBtn.disabled = !undo.length; };
+  const push = () => { undo.push(ids()); if (undo.length > 50) undo.shift(); };
+  const apply = order => { const by = new Map(rows().map(r => [r.dataset.id, r])); for (const id of order) list.append(by.get(id)); renumber(); mark(); };
+  const where = r => AR(rows().indexOf(r) + 1) + " من " + AR(rows().length);
+  const after = (r, what) => { renumber(); mark(); announce(what + ": " + title(r) + " — الموضع " + where(r)); };
+
+  /* buttons on each row */
+  list.addEventListener("click", e => {
+    const b = e.target.closest(".mv"); if (!b) return;
+    const r = b.closest("li"), v = vis(), i = v.indexOf(r);
+    push();
+    if (b.dataset.act === "top") list.insertBefore(r, list.firstElementChild);
+    else if (b.dataset.act === "bottom") list.append(r);
+    else if (b.dataset.act === "up" && i > 0) list.insertBefore(r, v[i - 1]);
+    else if (b.dataset.act === "down" && i < v.length - 1) list.insertBefore(r, v[i + 1].nextElementSibling);
+    else { undo.pop(); return; }
+    after(r, "نُقل"); b.focus(); r.scrollIntoView({ block: "nearest" });
+  });
+
+  /* pointer drag from the grip. The dragged row is lifted out of the flow (position: fixed, following the pointer) and a placeholder moves through the list;
+     the row itself is only put back at the drop, because moving a node that holds pointer capture would release the capture. */
+  list.addEventListener("pointerdown", e => {
+    const g = e.target.closest(".grip"); if (!g || e.button) return;
+    if (filtering) { say("امسح البحث لتتمكن من السحب (أو استخدم أزرار الأسهم).", true); return; }
+    e.preventDefault();
+    const row = g.closest("li"), before = ids(), box = row.getBoundingClientRect(), offY = e.clientY - box.top;
+    const ph = document.createElement("li"); ph.className = "ph"; ph.style.height = box.height + "px"; ph.setAttribute("aria-hidden", "true");
+    list.insertBefore(ph, row.nextSibling);
+    row.classList.add("dragging");
+    Object.assign(row.style, { position: "fixed", left: box.left + "px", width: box.width + "px", top: box.top + "px", margin: "0" });
+    g.setPointerCapture(e.pointerId);
+    let y = e.clientY, lastY = -1, lastS = -1, raf = 0;
+    const tick = () => {
+      const m = 70, h = innerHeight;
+      if (y < m) scrollBy(0, -Math.ceil((m - y) / 4)); else if (y > h - m) scrollBy(0, Math.ceil((y - (h - m)) / 4));
+      row.style.top = (y - offY) + "px";
+      if (y !== lastY || scrollY !== lastS) {
+        lastY = y; lastS = scrollY;
+        let ref = null;
+        for (const r of list.children) { if (r === row || r === ph || r.hidden) continue; const bb = r.getBoundingClientRect(); if (y < bb.top + bb.height / 2) { ref = r; break; } }
+        if (ref !== ph.nextElementSibling && !(ref === row && ph.nextElementSibling === row)) list.insertBefore(ph, ref);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    const onMove = ev => { y = ev.clientY; };
+    const end = () => {
+      cancelAnimationFrame(raf); g.removeEventListener("pointermove", onMove); g.removeEventListener("pointerup", end); g.removeEventListener("pointercancel", end);
+      list.insertBefore(row, ph); ph.remove();
+      row.classList.remove("dragging"); row.removeAttribute("style");
+      if (ids().join("|") !== before.join("|")) { undo.push(before); renumber(); mark(); announce("أُفلت " + title(row) + " في الموضع " + where(row)); }
+    };
+    g.addEventListener("pointermove", onMove); g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
+  });
+
+  /* keyboard: Space/Enter picks up and drops, arrows move, Home/End to the ends, PageUp/PageDown by ten, Esc cancels */
+  const drop = () => { const r = grabbed; r.classList.remove("grabbed"); r.querySelector(".grip").setAttribute("aria-pressed", "false"); if (ids().join("|") !== grabbedFrom.join("|")) { undo.push(grabbedFrom); mark(); announce("أُفلت " + title(r) + " في الموضع " + where(r)); } grabbed = null; };
+  list.addEventListener("keydown", e => {
+    const g = e.target.closest(".grip"); if (!g) return;
+    const r = g.closest("li");
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      if (grabbed === r) { drop(); return; }
+      if (grabbed) drop();
+      if (filtering) { say("امسح البحث لتتمكن من التحريك بلوحة المفاتيح (أو استخدم أزرار الأسهم).", true); return; }
+      grabbed = r; grabbedFrom = ids(); r.classList.add("grabbed"); g.setAttribute("aria-pressed", "true"); announce("التُقط " + title(r) + ". الموضع " + where(r) + ". استخدم الأسهم للتحريك ثم مسافة للإفلات، أو Esc للإلغاء.");
+      return;
+    }
+    if (grabbed !== r) return;
+    if (e.key === "Escape") { e.preventDefault(); apply(grabbedFrom); r.classList.remove("grabbed"); g.setAttribute("aria-pressed", "false"); grabbed = null; announce("أُلغي النقل"); g.focus(); return; }
+    const all = rows(), i = all.indexOf(r);
+    const step = { ArrowUp: -1, ArrowDown: 1, PageUp: -10, PageDown: 10 }[e.key], to = e.key === "Home" ? 0 : e.key === "End" ? all.length - 1 : step == null ? null : Math.max(0, Math.min(all.length - 1, i + step));
+    if (to == null) return;
+    e.preventDefault();
+    if (to === i) return;
+    list.insertBefore(r, to > i ? all[to].nextElementSibling : all[to]);
+    renumber(); announce("الموضع " + where(r)); g.focus(); r.scrollIntoView({ block: "nearest" });
+  });
+
+  /* selection and bulk moves */
+  const selected = () => rows().filter(r => r.querySelector(".pick input").checked);
+  const syncSel = () => {
+    const n = selected().length; selInfo.textContent = n ? "محدد: " + AR(n) : "لا شيء محدد";
+    root.querySelectorAll("[data-bulk]").forEach(b => { b.disabled = !n; }); $("ord-to").disabled = !n;
+    rows().forEach(r => r.classList.toggle("sel", r.querySelector(".pick input").checked));
+  };
+  list.addEventListener("change", e => { if (e.target.closest(".pick")) syncSel(); });
+  root.addEventListener("click", e => {
+    const b = e.target.closest("[data-bulk]"); if (!b) return;
+    const sel = selected(); if (!sel.length) return;
+    const rest = rows().filter(r => !sel.includes(r));
+    let ref;
+    if (b.dataset.bulk === "top") ref = rest[0] || null;
+    else if (b.dataset.bulk === "bottom") ref = null;
+    else { const n = parseInt($("ord-to").value, 10); if (!(n >= 1)) { say("اكتب رقم الموضع.", true); return; } ref = rest[Math.min(n - 1, rest.length)] || null; }
+    push(); for (const r of sel) list.insertBefore(r, ref); renumber(); mark(); announce("نُقل " + AR(sel.length) + " درس"); sel[0].scrollIntoView({ block: "nearest" });
+  });
+
+  /* ready-made sorts */
+  $("ord-sort").addEventListener("change", e => {
+    const k = e.target.value; e.target.value = ""; if (!k) return;
+    const rs = rows(), idx = new Map(rs.map((r, i) => [r, i])), num = r => r.dataset.n === "" ? 1e9 : +r.dataset.n, dt = r => r.dataset.date;
+    const by = {
+      n: (a, b) => num(a) - num(b) || idx.get(a) - idx.get(b),
+      "date-asc": (a, b) => (!dt(a) - !dt(b)) || dt(a).localeCompare(dt(b)) || idx.get(a) - idx.get(b),
+      "date-desc": (a, b) => (!dt(a) - !dt(b)) || dt(b).localeCompare(dt(a)) || idx.get(a) - idx.get(b),
+      title: (a, b) => a.dataset.title.localeCompare(b.dataset.title, "ar", { numeric: true }) || idx.get(a) - idx.get(b),
+      reverse: (a, b) => idx.get(b) - idx.get(a),
+    }[k];
+    push(); apply(rs.slice().sort(by).map(r => r.dataset.id)); announce("تم الترتيب");
+  });
+
+  /* search (hides rows; dragging is off while a search is active, the buttons still work) */
+  q.addEventListener("input", () => {
+    const t = q.value.trim().toLowerCase(); filtering = !!t;
+    rows().forEach(r => { r.hidden = !!t && !(r.dataset.title + " " + r.dataset.section).toLowerCase().includes(t); r.querySelector(".grip").setAttribute("aria-disabled", filtering ? "true" : "false"); });
+  });
+
+  /* undo, save, reset */
+  const doUndo = () => { if (undo.length) { apply(undo.pop()); announce("تم التراجع"); } };
+  undoBtn.addEventListener("click", doUndo);
+  document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); doUndo(); } });
+  saveBtn.addEventListener("click", async () => {
+    if (grabbed) drop();
+    saveBtn.disabled = true; say("جارٍ الحفظ…");
+    try {
+      const r = await post("/api/series-order", { series, ids: ids(), ver });
+      ver = r.ver; saved = ids().join("|"); undo.length = 0; mark();
+      rows().forEach(x => { x.removeAttribute("data-new"); const t = x.querySelector(".newtag"); if (t) t.remove(); });
+      say("تم حفظ الترتيب (" + AR(r.moved) + " درسًا تغيّر موضعه). اضغط «النشر» ليظهر في الموقع.", false);
+    } catch (er) { mark(); say(er.message, true); }
+  });
+  const reset = $("ord-reset");
+  if (reset) reset.addEventListener("click", async () => {
+    if (!confirm("العودة إلى الترتيب التلقائي؟ يُحذف الترتيب اليدوي المحفوظ لهذه السلسلة.")) return;
+    try { await post("/api/series-order/reset", { series, ver }); saved = ids().join("|"); dirty = false; location.reload(); } catch (er) { say(er.message, true); }
+  });
+  window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+  renumber(); mark(); syncSel();
+}
+
 if ($("upload-root")) initUpload();
+if ($("order-root")) initOrder();
 if ($("book-root")) initBook();
 })();
 `;

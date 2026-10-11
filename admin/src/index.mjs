@@ -6,6 +6,7 @@ import { audit } from "./audit.mjs";
 import { handleUpload, addLessons, json } from "./upload.mjs";
 import { newSeries, lessonStatus, editLesson, editSeries, saveBook, resetOverride } from "./content.mjs";
 import { requestPublish } from "./publish.mjs";
+import { saveOrder, resetOrder } from "./order.mjs";
 import * as P from "./pages.mjs";
 
 const HEADERS = {
@@ -80,6 +81,8 @@ export default {
         if (path.startsWith("/api/")) {
           if (!can(user.role, "content.edit")) return done(json({ error: "لا تملك صلاحية" }, 403));
           if (path === "/api/lessons" && request.method === "POST") return done(await addLessons(request, env, user));
+          if (path === "/api/series-order" && request.method === "POST") return done(await saveOrder(request, env, user));
+          if (path === "/api/series-order/reset" && request.method === "POST") return done(await resetOrder(request, env, user));
           const r = await handleUpload(request, env, user, path, url);
           return done(r || json({ error: "غير موجود" }, 404));
         }
@@ -99,6 +102,7 @@ export default {
       if (path === "/") html = await P.dashboard(env.DB, user);
       else if (path === "/series") html = await P.seriesList(env.DB, user);
       else if (path === "/series/new" && can(user.role, "content.edit")) html = await P.newSeriesPage(env.DB, user, flash);
+      else if ((m = /^\/series\/([^/]+)\/order$/.exec(path)) && can(user.role, "content.edit")) { let id = null; try { id = decodeURIComponent(m[1]); } catch { /* 404 */ } html = id && await P.orderPage(env.DB, user, id.slice(0, 60), flash); }
       else if ((m = /^\/series\/([^/]+)\/edit$/.exec(path)) && can(user.role, "content.edit")) { let id = null; try { id = decodeURIComponent(m[1]); } catch { /* 404 */ } html = id && await P.seriesEditPage(env.DB, user, id.slice(0, 60), flash); }
       else if ((m = /^\/lessons\/([^/]+)$/.exec(path)) && can(user.role, "content.edit")) { let id = null; try { id = decodeURIComponent(m[1]); } catch { /* 404 */ } html = id && await P.lessonEditPage(env.DB, user, id.slice(0, 120), flash); }
       else if (path === "/books/new" && can(user.role, "content.edit")) html = await P.bookEditPage(env.DB, user, null, flash);

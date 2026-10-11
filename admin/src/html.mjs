@@ -80,5 +80,14 @@ tr.conflict{background:rgba(155,44,44,.1)}.warn,.prog.bad{color:var(--bad);font-
 button[disabled]{opacity:.5;cursor:not-allowed}button.secondary{background:var(--card);color:var(--ink);border-color:var(--line)}[hidden]{display:none!important}
 fieldset{border:1px solid var(--line);border-radius:10px;padding:.6rem 1rem;margin:1rem 0}legend{padding:0 .4rem;color:var(--ink2)}label{display:inline-block;margin:.2rem .6rem .2rem 0}textarea{font:inherit;width:100%;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);padding:.35rem .6rem}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* arranging lessons */
+.sortable{list-style:none;margin:0;padding:0}.sortable li{display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--card);margin:.25rem 0}
+.sortable li[data-new]{border-inline-start:5px solid var(--gold)}.sortable li.dragging{opacity:.75;box-shadow:0 6px 18px rgba(0,0,0,.25);position:relative;z-index:2}
+.sortable li.grabbed{outline:3px solid var(--gold)}.sortable li[hidden]{display:none}.sortable li.sel{background:var(--paper)}
+.sortable li.ph{border:2px dashed var(--gold);background:transparent}.sortable li.dragging{margin:0}
+.grip{cursor:grab;touch-action:none;padding:.3rem .6rem;line-height:1;user-select:none}.grip:active{cursor:grabbing}
+.pos{min-width:3rem;text-align:center;font-weight:700;color:var(--red)}.main{flex:1;min-width:0}.main .t{display:block;font-weight:600;overflow-wrap:anywhere}.main .meta{display:block;font-size:.85rem}
+.acts{display:flex;gap:.2rem}.mv{padding:.2rem .5rem;line-height:1.2}.ord-bar{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;margin:.6rem 0}.ord-save{position:sticky;bottom:0;background:var(--paper);padding:.6rem 0;border-top:1px solid var(--line)}
+@media (max-width:640px){.sortable li{flex-wrap:wrap}.acts{width:100%;justify-content:flex-end}}
 .muted{color:var(--ink2)}.pager{display:flex;gap:1rem;margin:1rem 0}code,.ltr{direction:ltr;unicode-bidi:embed}
 `;

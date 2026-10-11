@@ -77,6 +77,33 @@ export function applyOverrides(cat, ov) {
   return { ...cat, series, lessons };
 }
 
+/* Editors' saved display order (site/data/order.json, written by the admin portal's Publish): { seriesId: [lessonId, ...] } first lesson first.
+   Gives the lessons of those series an `ord` (1..n) and flags the series `manual`; lessons missing from a list (new uploads, new videos) go AFTER the listed ones
+   in the default order (number, then original position); ids that are not in the series (moved, removed, bad) are ignored. Series without a list are untouched.
+   Returns copies; the inputs are not modified. Works on the catalogue and the merged library together. */
+export function applyOrder(cat, lib, order) {
+  if (!order || typeof order !== "object") return { cat, lib };
+  const lessons = [...cat.lessons.map((l, i) => ({ l, c: 0, i })), ...(lib.lessons || []).map((l, i) => ({ l, c: 1, i }))];
+  const bySeries = new Map();
+  lessons.forEach((x, o) => { (bySeries.get(x.l.series) || bySeries.set(x.l.series, []).get(x.l.series)).push({ ...x, o }); });
+  const ord = new Map();   // lesson object -> position
+  const manual = new Set();
+  for (const sid of Object.keys(order)) {
+    const list = Array.isArray(order[sid]) ? order[sid] : null, mine = bySeries.get(sid);
+    if (!list || !mine || !own(order, sid)) continue;
+    const byId = new Map(mine.map(x => [x.l.id, x]));
+    const seen = new Set(), listed = [];
+    for (const id of list) if (typeof id === "string" && byId.has(id) && !seen.has(id)) { seen.add(id); listed.push(byId.get(id)); }
+    const rest = mine.filter(x => !seen.has(x.l.id)).sort((a, b) => (a.l.n ?? 1e9) - (b.l.n ?? 1e9) || a.o - b.o);
+    [...listed, ...rest].forEach((x, k) => ord.set(x.l, k + 1));
+    manual.add(sid);
+  }
+  if (!manual.size) return { cat, lib };
+  const mapL = ls => (ls || []).map(l => ord.has(l) ? { ...l, ord: ord.get(l) } : l);
+  const mapS = ss => (ss || []).map(s => manual.has(s.id) ? { ...s, manual: true } : s);
+  return { cat: { ...cat, lessons: mapL(cat.lessons), series: mapS(cat.series) }, lib: { ...lib, lessons: mapL(lib.lessons), series: mapS(lib.series) } };
+}
+
 /* Library files that add to library.json (lessons imported from other sources, e.g. data/makkah.json). */
 export const mergeLibraries = (...libs) => libs.filter(Boolean).reduce((a, b) => ({ ...a, ...b, series: [...(a.series || []), ...(b.series || [])], lessons: [...(a.lessons || []), ...(b.lessons || [])], books: [...(a.books || []), ...(b.books || [])] }), {});
 
@@ -171,7 +198,7 @@ export const mainTitle = (l, withBook = true) => useLabel(l) ? `${label(l)}${wit
 export const fullTitle = l => { const s = seriesById[l.series]; return useLabel(l) ? `${label(l)} — ${s.title}` : s.ordered ? `${dg(l.title)} — ${s.title}` : dg(l.title); };
 export const secOfSeries = s => secById[s.sec] || secById.duroos;
 export const secOfLesson = l => secOfSeries(seriesById[l.series]);
-export const seriesOrder = (a, b) => (a.n ?? 1e9) - (b.n ?? 1e9) || (a.o - b.o);
+export const seriesOrder = (a, b) => (a.ord ?? 1e9) - (b.ord ?? 1e9) || (a.n ?? 1e9) - (b.n ?? 1e9) || (a.o - b.o);   // ord = the editors' saved display order (see applyOrder), else number, else original position
 export const lang = l => secOfLesson(l).id === "urdu" ? ' lang="ur"' : "";
 export const thumb = id => `https://i.ytimg.com/vi/${safeYt(id)}/mqdefault.jpg`;
 export const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 0l2.6 5.4L20.5 3.5l-1.9 5.9L24 12l-5.4 2.6 1.9 5.9-5.9-1.9L12 24l-2.6-5.4-5.9 1.9 1.9-5.9L0 12l5.4-2.6-1.9-5.9 5.9 1.9z"/></svg>`;
