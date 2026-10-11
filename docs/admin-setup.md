@@ -87,3 +87,17 @@ Nothing changes on the site until you use it: every series keeps its automatic o
 - Hidden lessons stay in the list (faded) so un-hiding puts them back in place. Moving a lesson to another series is done on the lesson's edit page.
 - The saved orders are published to `site/data/order.json` (database-owned, like `library.json`; not shipped to visitors, the build writes the positions into the files the browser loads).
 Setup after merging: `npx wrangler d1 migrations apply drwasiullah --remote` (adds the table `series_order`) and redeploy the admin Worker. Tests: `tests/order_check.mjs` (rules + a real build) and `tests/admin_order.mjs` (inside `tests/admin_run_all.sh`).
+
+## Banners, announcements and the schedule (phase 5, admin only)
+Three new pages in the portal menu (Admin role only; change the matrix in `admin/src/roles.mjs` if an Editor should have them):
+- **«البانرات»** — a strip at the top of every page of the site (up to two at once). Text (200 characters, plain text), kind (معلومة / تنبيه / عاجل), optional https link, optional start and end (**Makkah time**), "visitors may close it", on/off switch. A visitor who closes one does not see it again in that browser.
+- **«الإعلانات»** — posts with a title, text (plain; line breaks kept), optional https link and button text, pinned or not, draft / published / scheduled. The newest three show on the home page under the introduction; all of them are on the new page «الإعلانات» (`/news/`, linked in the footer, not offered to search engines).
+- **«الجدول»** — the weekly timetable:
+  - **إشعار اليوم**: cancel or change one slot on one date («ملغى اليوم لعذر طارئ»): a badge appears on that slot of the schedule card;
+  - add, edit, hide (the old "pending") or delete slots (each slot now has a stable id);
+  - the note under the table and the Mixlr live button (https://mixlr.com only; leave the link empty to hide the button).
+
+**What needs Publish and what does not.** Banners, announcements and today's notices are **live within about a minute** (the site asks `GET /api/live`, answered from the database and cached for 60 seconds at the edge; nothing to rebuild). Changes to the weekly slots, the note and the live button are part of the pre-rendered pages, so they need **«النشر»** (Publish now also exports `site/data/schedule.json`, which is database-owned from now on).
+
+Safety: everything is plain text (no HTML anywhere), links must be https (the live button only mixlr.com), the live endpoint returns only the fields the site shows, and if it is down or empty the site simply shows nothing extra.
+Setup after merging: `npx wrangler d1 migrations apply drwasiullah --remote` (adds `banners`, `announcements`, `schedule_notices`), redeploy the admin Worker, and the public site deploys on merge as usual. Tests: `tests/admin_live.mjs` (inside `tests/admin_run_all.sh`) and `tests/live_run.sh` (the public side: endpoint, banners, announcements, badges, empty/failed endpoint, accessibility).

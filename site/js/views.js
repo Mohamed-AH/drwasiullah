@@ -63,7 +63,7 @@ const withSite = t => `${t} | الموقع الرسمي للشيخ ${NAME.replac
 /* ───────── Weekly schedule (shared by /schedule/ and the home page) ───────── */
 const liveBanner = sc => sc.live ? `<a class="live-cta" href="${esc(sc.live.url)}" target="_blank" rel="noopener"><span class="live-ic">${ic("radio", 26)}</span><span class="live-t"><strong>${esc(sc.live.label)}</strong><small>${esc(sc.live.sub)}</small></span><span class="live-go">${ic("external-link", 20)}</span></a><p class="live-today" id="live-today" aria-live="polite" hidden></p>` : "";
 const scheduleDays = (sc, h = 3) => {
-  const slot = x => `<li data-t="${esc(x.title)}" data-w="${esc(x.time)}"><span class="st">${esc(x.time)}</span><span class="sw">${x.series ? `<a href="${href.series(x.series)}">${esc(x.title)}</a>` : esc(x.title)}${x.lang === "ur" ? ' <span class="tag plain">بالأردية</span>' : ""}${x.note ? `<small>${esc(x.note)}</small>` : ""}</span></li>`;
+  const slot = x => `<li data-slot="${esc(x.id)}" data-t="${esc(x.title)}" data-w="${esc(x.time)}"><span class="st">${esc(x.time)}</span><span class="sw">${x.series ? `<a href="${href.series(x.series)}">${esc(x.title)}</a>` : esc(x.title)}${x.lang === "ur" ? ' <span class="tag plain">بالأردية</span>' : ""}${x.note ? `<small>${esc(x.note)}</small>` : ""}</span></li>`;
   return `<ol class="sched-days" aria-label="أيام الأسبوع">${sc.days.map(d => `<li class="sched-day" data-day="${d.i}"><h${h}>${esc(d.day)}</h${h}><ul class="sched-slots">${d.slots.map(slot).join("")}</ul></li>`).join("")}</ol>`;
 };
 
@@ -81,6 +81,7 @@ function home() {
       <p class="hero-p">فهرس منظّم لدروس الشيخ أ.د. وصي الله بن محمد عباس حفظه الله ومحاضراته وخطبه وكتبه، مرتّبة بحسب الأقسام والكتب لتصل إلى ما تريده بسرعة.</p>
       ${searchBox("ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج", "", "q", true)}
       <ul class="stats"><li><b>${fmtNum(DB.lessons.length)}</b>مادة علمية</li><li><b>${fmtNum(DB.series.length)}</b>سلسلة</li>${DB.books.length ? `<li><b>${fmtNum(DB.books.length)}</b>كتابًا</li>` : ""}</ul></section>
+    <section class="news" id="live-news" aria-labelledby="nw-h" hidden><div class="sec"><h2 id="nw-h">آخر الإعلانات</h2><a href="/news/">كل الإعلانات ${ic("chevron-left", 15)}</a></div><div class="news-list"></div></section>
     ${state.schedule ? `<section class="sched sched-home" aria-labelledby="sc-h"><div class="sec"><h2 id="sc-h">جدول الدروس الأسبوعي</h2><a href="${href.schedule()}">الجدول كاملًا ${ic("chevron-left", 15)}</a></div>${liveBanner(state.schedule)}${scheduleDays(state.schedule)}<p class="sched-note">بتوقيت مكة المكرمة؛ الجدول قابل للتغيير.</p></section>` : ""}
     ${bio ? `<section class="about-teaser" aria-labelledby="ab-h"><h2 id="ab-h">عن الشيخ</h2>${bio.summary ? `<p>${esc(bio.summary)}</p>` : ""}<a class="btn" href="${href.about()}">اقرأ المزيد ${ic("chevron-left", 16)}</a></section>` : ""}
     <div class="sec"><h2>الأقسام</h2></div>
@@ -294,6 +295,14 @@ export function notFoundPage() {
     html: `<div class="empty"><h1>الصفحة غير موجودة</h1><p><a class="btn pri" href="/">العودة للرئيسية</a> <a class="btn" href="/search/">البحث في المكتبة</a></p></div>` });
 }
 
+/* ───────── Announcements (filled in the browser from /api/live: they change without a rebuild) ───────── */
+function newsPage() {
+  const c = crumbs([{ t: "الإعلانات" }]);
+  const html = `${c.html}<div class="sched"><header><h1 class="page-h">الإعلانات</h1><p class="lede">إعلانات الموقع وأخبار دروس الشيخ ${esc(NAME)} حفظه الله.</p></header>
+    <div id="live-news-all" class="news-list" aria-live="polite"><p class="muted">جارٍ التحميل…</p></div><noscript><p class="muted">تحتاج هذه الصفحة إلى تفعيل جافاسكربت.</p></noscript></div>`;
+  return mkPage({ nav: "", path: "/news/", html, wire: { t: "news" }, noindex: true, title: withSite("الإعلانات"), description: "إعلانات الموقع وأخبار دروس الشيخ.", jsonld: [c.ld] });
+}
+
 /* ───────── Weekly schedule ───────── */
 function schedulePage() {
   const sc = state.schedule; if (!sc) return null;
@@ -323,6 +332,7 @@ export function resolve(pathname, params = new URLSearchParams()) {
   else if (segs.length === 1 && a === "books") p = booksPage();
   else if (segs.length === 1 && a === "about") p = aboutPage();
   else if (segs.length === 1 && a === "schedule") p = schedulePage();
+  else if (segs.length === 1 && a === "news") p = newsPage();
   else if (segs.length === 1 && a === "search") p = searchPage(params);
   else if (segs.length === 2 && a === "section") p = sectionPage(b);
   else if (segs.length === 2 && a === "series") p = seriesPage(b);
@@ -341,7 +351,7 @@ const cur = (nav, id) => nav === id ? ' class="on" aria-current="page"' : "";
 export function chromeTop(nav) {
   const items = navItems();
   const drawerItems = [{ id: "home", t: "الرئيسية", i: "house", h: "/" }, { id: "library", t: "كل الأقسام", i: "layout-grid", h: href.library() }, { id: "search", t: "بحث", i: "search", h: href.search() }, ...items];
-  return `<header class="top"><div class="wrap top-in">
+  return `<div id="live-banner" aria-live="polite"></div><header class="top"><div class="wrap top-in">
     <a class="brand" href="/" aria-label="${esc(NAME_FULL)} — الرئيسية"><span class="seal" aria-hidden="true"></span><span><strong>${NAME} <span class="hd">حفظه الله</span></strong><small>الموقع الرسمي · دروس الشيخ وصي الله عباس</small></span></a>
     <nav class="nav" id="nav" aria-label="الأقسام"><a href="/" data-nav="home"${cur(nav, "home")}>الرئيسية</a>${items.map(x => `<a href="${x.h}" data-nav="${x.id}"${cur(nav, x.id)}>${x.t}</a>`).join("")}</nav>
     <a class="icon-btn" id="hsearch" href="${href.search()}" aria-label="بحث">${ic("search", 20)}</a>
@@ -363,7 +373,7 @@ export function chromeBottom(nav) {
     <a class="bn" href="#" role="button" data-nav="more" id="bn-more"><span class="bn-i">${ic("menu", 22)}</span><span>المزيد</span></a></nav>`;
 }
 export const footer = () => `<footer class="foot"><div class="wrap">
-  <p class="foot-official"><strong>${esc(OFFICIAL_NAME)} حفظه الله</strong>، ${esc(ROLE)}.${[state.bio && `<a href="${href.about()}">عن الشيخ</a>`, state.schedule && `<a href="${href.schedule()}">جدول الدروس</a>`].filter(Boolean).map(x => " " + x).join(" ·")}</p>
+  <p class="foot-official"><strong>${esc(OFFICIAL_NAME)} حفظه الله</strong>، ${esc(ROLE)}.${[state.bio && `<a href="${href.about()}">عن الشيخ</a>`, state.schedule && `<a href="${href.schedule()}">جدول الدروس</a>`, `<a href="/news/">الإعلانات</a>`].filter(Boolean).map(x => " " + x).join(" ·")}</p>
   <p>الدروس المرئية على <a href="${YT_CHANNEL}" target="_blank" rel="noopener">قناة واحة السنة</a> في يوتيوب، والمواد الصوتية والكتب مأخوذة من <a href="${WP_SITE}" target="_blank" rel="noopener">مدونة الشيخ</a>، ويحفظ هذا الموقع نسخًا من الصوتيات والكتب لتسهيل الوصول إليها.</p>
   <p>آخر تحديث للفهرس: ${fmtDate(state.DB.updated)}</p></div></footer>`;
 

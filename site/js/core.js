@@ -140,7 +140,7 @@ export function cleanSchedule(raw) {
   raw.slots.forEach((x, k) => {
     if (!x || typeof x !== "object" || x.pending) return;
     const title = str(x.title, 120), time = str(x.time, 60); if (!title) return;
-    const slot = { time, title, lang: x.lang === "ur" ? "ur" : "ar", note: str(x.note, 160), series: typeof x.series === "string" && seriesById[x.series] ? x.series : "", order: Number.isFinite(x.order) ? x.order : 50, k };
+    const slot = { id: /^[a-z0-9-]{1,20}$/.test(String(x.id ?? "")) ? String(x.id) : "s" + (k + 1), time, title, lang: x.lang === "ur" ? "ur" : "ar", note: str(x.note, 160), series: typeof x.series === "string" && seriesById[x.series] ? x.series : "", order: Number.isFinite(x.order) ? x.order : 50, k };
     (Array.isArray(x.days) ? x.days : []).map(idx).filter(i => i >= 0).forEach(i => byDay[i].push(slot));
   });
   const days = byDay.map((slots, i) => ({ i, day: WEEKDAYS[i], slots: slots.sort((a, b) => a.order - b.order || a.k - b.k) })).filter(d => d.slots.length);

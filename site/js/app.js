@@ -1,6 +1,10 @@
 /* Browser app. Pages arrive pre-rendered (scripts/build.mjs); this script wires them up and handles client-side navigation. */
 import { init, state, byId, seriesById, secById, ic, safeYt, cleanQuery, oneOf, hashToPath, PAGE, SECTIONS } from "./core.js";
 import { resolve, searchResults, seriesInfo, seriesList } from "./views.js";
+import { loadLive, renderBanners, fillNews, applyNotices } from "./live.js";
+
+/* live layer (banners, announcements, schedule notices): fetched once per page load, shown wherever the current page has a place for it */
+const liveData = loadLive();
 
 const $ = s => document.querySelector(s);
 const app = $("#app"), live = $("#sr-live");
@@ -106,6 +110,7 @@ function wire(p, byNavigation) {
   else if (w.t === "series") wireSeries(w.id);
   else if (w.t === "search") wireSearch();
   else if (w.t === "schedule") wireSchedule();
+  else if (w.t === "news") liveData.then(d => fillNews(app.querySelector("#live-news-all"), d, 50, "h2"));
   else if (w.t === "lesson") wireLesson(w, byNavigation);
   wireShelves();
 }
@@ -129,6 +134,7 @@ function wireShelves() {
 
 // highlight today's column (Makkah time) on the schedule page
 function wireSchedule() {
+  liveData.then(d => applyNotices(app, d));
   let day = ""; try { day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Riyadh" }).format(new Date()); } catch { return; }
   const i = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(day);
   const el = app.querySelector(`.sched-day[data-day="${i}"]`);
@@ -143,6 +149,7 @@ function wireSchedule() {
 
 function wireHome() {
   wireSchedule();
+  liveData.then(d => { const box = app.querySelector("#live-news"); if (box && fillNews(box, d, 3)) box.hidden = false; });
   const f = app.querySelector("form.search"); if (!f) return;
   f.addEventListener("submit", e => { e.preventDefault(); const q = cleanQuery(f.q.value); go("/search/" + (q ? "?q=" + encodeURIComponent(q) : "")); });
 }
@@ -266,6 +273,7 @@ themeBtn.addEventListener("click", () => { root.dataset.theme = isDark() ? "ligh
 paintTheme();
 
 /* ───────── Boot ───────── */
+liveData.then(d => renderBanners(document.getElementById("live-banner"), d));
 const getJSON = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
 const hasBio = !!document.querySelector('a[href="/about/"]'), hasSchedule = !!document.querySelector('a[href="/schedule/"]');   // the build links /about/ only when data/bio.json exists: no 404 request while the bio is dormant
 Promise.all([getJSON("/catalogue.json"), getJSON("/data/library.json"), hasBio ? getJSON("/data/bio.json") : null, hasSchedule ? getJSON("/data/schedule.json") : null]).then(([cat, lib, bio, schedule]) => {
