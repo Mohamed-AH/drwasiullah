@@ -116,3 +116,12 @@ Portal menu «الإحصاءات». No migration, no Publish, nothing to deploy 
 - **Tables**: top 25 lessons; per-series totals with their share (click a series to filter by it).
 - **CSV**: «تنزيل CSV» gives per-lesson totals for the chosen period (opens correctly in Excel, Arabic included).
 - Counts are anonymous (lesson id + kind of event per day; nothing about the visitor). A «listen» = 30 s of real listening; days are Makkah time. Counts start from when phase 3b went live; history cannot be back-filled.
+
+## Reports (phase 8, admin only)
+Portal menu «التقارير». Nothing to deploy except the admin Worker; no migration, no Publish. Reports are computed from the database, so they include the portal's latest edits even before Publish.
+- **ملخص المحتوى** (`/reports/summary`): totals (lessons, series, books/files, video hours), per-section table, per-series table (type, count, hours, Hijri period, undated/unnumbered notes). Same rules as `scripts/make_report.mjs`; a test checks the totals equal what the site shows after Publish.
+- **قائمة دروس سلسلة** (`/reports/series?id=…`): every lesson in the saved display order with Hijri date and duration; «مع غير المنشور» adds drafts/hidden with a status column.
+- **جودة البيانات** (`/reports/quality`, optionally `?series=…`): duplicate numbers, unnumbered lessons in numbered series, undated lessons, audio without duration, drafts/hidden, empty series, books without files (first 500 of each; the CSV has everything).
+- **Print**: «طباعة / حفظ PDF» opens the browser's print dialog (menus and buttons are hidden in print; choose «حفظ بصيغة PDF»).
+- **CSV** (UTF-8 with BOM, opens correctly in Excel): `/reports/lessons.csv` (every status, optional `?series=`), `/reports/series.csv`, `/reports/books.csv`. Analytics has its own CSV.
+- `scripts/make_report.mjs` (the PDF for the Sheikh's team, built from the repository files) stays as it is.

@@ -27,11 +27,11 @@ export async function dashboard(db, user) {
 }
 
 /* series as the site will show them: the stored row with the editors' patch applied (YouTube series can be renamed/hidden through patches) */
-const SERIES_EFF = `s.id, s.origin, s.pos,
+export const SERIES_EFF = `s.id, s.origin, s.pos,
   CASE WHEN json_type(o.patch, '$.title') IS NOT NULL THEN json_extract(o.patch, '$.title') ELSE s.title END AS title,
   CASE WHEN json_type(o.patch, '$.sec')   IS NOT NULL THEN json_extract(o.patch, '$.sec')   ELSE s.sec   END AS sec,
   CASE WHEN json_extract(o.patch, '$.hidden') = 1 THEN 'hidden' ELSE s.status END AS status`;
-const SERIES_FROM = "series s LEFT JOIN overrides o ON o.kind = 'series' AND o.id = s.id";
+export const SERIES_FROM = "series s LEFT JOIN overrides o ON o.kind = 'series' AND o.id = s.id";
 const editableOrigin = o => EDITABLE.includes(o) || o === "catalogue";
 
 export async function seriesList(db, user) {
