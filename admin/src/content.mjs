@@ -26,8 +26,15 @@ export async function lessonStatus(f, env, user, redirect) {
   const db = env.DB, id = clean(f.get("id"), 120), status = clean(f.get("status"), 12);
   const back = r => { const s = clean(f.get("series"), 120), p = parseInt(f.get("page") || "1", 10) || 1; return redirect(`/series/${encodeURIComponent(s)}${p > 1 ? "?page=" + Math.min(p, 1000) : ""}`, r[0], r[1]); };
   if (!STATUSES.includes(status)) return back(["invalid", "err"]);
-  const before = await db.prepare("SELECT id, status FROM lessons WHERE id = ?").bind(id).first();
+  const before = await db.prepare("SELECT id, origin, status FROM lessons WHERE id = ?").bind(id).first();
   if (!before) return back(["unknown_lesson", "err"]);
+  if (before.origin === "catalogue") {                                     // YouTube lesson: hide/show is a patch on top of the sync
+    if (!["published", "hidden"].includes(status)) return back(["invalid", "err"]);
+    const cur = await getPatch(db, "lesson", id), patch = { ...cur };
+    if (status === "hidden") patch.hidden = true; else delete patch.hidden;
+    await saveOverride(db, user, "lesson", id, cur, patch, "lesson.status");
+    return back(["status_saved", "ok"]);
+  }
   await db.batch([
     db.prepare("UPDATE lessons SET status = ? WHERE id = ?").bind(status, id),
     auditStmt(db, user.email, "lesson.status", "lesson", id, { status: before.status }, { status }),
@@ -54,6 +61,7 @@ export async function editLesson(f, env, user, redirect) {
   const back = (code, kind) => redirect(`/lessons/${encodeURIComponent(id)}`, code, kind);
   const row = await db.prepare("SELECT id, origin, series_id, status, n, section, data FROM lessons WHERE id = ?").bind(id).first();
   if (!row) return redirect("/series", "unknown_lesson", "err");
+  if (row.origin === "catalogue") return editCatalogueLesson(f, env, user, redirect, row);
   if (!EDITABLE.includes(row.origin)) return back("not_editable", "err");
   if (clean(f.get("ver"), 20) !== await verOf(row.data)) return back("conflict", "err");
   const data = JSON.parse(row.data), before = { title: data.title, n: data.n ?? null, section: data.section ?? null, hd: data.hd ?? null, date: data.date ?? null, status: row.status };
@@ -87,6 +95,7 @@ export async function editSeries(f, env, user, redirect) {
   const back = (code, kind) => redirect(`/series/${encodeURIComponent(id)}/edit`, code, kind);
   const row = await db.prepare("SELECT id, origin, sec, title, status, data FROM series WHERE id = ?").bind(id).first();
   if (!row) return redirect("/series", "unknown_lesson", "err");
+  if (row.origin === "catalogue") return editCatalogueSeries(f, env, user, redirect, row);
   if (!EDITABLE.includes(row.origin)) return back("not_editable", "err");
   if (clean(f.get("ver"), 20) !== await verOf(row.data)) return back("conflict", "err");
   const data = JSON.parse(row.data);
@@ -145,4 +154,74 @@ export async function saveBook(f, env, user, redirect) {
     auditStmt(db, user.email, "book.edit", "book", id, before, { title, group, files: files.length, lang: lang || null, note: note || null, status }),
   ]);
   return redirect("/books", "book_saved", "ok");
+}
+
+/* ---------- YouTube (catalogue) items: edits are PATCHES on top of the daily sync (table `overrides`, applied at build time) ---------- */
+const LESSON_PATCH_KEYS = ["title", "n", "section", "series", "hd", "date"], SERIES_PATCH_KEYS = ["title", "description", "sec"];
+export const getPatch = async (db, kind, id) => { const r = await db.prepare("SELECT patch FROM overrides WHERE kind = ? AND id = ?").bind(kind, id).first(); return r ? JSON.parse(r.patch) : {}; };
+export const withPatch = (base, patch) => { const o = { ...base }; for (const [k, v] of Object.entries(patch)) { if (k === "hidden") continue; if (v === null) delete o[k]; else o[k] = v; } return o; };
+export const catVer = (row, patch) => verOf(row.data + "|" + JSON.stringify(patch));
+
+/* new patch = only what differs from the sync's own value; returns {patch, changed} */
+function diffPatch(base, next, keys, hidden) {
+  const patch = {};
+  for (const k of keys) { const a = base[k] ?? null, b = next[k] ?? null; if (a !== b) patch[k] = b; }
+  if (hidden) patch.hidden = true;
+  return patch;
+}
+const saveOverride = (db, user, kind, id, before, patch, action) => {
+  const stmts = [];
+  if (Object.keys(patch).length) stmts.push(db.prepare("INSERT OR REPLACE INTO overrides (kind, id, patch, updated_by, updated_at) VALUES (?,?,?,?,datetime('now'))").bind(kind, id, JSON.stringify(patch), user.email));
+  else stmts.push(db.prepare("DELETE FROM overrides WHERE kind = ? AND id = ?").bind(kind, id));
+  stmts.push(auditStmt(db, user.email, action, kind, id, before, patch));
+  return db.batch(stmts);
+};
+
+async function editCatalogueLesson(f, env, user, redirect, row) {
+  const db = env.DB, id = row.id, back = (code, kind) => redirect(`/lessons/${encodeURIComponent(id)}`, code, kind);
+  const base = JSON.parse(row.data), cur = await getPatch(db, "lesson", id);
+  if (clean(f.get("ver"), 20) !== await catVer(row, cur)) return back("conflict", "err");
+  const eff = withPatch(base, cur);
+  const title = clean(f.get("title"), 200), n = intOrNull(f.get("n"), 1, 9999), section = clean(f.get("section"), 120), status = clean(f.get("status"), 12), series = clean(f.get("series"), 60);
+  if (!title || Number.isNaN(n) || !["published", "hidden"].includes(status)) return back("invalid", "err");
+  if (!await db.prepare("SELECT 1 FROM series WHERE id = ?").bind(series).first()) return back("invalid", "err");
+  const next = { title, n, section: section || null, series, hd: eff.hd ?? null, date: eff.date ?? null };
+  const y = intOrNull(f.get("hy"), 1300, 1600), m = intOrNull(f.get("hm"), 1, 12), d = intOrNull(f.get("hd"), 1, 30);
+  if ([y, m, d].some(Number.isNaN)) return back("invalid", "err");
+  const orig = hijriOf(eff);
+  if (y == null && m == null && d == null) { next.hd = null; next.date = null; }
+  else if (y == null || m == null || d == null) return back("invalid", "err");
+  else if (!orig || orig.y !== y || orig.m !== m || orig.d !== d) {
+    const g = hijriToGregorian(y, m, d);
+    if (!g) return back("bad_date", "err");
+    next.hd = `${y}-${m}-${d}`; next.date = g;
+  }
+  const patch = diffPatch(base, next, LESSON_PATCH_KEYS, status === "hidden");
+  if (JSON.stringify(patch) === JSON.stringify(cur)) return back("nochange", "ok");
+  await saveOverride(db, user, "lesson", id, cur, patch, "lesson.edit");
+  return back("saved", "ok");
+}
+
+async function editCatalogueSeries(f, env, user, redirect, row) {
+  const db = env.DB, id = row.id, back = (code, kind) => redirect(`/series/${encodeURIComponent(id)}/edit`, code, kind);
+  const base = JSON.parse(row.data), cur = await getPatch(db, "series", id);
+  if (clean(f.get("ver"), 20) !== await catVer(row, cur)) return back("conflict", "err");
+  const title = clean(f.get("title"), 150), description = clean(f.get("description"), 300), sec = clean(f.get("sec"), 12), status = clean(f.get("status"), 12);
+  if (!title || !SECTIONS.includes(sec) || !["published", "hidden"].includes(status)) return back("invalid", "err");
+  const patch = diffPatch(base, { title, description: description || null, sec }, SERIES_PATCH_KEYS, status === "hidden");
+  if (JSON.stringify(patch) === JSON.stringify(cur)) return back("nochange", "ok");
+  await saveOverride(db, user, "series", id, cur, patch, "series.edit");
+  return back("saved", "ok");
+}
+
+/* "undo all my changes to this item": the item follows the sync again */
+export async function resetOverride(f, env, user, redirect, kind) {
+  const db = env.DB, id = clean(f.get("id"), 120), table = kind === "lesson" ? "lessons" : "series";
+  const row = await db.prepare(`SELECT origin FROM ${table} WHERE id = ?`).bind(id).first();
+  const back = (code, k) => redirect(kind === "lesson" ? `/lessons/${encodeURIComponent(id)}` : `/series/${encodeURIComponent(id)}/edit`, code, k);
+  if (!row || row.origin !== "catalogue") return redirect("/series", "unknown_lesson", "err");
+  const cur = await getPatch(db, kind, id);
+  if (!Object.keys(cur).length) return back("nochange", "ok");
+  await db.batch([db.prepare("DELETE FROM overrides WHERE kind = ? AND id = ?").bind(kind, id), auditStmt(db, user.email, kind + ".reset", kind, id, cur, null)]);
+  return back("reset_done", "ok");
 }

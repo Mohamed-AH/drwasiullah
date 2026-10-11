@@ -4,7 +4,7 @@ import { CSS, message, page } from "./html.mjs";
 import { JS } from "./client.mjs";
 import { audit } from "./audit.mjs";
 import { handleUpload, addLessons, json } from "./upload.mjs";
-import { newSeries, lessonStatus, editLesson, editSeries, saveBook } from "./content.mjs";
+import { newSeries, lessonStatus, editLesson, editSeries, saveBook, resetOverride } from "./content.mjs";
 import { requestPublish } from "./publish.mjs";
 import * as P from "./pages.mjs";
 
@@ -29,6 +29,8 @@ async function post(request, env, user, path) {
   if (path === "/lessons/save" && can(user.role, "content.edit")) return editLesson(f, env, user, redirect);
   if (path === "/series/save" && can(user.role, "content.edit")) return editSeries(f, env, user, redirect);
   if (path === "/books/save" && can(user.role, "content.edit")) return saveBook(f, env, user, redirect);
+  if (path === "/lessons/reset" && can(user.role, "content.edit")) return resetOverride(f, env, user, redirect, "lesson");
+  if (path === "/series/reset" && can(user.role, "content.edit")) return resetOverride(f, env, user, redirect, "series");
   if (path === "/publish" && can(user.role, "content.publish")) {
     const code = await requestPublish(env, user);
     return redirect("/publish", code, code === "requested" ? "ok" : "err");

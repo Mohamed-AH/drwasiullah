@@ -17,7 +17,6 @@ const E = "ed@example.com";
 let html = await (await get("/lessons/tirmidhi-0001", E)).text();
 check("lesson edit form opens (Hijri date prefilled from the stored hd)", /name="title"/.test(html) && /name="hy"[^>]*value="1436"/.test(html) && /name="hm"[^>]*value="2"/.test(html), html.slice(0, 200));
 let v = ver(html);
-check("a YouTube lesson is read-only", /مزامنة يوتيوب/.test(await (await get("/lessons/" + process.env.VIDEO_ID, E)).text()));
 check("unknown lesson 404", (await get("/lessons/nope-0001", E)).status === 404);
 check("edit refused with a wrong version token", loc(await post("/lessons/save", E, { id: "tirmidhi-0001", ver: "0000000000000000", title: "x", status: "published" })).includes("err=conflict"));
 check("empty title refused", loc(await post("/lessons/save", E, { id: "tirmidhi-0001", ver: v, title: "", status: "published", hd: 7, hm: 2, hy: 1436 })).includes("err=invalid"));
@@ -35,9 +34,39 @@ check("date cleared and lesson hidden", /name="hy"[^>]*value=""/.test(html) && /
 /* ---- series edit ---- */
 html = await (await get("/series/tadrib/edit", E)).text();
 check("series edit form opens", /name="title"[^>]*value="شرح تدريب الراوي"/.test(html));
-check("a YouTube series is read-only", /مزامنة يوتيوب/.test(await (await get("/series/muslim/edit", E)).text()));
 check("series edit saved", loc(await post("/series/save", E, { id: "tadrib", ver: ver(html), title: "شرح تدريب الراوي للسيوطي", sec: "audio", unit: "الدرس", ordered: "1", description: "وصف", status: "published" })).includes("ok=saved"));
 check("bad section refused", loc(await post("/series/save", E, { id: "tadrib", ver: ver(await (await get("/series/tadrib/edit", E)).text()), title: "x", sec: "evil", status: "published" })).includes("err=invalid"));
+
+
+/* ---- YouTube lessons and series: saved as patches on top of the sync ---- */
+const V = process.env.VIDEO_ID;
+html = await (await get("/lessons/" + V, E)).text();
+check("YouTube lesson opens in an editable form with a series chooser", /name="series"/.test(html) && /تصحيحات فوق المزامنة/.test(html) && !/التراجع عن تعديلاتي/.test(html));
+const origTitle = /name="title"[^>]*value="([^"]*)"/.exec(html)[1], origSeries = /<option value="([^"]+)" selected>/.exec(html)[1], origN = /name="n"[^>]*value="(\d*)"/.exec(html)[1];
+v = ver(html);
+check("saving without changes writes nothing", loc(await post("/lessons/save", E, { id: V, ver: v, title: origTitle.replace(/&quot;/g, '"').replace(/&amp;/g, "&"), series: origSeries, n: origN, section: /name="section"[^>]*value="([^"]*)"/.exec(html)[1], hd: /name="hd"[^>]*value="(\d*)"/.exec(html)[1], hm: /name="hm"[^>]*value="(\d*)"/.exec(html)[1], hy: /name="hy"[^>]*value="(\d*)"/.exec(html)[1], status: "published" })).includes("ok=nochange"));
+check("series that does not exist refused", loc(await post("/lessons/save", E, { id: V, ver: v, title: "x", series: "no-such-series", status: "published" })).includes("err=invalid"));
+check("YouTube lesson: title, number, section and series saved as a patch", loc(await post("/lessons/save", E, { id: V, ver: v, title: "عنوان مصحح", n: 77, section: "باب مصحح", series: "tadrib", status: "published", hd: 5, hm: 6, hy: 1440 })).includes("ok=saved"));
+html = await (await get("/lessons/" + V, E)).text();
+check("form shows the patched values, the 'edited' tag and the undo button", /value="عنوان مصحح"/.test(html) && /معدَّل/.test(html) && /التراجع عن تعديلاتي/.test(html) && /name="hy"[^>]*value="1440"/.test(html));
+check("the old form is refused after the change (conflict)", loc(await post("/lessons/save", E, { id: V, ver: v, title: "قديم", series: origSeries, status: "published" })).includes("err=conflict"));
+let pg2 = await (await get("/series/tadrib?page=2", E)).text(), list1 = await (await get("/series/tadrib", E)).text();
+check("the lesson now appears in the new series (effective view)", (pg2 + list1).includes("عنوان مصحح"));
+check("... and no longer in its old series", !(await (await get("/series/" + origSeries, E)).text()).includes("عنوان مصحح"));
+const rh = await post("/lessons/status", E, { id: V, series: "tadrib", status: "hidden" });
+check("hide through the list button (patch, not a deletion)", loc(rh).includes("ok=status_saved") && /مخفي/.test(await (await get("/lessons/" + V, E)).text() + await (await get("/series/tadrib", E)).text() + await (await get("/series/tadrib?page=2", E)).text()));
+check("a YouTube lesson cannot be a draft", loc(await post("/lessons/status", E, { id: V, series: "tadrib", status: "draft" })).includes("err=invalid"));
+check("undo removes every patch", loc(await post("/lessons/reset", E, { id: V })).includes("ok=reset_done"));
+html = await (await get("/lessons/" + V, E)).text();
+check("after the undo the lesson is as the sync made it", html.includes('value="' + origTitle + '"') && !/التراجع عن تعديلاتي/.test(html));
+check("undo with nothing to undo says so", loc(await post("/lessons/reset", E, { id: V })).includes("ok=nochange"));
+check("undo is only for YouTube items", loc(await post("/lessons/reset", E, { id: "tirmidhi-0002" })).includes("err="));
+html = await (await get("/series/muslim/edit", E)).text();
+check("YouTube series edit form", /name="title"[^>]*value="شرح صحيح مسلم"/.test(html) && /تصحيحات فوق المزامنة/.test(html));
+check("YouTube series renamed (patch)", loc(await post("/series/save", E, { id: "muslim", ver: ver(html), title: "شرح صحيح مسلم (مصحح)", sec: "duroos", description: "وصف جديد", status: "published" })).includes("ok=saved"));
+check("series list shows the new title", /شرح صحيح مسلم \(مصحح\)/.test(await (await get("/series", E)).text()));
+// leave a visible patch for the export / build / mirror chain checks in tests/admin_run_all.sh
+check("final patches for the chain test", loc(await post("/lessons/save", E, { id: V, ver: ver(await (await get("/lessons/" + V, E)).text()), title: "عنوان مصحح نهائي", n: 5, series: origSeries, status: "published", hd: 5, hm: 6, hy: 1440 })).includes("ok=saved"));
 
 /* ---- books ---- */
 html = await (await get("/books/book-001", E)).text();
@@ -82,6 +111,6 @@ check("admin sees the same edit pages", (await get("/lessons/tirmidhi-0001", "bo
 check("a user who is not in the table sees nothing", (await get("/lessons/tirmidhi-0001", "nobody@example.com")).status === 403);
 check("cross-site edit post refused", (await fetch(BASE + "/lessons/save", { method: "POST", body: new URLSearchParams({ id: "tirmidhi-0001" }), headers: { "x-dev-email": E, "sec-fetch-site": "cross-site" } })).status === 403);
 const au = await (await get("/audit", "boss@example.com")).text();
-check("audit log has lesson.edit, series.edit, book.add, book.edit", ["lesson.edit", "series.edit", "book.add", "book.edit"].every(a => au.includes(a)));
+check("audit log has lesson.edit, lesson.reset, series.edit, book.add, book.edit", ["lesson.edit", "lesson.reset", "lesson.status", "series.edit", "book.add", "book.edit"].every(a => au.includes(a)));
 if (bad) { console.error(`!! ${bad} failed`); process.exit(1); }
 console.log("all admin edit checks passed");

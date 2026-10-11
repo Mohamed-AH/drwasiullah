@@ -42,6 +42,41 @@ export function applyMedia(lib = {}, media = null) {
     books: (lib.books || []).map(b => ({ ...b, files: b.files.map(f => mine(f.url) ? { ...f, url: mine(f.url), url_alt: f.url } : f) })) };
 }
 
+/* Editors' patches on top of the YouTube catalogue (site/data/overrides.json, written by the admin portal's Publish; see db/migrations/0003_overrides.sql).
+   { lessons: { id: {title, n, section, series, hd, date: value | null (= remove), hidden: true} }, series: { id: {title, description, sec, hidden: true} } }
+   Only known fields with the right type are applied; anything else is ignored, so a bad patch can never break the build. */
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const LESSON_PATCH = { title: v => typeof v === "string" && v.length > 0 && v.length <= 300, n: v => Number.isInteger(v) && v > 0 && v < 10000, section: v => typeof v === "string" && v.length <= 200,
+  series: v => typeof v === "string" && /^[A-Za-z0-9_-]{1,60}$/.test(v), hd: v => typeof v === "string" && /^\d{3,4}-\d{1,2}-\d{1,2}$/.test(v), date: v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) };
+const SERIES_PATCH = { title: v => typeof v === "string" && v.length > 0 && v.length <= 200, description: v => typeof v === "string" && v.length <= 400, sec: v => typeof v === "string" && /^[a-z]{3,12}$/.test(v) };
+function patched(item, patch, rules) {
+  const out = { ...item };
+  for (const k of Object.keys(rules)) {
+    if (!own(patch, k)) continue;
+    if (patch[k] === null) delete out[k]; else if (rules[k](patch[k])) out[k] = patch[k];
+  }
+  return out;
+}
+export function applyOverrides(cat, ov) {
+  if (!ov || typeof ov !== "object") return cat;
+  const L = ov.lessons && typeof ov.lessons === "object" ? ov.lessons : {}, S = ov.series && typeof ov.series === "object" ? ov.series : {};
+  const hidden = new Set();
+  const series = [];
+  for (const s of cat.series) {
+    const p = own(S, s.id) && S[s.id] && typeof S[s.id] === "object" ? S[s.id] : null;
+    if (p && p.hidden === true) { hidden.add(s.id); continue; }
+    series.push(p ? patched(s, p, SERIES_PATCH) : s);
+  }
+  const lessons = [];
+  for (const l of cat.lessons) {
+    const p = own(L, l.id) && L[l.id] && typeof L[l.id] === "object" ? L[l.id] : null;
+    if (p && p.hidden === true) continue;
+    const x = p ? patched(l, p, LESSON_PATCH) : l;
+    if (!hidden.has(x.series)) lessons.push(x);
+  }
+  return { ...cat, series, lessons };
+}
+
 /* Library files that add to library.json (lessons imported from other sources, e.g. data/makkah.json). */
 export const mergeLibraries = (...libs) => libs.filter(Boolean).reduce((a, b) => ({ ...a, ...b, series: [...(a.series || []), ...(b.series || [])], lessons: [...(a.lessons || []), ...(b.lessons || [])], books: [...(a.books || []), ...(b.books || [])] }), {});
 

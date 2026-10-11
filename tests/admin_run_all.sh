@@ -20,3 +20,29 @@ BASE=http://localhost:$PORT node tests/admin_http.mjs | grep -E "FAIL|passed|!!"
 BASE=http://localhost:$PORT AUDIO_DIR=$A node tests/admin_upload.mjs | grep -E "FAIL|passed|!!"
 VIDEO_ID=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("site/catalogue.json","utf8")).lessons[0].id)')
 BASE=http://localhost:$PORT AUDIO_DIR=$A VIDEO_ID=$VIDEO_ID node tests/admin_edit.mjs | grep -E "FAIL|passed|!!"
+
+# --- chain: patches saved in the portal -> overrides.json (Publish) -> build; and the daily mirror must leave the patches alone ---
+DB=$(ls "$P"/v3/d1/miniflare-D1DatabaseObject/*.sqlite | head -1)
+node --no-warnings scripts/db.mjs export --db "$DB" --out "$P/pub" --only data/overrides.json
+node -e '
+const o = JSON.parse(require("fs").readFileSync(process.argv[1] + "/pub/data/overrides.json", "utf8"));
+const v = process.argv[2], l = o.lessons[v], s = o.series.muslim;
+const ok = l && l.title === "عنوان مصحح نهائي" && l.n === 5 && l.hd === "1440-6-5" && /^\d{4}-\d{2}-\d{2}$/.test(l.date) && !("hidden" in l) && s && s.title === "شرح صحيح مسلم (مصحح)" && s.description === "وصف جديد";
+console.log(ok ? "ok   overrides.json exported from the portal edits" : "FAIL overrides.json: " + JSON.stringify(o)); process.exit(ok ? 0 : 1)' "$P" "$VIDEO_ID"
+cp "$P/pub/data/overrides.json" site/data/overrides.json
+trap 'rm -f site/data/overrides.json; kill -- -$PID 2>/dev/null || true' EXIT
+node scripts/build.mjs | tail -1
+node -e '
+const c = JSON.parse(require("fs").readFileSync("dist/catalogue.json", "utf8")), v = process.argv[1];
+const l = c.lessons.find(x => x.id === v), m = c.series.find(x => x.id === "muslim");
+const ok = l && l.title === "عنوان مصحح نهائي" && l.n === 5 && m && m.title === "شرح صحيح مسلم (مصحح)";
+console.log(ok ? "ok   the built site shows the patched YouTube lesson and series" : "FAIL build: " + JSON.stringify([l, m])); process.exit(ok ? 0 : 1)' "$VIDEO_ID"
+grep -q "عنوان مصحح نهائي" "dist/lesson/$VIDEO_ID/index.html" && echo "ok   the pre-rendered lesson page carries the patched title" || { echo "FAIL pre-rendered page"; exit 1; }
+rm -f site/data/overrides.json
+node --no-warnings scripts/db.mjs mirror-catalogue --out "$P/mirror.sql"
+npx wrangler@4 d1 execute drwasiullah $W --file "$P/mirror.sql" >/dev/null 2>&1
+CNT=$(npx wrangler@4 d1 execute drwasiullah $W --json --command "select (select count(*) from lessons where origin='catalogue') l, (select count(*) from series where origin='catalogue') s, (select count(*) from overrides) o" 2>/dev/null)
+node -e '
+const r = JSON.parse(process.argv[1])[0].results[0], want = JSON.parse(require("fs").readFileSync("site/catalogue.json", "utf8"));
+const ok = r.l === want.lessons.length && r.s === want.series.length && r.o === 2;
+console.log(ok ? `ok   daily mirror re-seeded ${r.l} YouTube lessons / ${r.s} series and left the 2 patches alone` : "FAIL mirror: " + process.argv[1]); process.exit(ok ? 0 : 1)' "$CNT"
