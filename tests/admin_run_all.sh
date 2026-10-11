@@ -23,6 +23,14 @@ BASE=http://localhost:$PORT AUDIO_DIR=$A VIDEO_ID=$VIDEO_ID node tests/admin_edi
 BASE=http://localhost:$PORT node tests/admin_order.mjs | grep -E "FAIL|passed|!!"
 BASE=http://localhost:$PORT node tests/admin_live.mjs | grep -E "FAIL|passed|!!"
 BASE=http://localhost:$PORT node tests/admin_home.mjs | grep -E "FAIL|passed|!!"
+# the analytics dashboard: known counters relative to today (Makkah time), see tests/admin_analytics.mjs
+D="date('now','+3 hours'"
+npx wrangler@4 d1 execute drwasiullah $W --command "delete from stats_daily; insert into stats_daily(day,lesson_id,event,n) values
+ ($D),'tadrib-0001','play',5),($D),'tadrib-0001','download',2),($D,'-1 days'),'tadrib-0001','play',3),($D,'-1 days'),'tadrib-0002','play',7),($D,'-3 days'),'$VIDEO_ID','watch',4),($D,'-10 days'),'tadrib-0001','play',2),
+ ($D,'-20 days'),'tadrib-0002','download',6),($D,'-20 days'),'tadrib-0002','play',1),($D,'-45 days'),'tadrib-0001','play',10),($D,'-200 days'),'tadrib-0002','play',2),($D,'-700 days'),'tadrib-0001','play',1)" >/dev/null 2>&1
+BASE=http://localhost:$PORT VIDEO_ID=$VIDEO_ID node --no-warnings tests/admin_analytics.mjs | grep -E "FAIL|passed|!!"
+BASE=http://localhost:$PORT SHOT=${SHOT:-} node tests/admin_analytics_axe.mjs | grep -E "FAIL|ok  |FAILED"
+
 
 # the chain steps below overwrite these tracked data files temporarily: keep copies and put them back on exit
 KEEP=$(mktemp -d); for f in overrides order schedule home; do [ -f "site/data/$f.json" ] && cp "site/data/$f.json" "$KEEP/$f.json"; done
