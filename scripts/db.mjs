@@ -26,6 +26,7 @@ const FILES = [
   { name: "data/media.json",    map: true },
   { name: "data/schedule.json", doc: "schedule" },
   { name: "data/bio.json",      doc: "bio" },
+  { name: "data/home.json",     doc: "home", optional: true },   // home page layout (phase 6); written by the portal, so it may not exist in the seed
   { name: "data/order.json",     order: true },               // saved display order of series (phase 4c); table `series_order`
   { name: "data/overrides.json", overrides: true },          // editors' patches on the YouTube catalogue (phase 4b); table `overrides`
 ];
@@ -126,7 +127,7 @@ export function exportFiles(db, outDir, { all = false, only = null } = {}) {
   const docs = Object.fromEntries(get("SELECT name, data FROM docs").map(r => [r.name, JSON.parse(r.data)]));
   const lay = Object.fromEntries(get("SELECT * FROM files").map(r => [r.name, r]));
   for (const f of FILES) {
-    const l = lay[f.name] || (f.overrides || f.order ? { indent: null, trailing_nl: 0, keys: "[]" } : null);   // overrides.json / order.json may not have existed in the seed
+    const l = lay[f.name] || (f.overrides || f.order ? { indent: null, trailing_nl: 0, keys: "[]" } : f.optional && docs[f.doc] ? { indent: 2, trailing_nl: 1, keys: "[]" } : null);   // overrides.json / order.json may not have existed in the seed
     if (!l || (only && !only.includes(f.name))) continue;                  // file did not exist in the seed / not asked for
     const keys = JSON.parse(l.keys);
     let obj;

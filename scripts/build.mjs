@@ -15,7 +15,7 @@ const t0 = Date.now();
 const LIB0 = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true), readJSON("data/haram.json", true));   // library.json + lessons imported from makkahscholars.org
 const CAT0 = applyOverrides(readJSON("catalogue.json"), readJSON("data/overrides.json", true));   // the YouTube catalogue + the editors' patches (admin portal)
 const { cat: CAT, lib: LIB } = applyOrder(CAT0, LIB0, readJSON("data/order.json", true));         // + the editors' saved display order of series (admin portal)
-init(CAT, LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true), readJSON("data/schedule.json", true));
+init(CAT, LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true), readJSON("data/schedule.json", true), readJSON("data/home.json", true));
 const DB = state.DB;
 { // two series (or lessons) with the same id would silently merge or duplicate: refuse to build
   const dup = (xs, what) => { const seen = new Set(); for (const x of xs) { if (seen.has(x.id)) { console.error(`!! duplicate ${what} id: ${x.id}`); process.exit(1); } seen.add(x.id); } };
