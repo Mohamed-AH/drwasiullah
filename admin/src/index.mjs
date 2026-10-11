@@ -4,7 +4,7 @@ import { CSS, message, page } from "./html.mjs";
 import { JS } from "./client.mjs";
 import { audit } from "./audit.mjs";
 import { handleUpload, addLessons, json } from "./upload.mjs";
-import { newSeries, lessonStatus } from "./content.mjs";
+import { newSeries, lessonStatus, editLesson, editSeries, saveBook } from "./content.mjs";
 import { requestPublish } from "./publish.mjs";
 import * as P from "./pages.mjs";
 
@@ -26,6 +26,9 @@ async function post(request, env, user, path) {
   const f = await request.formData();
   if (path === "/series/new" && can(user.role, "content.edit")) return newSeries(f, env, user, redirect);
   if (path === "/lessons/status" && can(user.role, "content.hide")) return lessonStatus(f, env, user, redirect);
+  if (path === "/lessons/save" && can(user.role, "content.edit")) return editLesson(f, env, user, redirect);
+  if (path === "/series/save" && can(user.role, "content.edit")) return editSeries(f, env, user, redirect);
+  if (path === "/books/save" && can(user.role, "content.edit")) return saveBook(f, env, user, redirect);
   if (path === "/publish" && can(user.role, "content.publish")) {
     const code = await requestPublish(env, user);
     return redirect("/publish", code, code === "requested" ? "ok" : "err");
@@ -94,8 +97,12 @@ export default {
       if (path === "/") html = await P.dashboard(env.DB, user);
       else if (path === "/series") html = await P.seriesList(env.DB, user);
       else if (path === "/series/new" && can(user.role, "content.edit")) html = await P.newSeriesPage(env.DB, user, flash);
+      else if ((m = /^\/series\/([^/]+)\/edit$/.exec(path)) && can(user.role, "content.edit")) { let id = null; try { id = decodeURIComponent(m[1]); } catch { /* 404 */ } html = id && await P.seriesEditPage(env.DB, user, id.slice(0, 60), flash); }
+      else if ((m = /^\/lessons\/([^/]+)$/.exec(path)) && can(user.role, "content.edit")) { let id = null; try { id = decodeURIComponent(m[1]); } catch { /* 404 */ } html = id && await P.lessonEditPage(env.DB, user, id.slice(0, 120), flash); }
+      else if (path === "/books/new" && can(user.role, "content.edit")) html = await P.bookEditPage(env.DB, user, null, flash);
+      else if ((m = /^\/books\/([^/]+)$/.exec(path)) && can(user.role, "content.edit")) { let id = null; try { id = decodeURIComponent(m[1]); } catch { /* 404 */ } html = id && await P.bookEditPage(env.DB, user, id.slice(0, 20), flash); }
       else if ((m = /^\/series\/([^/]+)$/.exec(path))) { let id = null; try { id = decodeURIComponent(m[1]); } catch { /* bad escape: 404 */ } html = id && await P.seriesDetail(env.DB, user, id.slice(0, 120), pageNo, flash); }
-      else if (path === "/books") html = await P.booksList(env.DB, user);
+      else if (path === "/books") html = await P.booksList(env.DB, user, flash);
       else if (path === "/upload" && can(user.role, "content.edit")) html = await P.uploadPage(env.DB, user);
       else if (path === "/publish" && can(user.role, "content.publish")) html = await P.publishPage(env.DB, user, flash);
       else if (path === "/analytics" && can(user.role, "analytics.view")) html = await P.analyticsPage(env.DB, user);
