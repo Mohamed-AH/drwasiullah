@@ -121,4 +121,4 @@ The structure carries over; the content-specific parts are few.
 
 ## More
 
-[docs/admin-manual.md](docs/admin-manual.md) (how to use the portal) · [docs/admin-setup.md](docs/admin-setup.md) (portal setup and deploy) · [docs/admin-portal-spec.md](docs/admin-portal-spec.md) (the agreed design) · [ROADMAP.md](ROADMAP.md) (phases, decisions, risks, what is left) · [DEPLOY.md](DEPLOY.md) (hosting and domain) · [docs/data-formats.md](docs/data-formats.md) · [docs/youtube-sync.md](docs/youtube-sync.md) · [docs/mirror-setup.md](docs/mirror-setup.md) · [docs/seo-setup.md](docs/seo-setup.md)
+[docs/admin-manual.md](docs/admin-manual.md) / [Arabic](docs/admin-manual.ar.md) (how to use the portal) · [docs/admin-setup.md](docs/admin-setup.md) (portal setup and deploy) · [docs/admin-portal-spec.md](docs/admin-portal-spec.md) (the agreed design) · [ROADMAP.md](ROADMAP.md) (phases, decisions, risks, what is left) · [DEPLOY.md](DEPLOY.md) (hosting and domain) · [docs/data-formats.md](docs/data-formats.md) · [docs/youtube-sync.md](docs/youtube-sync.md) · [docs/mirror-setup.md](docs/mirror-setup.md) · [docs/seo-setup.md](docs/seo-setup.md)

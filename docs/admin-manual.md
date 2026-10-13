@@ -2,6 +2,8 @@
 
 For the people who run the site day to day (editors and admins). The portal is in Arabic; the names of menus and buttons are quoted below exactly as you see them, with the meaning in English. For setting the portal up or deploying it, see [admin-setup.md](admin-setup.md) (owner/technical).
 
+Arabic edition for the team: [admin-manual.ar.md](admin-manual.ar.md). Keep the two in step when the portal changes.
+
 Portal address: **https://admin.drwasiullah.com** — it works on a phone, but uploading and arranging long series is easier on a computer.
 
 ---

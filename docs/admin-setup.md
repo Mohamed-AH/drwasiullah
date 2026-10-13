@@ -6,7 +6,7 @@ The portal is a separate Cloudflare Worker (`admin/`) at **https://admin.drwasiu
 
 So a new team member must be added in **both** places: the Access policy (step 1 below) and the portal's «المستخدمون» page.
 
-What the portal contains: login, roles, audit log, browsing and editing of series, lessons and books (including YouTube lessons as patches), the audio upload workflow, lesson ordering, banners, announcements, the weekly schedule, the home page layout, analytics, reports, user management and «النشر» (Publish). **How to use all of this: [admin-manual.md](admin-manual.md).** This file is the technical setup and the per-phase notes. Editors see the content pages only; Admins also see the rest.
+What the portal contains: login, roles, audit log, browsing and editing of series, lessons and books (including YouTube lessons as patches), the audio upload workflow, lesson ordering, banners, announcements, the weekly schedule, the home page layout, analytics, reports, user management and «النشر» (Publish). **How to use all of this: [admin-manual.md](admin-manual.md) (English) / [admin-manual.ar.md](admin-manual.ar.md) (Arabic, for the team).** This file is the technical setup and the per-phase notes. Editors see the content pages only; Admins also see the rest.
 
 ## Deploy checklist after merging a new version (owner)
 Run in Git Bash from the repo folder after `git pull` (the public site deploys by itself when `main` changes):
