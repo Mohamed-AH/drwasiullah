@@ -30,6 +30,10 @@ npx wrangler@4 d1 execute drwasiullah $W --command "delete from stats_daily; ins
  ($D,'-20 days'),'tadrib-0002','download',6),($D,'-20 days'),'tadrib-0002','play',1),($D,'-45 days'),'tadrib-0001','play',10),($D,'-200 days'),'tadrib-0002','play',2),($D,'-700 days'),'tadrib-0001','play',1)" >/dev/null 2>&1
 BASE=http://localhost:$PORT VIDEO_ID=$VIDEO_ID node --no-warnings tests/admin_analytics.mjs | grep -E "FAIL|passed|!!"
 BASE=http://localhost:$PORT SHOT=${SHOT:-} node tests/admin_analytics_axe.mjs | grep -E "FAIL|ok  |FAILED"
+# reports: fixtures (an undated lesson, a duplicate number, a draft, a formula-looking title, an empty series), see tests/reports_fixtures.sql
+npx wrangler@4 d1 execute drwasiullah $W --file tests/reports_fixtures.sql >/dev/null 2>&1
+BASE=http://localhost:$PORT node tests/admin_reports.mjs | grep -E "FAIL|passed|!!"
+BASE=http://localhost:$PORT SHOT=${SHOT:-} SHOTNAME=reports PAGES="/reports,/reports/summary,/reports/quality,/reports/quality?series=tadrib,/reports/series?id=tadrib&all=1,/reports/series?id=muslim" node tests/admin_analytics_axe.mjs | grep -E "FAIL|ok  |FAILED"
 
 
 # the chain steps below overwrite these tracked data files temporarily: keep copies and put them back on exit
@@ -96,3 +100,7 @@ const ok = o.blocks.map(b => b.id).join() === "latest,schedule,about,sections,sh
   && h.includes("id=\"live-banner\" aria-live=\"polite\" data-home") && fs.existsSync("dist/data/home.json") && (h.match(/<a class="spine/g) || []).length === 5;
 console.log(ok ? "ok   home layout -> home.json -> built home page (order, hidden block, custom heading, sizes) and shipped for the client" : "FAIL home chain: " + JSON.stringify(o).slice(0, 400) + " cards=" + cards); process.exit(ok ? 0 : 1)' "$P"
 cp "$KEEP/home.json" site/data/home.json 2>/dev/null || rm -f site/data/home.json
+
+# --- chain: the reports' totals must equal what the SITE would show after Publish (same rules as scripts/make_report.mjs) ---
+node --no-warnings scripts/db.mjs export --db "$DB" --out "$P/pub" --only data/library.json,data/makkah.json,data/haram.json,data/overrides.json,data/order.json >/dev/null
+BASE=http://localhost:$PORT node tests/reports_chain.mjs "$P/pub" | grep -E "FAIL|ok  "

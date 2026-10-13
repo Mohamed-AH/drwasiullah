@@ -10,6 +10,7 @@ import { saveOrder, resetOrder } from "./order.mjs";
 import * as L from "./live.mjs";
 import * as LP from "./live_pages.mjs";
 import { analyticsPage, analyticsCsv } from "./analytics.mjs";
+import * as R from "./reports.mjs";
 import * as H from "./home.mjs";
 import * as P from "./pages.mjs";
 
@@ -120,6 +121,11 @@ export default {
       if (path === "/admin.css") return done(new Response(CSS, { headers: { "content-type": "text/css; charset=utf-8" } }));
       if (path === "/admin.js") return done(new Response(JS, { headers: { "content-type": "text/javascript; charset=utf-8" } }));
       if (path === "/analytics.csv" && can(user.role, "analytics.view")) return done(await analyticsCsv(env.DB, url.searchParams));
+      if (can(user.role, "reports.view")) {
+        if (path === "/reports/lessons.csv") { const sid = url.searchParams.get("series"); return done(await R.lessonsCsv(env.DB, sid ? sid.slice(0, 120) : null)); }
+        if (path === "/reports/series.csv") return done(await R.seriesCsv(env.DB));
+        if (path === "/reports/books.csv") return done(await R.booksCsv(env.DB));
+      }
       const flash = url.searchParams.get("ok") ? { kind: "ok", code: url.searchParams.get("ok") } : url.searchParams.get("err") ? { kind: "err", code: url.searchParams.get("err") } : null;
       const pageNo = Math.min(Math.max(parseInt(url.searchParams.get("page") || "1", 10) || 1, 1), 1000);
 
@@ -142,6 +148,10 @@ export default {
       else if (path === "/announcements" && can(user.role, "announcements.edit")) html = await LP.announcementsPage(env.DB, user, flash);
       else if ((m = /^\/announcements\/(\d{1,9})$/.exec(path)) && can(user.role, "announcements.edit")) html = await LP.announcementEditPage(env.DB, user, +m[1], flash);
       else if (path === "/schedule" && can(user.role, "schedule.edit")) html = await LP.schedulePageAdmin(env.DB, user, flash);
+      else if (path === "/reports" && can(user.role, "reports.view")) html = await R.reportsIndex(env.DB, user);
+      else if (path === "/reports/summary" && can(user.role, "reports.view")) html = await R.summaryReport(env.DB, user);
+      else if (path === "/reports/quality" && can(user.role, "reports.view")) html = await R.qualityReport(env.DB, user, String(url.searchParams.get("series") ?? "").slice(0, 120));
+      else if (path === "/reports/series" && can(user.role, "reports.view")) html = await R.seriesReport(env.DB, user, String(url.searchParams.get("id") ?? "").slice(0, 120), url.searchParams.get("all") === "1");
       else if (path === "/home" && can(user.role, "layout.edit")) html = await H.homePage(env.DB, user, flash);
       else if (path === "/users" && can(user.role, "users.manage")) html = await P.usersPage(env.DB, user, flash);
       else if (path === "/audit" && can(user.role, "audit.view")) html = await P.auditPage(env.DB, user);

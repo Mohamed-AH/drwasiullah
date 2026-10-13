@@ -405,6 +405,7 @@ function initOrder() {
   renumber(); mark(); syncSel();
 }
 
+document.querySelectorAll("[data-print]").forEach(b => b.addEventListener("click", () => window.print()));
 if ($("upload-root")) initUpload();
 if ($("order-root")) initOrder();
 if ($("book-root")) initBook();
