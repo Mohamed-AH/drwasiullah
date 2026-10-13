@@ -2,7 +2,8 @@ name: D1 backup
 
 # Every night: export the content database (Cloudflare D1) and commit the content as plain JSON under backup/ (only when it changed).
 # This is a backup and an audit trail; the site is NOT built from it yet (docs/admin-portal-spec.md, phase 1).
-# The users and audit tables are never written to git: this repository is public. D1 "Time Travel" keeps 7 days of point-in-time restore for those.
+# Also in backup/: data/banners.json and data/announcements.json (without created_by). NOT written to git, because the repository is public: users, audit log, counters, schedule notices.
+# D1 "Time Travel" keeps 7 days of point-in-time restore for everything, including those.
 on:
   schedule:
     - cron: "37 2 * * *"         # 02:37 UTC daily

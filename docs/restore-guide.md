@@ -7,12 +7,12 @@ Step by step, for the owner. Read §1 first, then jump to the procedure that mat
 | What | Where it is kept | How far back | Restore with |
 |---|---|---|---|
 | **Everything in the database** (lessons, series, books, order, patches, schedule, home layout, **users, audit log, counters, banners, announcements, notices**) | D1 **Time Travel** (Cloudflare keeps a continuous history) | **7 days** on the free plan (30 on paid; the wrangler help text says 30) | Procedure **A** |
-| **Content** (lessons, series, books, patches, order, schedule, home layout, bio, media manifest — **all statuses, drafts and hidden included**) | `backup/` in this repository, committed every night at 02:37 UTC by the «D1 backup» Action (only when something changed) | **Forever** (git history) | Procedure **B** |
+| **Content** (lessons, series, books, patches, order, schedule, home layout, bio, media manifest, **banners and announcements** — **all statuses, drafts and hidden included**) | `backup/` in this repository, committed every night at 02:37 UTC by the «D1 backup» Action (only when something changed) | **Forever** (git history) | Procedure **B** |
 | **Published content** | `site/data/*.json` in git (written by every Publish) | Forever | Procedure **B** (second source), **D** |
 | **The live site** | Cloudflare deployments (every deploy is kept) | Many versions | Procedure **D** |
 | **Audio / PDFs / EPUBs** | R2 bucket `drwasiullah-media` (content-addressed files, never changed by the portal) | not backed up — originals are on archive.org / makkahscholars.org / the team's files; `site/data/media.json` maps original → our copy | re-run `tools/mirror_media.py` (see mirror-setup.md) |
 
-**NOT in the git backup (only Time Travel covers them, 7 days):** users, audit log, usage counters, banners, announcements, «no lesson tonight» notices. **Not backed up anywhere in code:** the Access policy (who may log in), GitHub/Cloudflare secrets and tokens. Keep a private note of the team's emails and re-create secrets from their own setup steps (admin-setup.md).
+**NOT in the git backup (only Time Travel covers them, 7 days):** users, audit log, usage counters, «no lesson tonight» notices. (Banners and announcements *are* in the git backup since 2026-10-14 — without the editor's email — so they are public in the repository even while draft/inactive; write drafts accordingly.) **Not backed up anywhere in code:** the Access policy (who may log in), GitHub/Cloudflare secrets and tokens. Keep a private note of the team's emails and re-create secrets from their own setup steps (admin-setup.md).
 
 ## 1. First, what happened? (decision table)
 
@@ -60,7 +60,7 @@ Use when the mistake is recent (≤ 7 days). It rewinds **everything** in the da
 
 ## B. Rebuild the content from the git backup
 
-Use when Time Travel can't help: the mistake is older than 7 days, the data is corrupt, or the database was deleted. It restores **content** (all statuses). It does **not** restore users (re-add them), banners/announcements/notices (re-type them) or counters (lost).
+Use when Time Travel can't help: the mistake is older than 7 days, the data is corrupt, or the database was deleted. It restores **content** (all statuses). It restores content; banners and announcements come back with step 7 (only if the backup is from 2026-10-14 or later). It does **not** restore users (re-add them), «no lesson tonight» notices (re-type) or counters (lost).
 
 1. **Get the files and pick a version.** Latest backup:
    ```
@@ -100,7 +100,12 @@ Use when Time Travel can't help: the mistake is older than 7 days, the data is c
    ```
    npx wrangler d1 execute drwasiullah --remote --command "select (select count(*) from lessons) l, (select count(*) from series) s, (select count(*) from books) b"
    ```
-7. **Re-enter what the backup does not hold:** banners, announcements and «no lesson tonight» notices (portal pages «البانرات», «الإعلانات», «الجدول»); any users added since (portal «المستخدمون»).
+7. **Banners and announcements** (replaces what is in those two tables with the backup's version; ids and times are kept, the creator's email is not stored):
+   ```
+   node --no-warnings scripts/db.mjs restore-live --site backup
+   npx wrangler d1 execute drwasiullah --remote --file db/restore-live.sql
+   ```
+   (If `backup/data/banners.json` is missing, the backup predates this feature — re-type them in «البانرات» / «الإعلانات».) Then re-enter what is still not in any backup: «no lesson tonight» notices («الجدول») and any users added since («المستخدمون»).
 8. **Redeploy and publish:** `npx wrangler deploy -c admin/wrangler.jsonc` (needed if the database was re-created); then press **«النشر»** in the portal and check the public site after ~2 minutes. The YouTube catalogue part is refreshed by the next daily sync (or run «YouTube sync» in GitHub Actions).
 
 ## C. Undo one specific edit by hand
@@ -122,7 +127,7 @@ For an item that was only **hidden by mistake**: set its status back to «منش
 ## E. After any restore — checklist
 - [ ] Portal opens; the series/lesson/order/home page you cared about looks right
 - [ ] Counts look right (the query in A4)
-- [ ] Banners/announcements/users re-entered if you used **B**
+- [ ] After **B**: banners/announcements restored (step 7), notices and recently added users re-entered
 - [ ] «النشر» pressed, the Action «Publish from the admin portal» is green (GitHub → Actions), the public site shows the right thing
 - [ ] `https://drwasiullah.com/health` says ok
 - [ ] Editors told what time the data was rewound to
@@ -135,4 +140,4 @@ For an item that was only **hidden by mistake**: set its status back to «منش
 4. Don't rehearse Time Travel on the live database. To practise B safely, run steps 1, 2 and 4 and look at `db/seed.sql`, or restore into a throw-away copy of the database name (`wrangler d1 create drwasiullah-test`, point a scratch config at it) — never at `drwasiullah`.
 
 ## G. Known gaps (could be closed if wanted)
-Banners, announcements and notices, the counters (stats) and the audit log are not in the nightly git backup (the repository is public, and the audit log and users must never go there). If losing banners/announcements matters, the nightly job can be extended to include them; counters and audit could go to a private location instead. Ask Claude.
+Not in the nightly git backup: users and the audit log (the repository is public, they must never go there), the usage counters, and «no lesson tonight» notices (short-lived, tied to a date). Banners and announcements were added to the backup on 2026-10-14. If the counters matter, a periodic copy of the aggregated numbers to a private place could be added; ask Claude.

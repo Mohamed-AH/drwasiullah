@@ -43,6 +43,7 @@ Expected: `parity ok`, `series 29, lessons 3298, books 24`. Run it after any cha
 Until the admin portal takes over, **git stays the source of truth** and D1 is a copy. `catalogue.json` is written by the daily YouTube sync, so it must not be replaced from D1 before phase 4. The cut-over per file happens in the phase that moves its editing into the portal (audio library and media in phase 3, catalogue in phase 4, schedule/banners in phase 5). Re-seed D1 from git if you change a JSON file by hand before then.
 
 ## Restoring
+The nightly backup (`backup/`) also contains banners and announcements (`data/banners.json`, `data/announcements.json`; no editor emails).
 See **[restore-guide.md](restore-guide.md)**: Time Travel (7 days), rebuild from `backup/`, undo one edit, roll the site back.
 
 ## Privacy
