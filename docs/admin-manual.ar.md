@@ -144,7 +144,7 @@
 | تطبيق تغييرات قاعدة البيانات المرفقة بإصدار | `npx wrangler d1 migrations apply drwasiullah --remote` |
 | تجديد رمز النشر | GitHub ← رمز دقيق الصلاحيات (Actions: قراءة وكتابة، هذا المستودع فقط) ← `npx wrangler secret put GH_DISPATCH_TOKEN -c admin/wrangler.jsonc` |
 | إضافة مدير بالأمر | `npx wrangler d1 execute drwasiullah --remote --command "insert into users (email, role, name) values ('EMAIL','admin','NAME')"` |
-| النسخ الاحتياطي | إجراء ليلي على GitHub يحفظ المحتوى (دون المستخدمين والسجل) في `backup/`. وخاصية Time Travel في D1 تستعيد القاعدة كاملة إلى أي دقيقة من آخر ٧ أيام (لوحة Cloudflare ← D1 ← drwasiullah ← Time Travel). |
+| النسخ الاحتياطي والاستعادة | **الخطوات التفصيلية: [restore-guide.md](restore-guide.md) (بالإنجليزية).** إجراء ليلي على GitHub يحفظ المحتوى (دون المستخدمين والسجل) في `backup/`. وخاصية Time Travel في D1 تستعيد القاعدة كاملة إلى أي دقيقة من آخر ٧ أيام (لوحة Cloudflare ← D1 ← drwasiullah ← Time Travel). |
 | فحص سلامة الموقع | `https://drwasiullah.com/health` (JSON)؛ وإجراء فحص يعمل كل ٦ ساعات. |
 | روابط الصوت/PDF المكسورة | `python tools/check_links.py` (على حاسوب المالك). |
 | مزامنة يوتيوب الآن | GitHub ← Actions ← «YouTube sync» ← Run workflow. |

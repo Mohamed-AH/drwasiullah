@@ -144,7 +144,7 @@ Anonymous counts only (lesson and kind of event; nothing about the visitor). **L
 | Apply database changes shipped with a version | `npx wrangler d1 migrations apply drwasiullah --remote` |
 | Renew the Publish token | GitHub → fine-grained token (Actions: read & write, this repo) → `npx wrangler secret put GH_DISPATCH_TOKEN -c admin/wrangler.jsonc` |
 | Add the first/another admin by command | `npx wrangler d1 execute drwasiullah --remote --command "insert into users (email, role, name) values ('EMAIL','admin','NAME')"` |
-| Backups | A nightly GitHub Action commits the content (not users or the audit log) to `backup/`. D1's own Time Travel restores the whole database to any minute of the last 7 days (Cloudflare dashboard → D1 → drwasiullah → Time Travel, or `wrangler d1 time-travel`). |
+| Backups and restore | **Step-by-step: [restore-guide.md](restore-guide.md).** A nightly GitHub Action commits the content (not users or the audit log) to `backup/`. D1's own Time Travel restores the whole database to any minute of the last 7 days (Cloudflare dashboard → D1 → drwasiullah → Time Travel, or `wrangler d1 time-travel`). |
 | Check the site is healthy | `https://drwasiullah.com/health` (JSON); a health Action runs every 6 hours. |
 | Broken audio/PDF links | `python tools/check_links.py` (owner's computer). |
 | Re-sync YouTube now | GitHub → Actions → «YouTube sync» → Run workflow. |
