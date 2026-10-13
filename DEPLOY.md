@@ -29,13 +29,19 @@ Merge to `main` → Cloudflare runs `npx wrangler deploy`, which first runs the 
 - [ ] 2-factor authentication on GitHub, Cloudflare and Namecheap; auto-renew and WHOIS privacy on at Namecheap.
 - [ ] Cloudflare: enable **DNSSEC** (then paste the DS record at Namecheap), free **Web Analytics** (cookie-less),
       a billing *usage notification* (R2 storage is shared with the other project, see ROADMAP §3).
-- [ ] GitHub: branch protection on `main` (require a pull request), secret scanning + Dependabot.
+- [ ] GitHub: secret scanning + Dependabot; branch protection on `main` only with a bypass for GitHub Actions (Publish and the daily sync commit directly to `main`).
 
 ## Headers
 `site/_headers` (applied by Cloudflare) sets caching, `X-Content-Type-Options`, `Referrer-Policy`,
-`Permissions-Policy`, HSTS and a Content-Security-Policy in **report-only** mode — check the browser console on the
-live site, then change `Content-Security-Policy-Report-Only` to `Content-Security-Policy` to enforce it.
+`Permissions-Policy`, HSTS and a **Content-Security-Policy, enforced** since 2026-10-03. If the live site ever breaks
+because of it, rename the header to `Content-Security-Policy-Report-Only` in `site/_headers` to diagnose.
+
+## The admin portal and the other Workers
+- **Admin portal** (`admin.drwasiullah.com`): a separate Worker, deployed by hand: `npx wrangler deploy -c admin/wrangler.jsonc` (after `git pull`). Setup and checklist: [docs/admin-setup.md](docs/admin-setup.md); daily use: [docs/admin-manual.md](docs/admin-manual.md).
+- **Public Worker** (`worker/index.js`: `/health`, `/api/event`, `/api/live`) ships with the site's normal deploy.
+- **Database changes** (new migrations) are applied by hand: `npx wrangler d1 migrations apply drwasiullah --remote`.
+- **Publish** (the portal's button) and the daily YouTube sync commit straight to `main`; if you add branch protection, allow GitHub Actions to bypass it.
 
 ## Other places the site could run
-Any static host works (the site uses relative paths and hash routing). Cloudflare is the chosen one; don't keep a
+Any static host could serve `dist/` (real paths, pre-rendered), but the portal, counters and live banners need Cloudflare Workers + D1. Cloudflare is the chosen one; don't keep a
 second live copy — it splits search-engine ranking and confuses visitors.

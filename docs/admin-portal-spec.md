@@ -1,4 +1,6 @@
-# Admin portal — plan (v1, agreed in principle 2026-10-10; no code written yet)
+# Admin portal — plan (v1, agreed 2026-10-10) — **STATUS: all 8 phases built and owner-verified (2026-10-13)**
+
+> **Status and deviations.** Built as planned, in this order: 1 database · 2 shell/auth/roles/audit · 3a audio upload + Publish · 3b anonymous counters · 4a editing (lessons, series, books) · 4b YouTube items as non-destructive patches (the daily sync keeps running; owner decision) · 4c arranging lesson order (owner decision: separate display order) · 5 live layer (banners, announcements, schedule, «no lesson tonight») · 6 home layout manager · 7 analytics dashboard · 8 reports. Differences from the plan below: the YouTube sync does **not** write to D1 (patch overlay + a daily mirror of the catalogue instead; moving ingestion into D1 is optional future work); the approval queue is not used; the «settings» permission exists but no settings page was needed; «standalone items» (single audio/links outside a series) are not built. Day-to-day use: [admin-manual.md](admin-manual.md). Decisions and consequences: `CLAUDE.md`.
 
 Goal: let the team add and manage content without touching git. Top priority: **upload new lectures into an existing audio series**.
 
