@@ -3,7 +3,23 @@
 > **Status: APPROVED by the owner (Oct 2026); Phase 1 in progress.** The phase list is mirrored in `CLAUDE.md`. Effort: **S** ≈ one working session, **M** ≈ 2–3, **L** ≈ 4+.
 > Free-tier numbers are from memory of the providers' public pricing — **verify at sign-up**, terms change.
 
-## 0. Where we are (snapshot, Oct 2026)
+## Status board (2026-10-13) — read this first
+The "Phases" below were written before the admin portal existed. Current state:
+
+| Area | State |
+|---|---|
+| 1 Findable & trustworthy (real URLs, pre-rendering, SEO data, a11y, security) | **Done, live.** Owner still to do: Search Console + Bing |
+| 1c Bio page | **Done, live** (text approved by the team) |
+| 2 Own the data (PDFs + audio on R2) | **Done, live** (~1,040 files; Fath al-Bari ~10 GB deliberately not mirrored yet). Open: ffprobe durations |
+| 3a YouTube daily sync | **Done, live** |
+| 3b Mixlr | **Open** (needs the account owner); a Mixlr button already exists on the schedule |
+| 4 Audio for video lessons (team-supplied) | **Open** — waiting for the team's first batch (`tools/ingest_audio.py`, «audio only» toggle) |
+| 5 English edition | **Open** — needs the owner's decisions (UI only or titles too; transliteration) |
+| **Admin portal (docs/admin-portal-spec.md)** phases 1–8: database, login/roles/audit, audio upload + Publish, counters, editing, YouTube patches, lesson ordering, banners/announcements/schedule, home layout, analytics, reports | **All built, deployed and owner-verified.** Manual: `docs/admin-manual.md` |
+| Also done beyond the plan | Fath al-Bari (makkahscholars.org) and Haram-channel imports; weekly schedule page; health monitoring; content report PDFs |
+| Next (see CLAUDE.md «What is left») | CI that runs the tests · team audio · English edition · Mixlr live · optional portal extras (standalone items, approval queue, ingestion into D1, Arabic manual) · owner housekeeping (Search Console, 2FA/DNSSEC, screen-reader pass, token renewal) |
+
+## 0. Where we are (snapshot, Oct 2026 — historical: the original starting point)
 
 | | |
 |---|---|
@@ -121,7 +137,7 @@ security checks run continuously (they are part of every phase's "done").
 - [x] Hide dead links: pruned 30 dead Bukhari URLs (`dead_links.txt`); series retitled «دروس من صحيح البخاري — كتاب العلم» (6 lessons) — restore «كتابا العلم والصلاة» in `import_wordpress.py` once the prayer lessons are recovered. Ask the archive.org/WordPress owner to re-upload the Bukhari prayer lessons (then delete their lines from `dead_links.txt`). Re-check the PDF later (`measure_storage.py` retries failures).
 - [ ] Accounts: **2-factor authentication** on GitHub, Cloudflare, Namecheap; registrar lock on; auto-renew on; WHOIS privacy on.
 - [ ] Cloudflare: Always-HTTPS, HSTS (start 6 months, no preload yet), DNSSEC on (then add the DS record at Namecheap), CAA record, free **Web Analytics** (cookie-less).
-- [ ] GitHub: branch protection on `main` (PR required), secret scanning + Dependabot (Actions) on.
+- [ ] GitHub: secret scanning + Dependabot (Actions) on. Branch protection on `main` only with a bypass for GitHub Actions (Publish and the YouTube sync commit directly to `main`).
 - [ ] Add `CLAUDE.md` (done) and keep it current.
 
 ### Phase 1 — Findable & trustworthy (L)   — **status (Oct 2026)**

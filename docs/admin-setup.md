@@ -6,7 +6,16 @@ The portal is a separate Cloudflare Worker (`admin/`) at **https://admin.drwasiu
 
 So a new team member must be added in **both** places: the Access policy (step 1 below) and the portal's «المستخدمون» page.
 
-What the portal contains now: login, roles, audit log (every change is recorded with who/when/before/after), browsing of series, lessons and books, user management (Admin only), and the **audio upload workflow** (phase 3): «رفع درس» (drag files into an existing series, numbers continue automatically, Hijri date, upload straight to R2, save), «سلسلة جديدة», hide/show per lesson, and «النشر» (Publish). Editing titles, books, standalone items and so on come in phase 4. Editors see the content pages only; Admins also see «المستخدمون» and «السجل».
+What the portal contains: login, roles, audit log, browsing and editing of series, lessons and books (including YouTube lessons as patches), the audio upload workflow, lesson ordering, banners, announcements, the weekly schedule, the home page layout, analytics, reports, user management and «النشر» (Publish). **How to use all of this: [admin-manual.md](admin-manual.md) (English) / [admin-manual.ar.md](admin-manual.ar.md) (Arabic, for the team).** This file is the technical setup and the per-phase notes. Editors see the content pages only; Admins also see the rest.
+
+## Deploy checklist after merging a new version (owner)
+Run in Git Bash from the repo folder after `git pull` (the public site deploys by itself when `main` changes):
+1. `npx wrangler d1 migrations apply drwasiullah --remote` — answer `y`. Safe to repeat; it applies only what is missing (migrations 0001–0005 so far).
+2. `npx wrangler deploy -c admin/wrangler.jsonc` — the admin Worker (needed after every change under `admin/`).
+3. The public Worker (`worker/index.js`: `/health`, `/api/event`, `/api/live`) deploys with the site when `main` changes. Fallback: `npx wrangler deploy`.
+4. If a version needs a one-time data step it is listed in its phase section below (for example refreshing the portal's catalogue copy in phase 4b).
+5. Check: open the portal, open «النشر» (no error), and `https://drwasiullah.com/health`.
+Do **not** protect `main` with «require a pull request» unless GitHub Actions is allowed to bypass it: Publish and the daily YouTube sync commit directly to `main`.
 
 ## Owner steps (once)
 Menu names in the Cloudflare dashboard move around; the words in **bold** are what to look for.

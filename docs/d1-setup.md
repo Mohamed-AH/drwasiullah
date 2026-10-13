@@ -36,7 +36,10 @@ Expected: `parity ok`, `series 29, lessons 3298, books 24`. Run it after any cha
    - `CLOUDFLARE_API_TOKEN` — My Profile → API Tokens → Create Token → custom, permission **Account · D1 · Read** (that is enough for an export), this account only.
    Then Actions → "D1 backup" → Run workflow once and check that `backup/` appears.
 
-## Who owns which file (important until phase 4)
+## Who owns which file (updated: the portal is live)
+**Current state:** `library.json`, `makkah.json`, `haram.json`, `overrides.json`, `order.json`, `schedule.json` and `home.json` are owned by the database (Publish writes them); `catalogue.json` is owned by the daily YouTube sync (D1 keeps a refreshed copy); never re-run `seed` on the live database. The text below is the original phase-1 note, kept for history.
+
+### Original note (phase 1)
 Until the admin portal takes over, **git stays the source of truth** and D1 is a copy. `catalogue.json` is written by the daily YouTube sync, so it must not be replaced from D1 before phase 4. The cut-over per file happens in the phase that moves its editing into the portal (audio library and media in phase 3, catalogue in phase 4, schedule/banners in phase 5). Re-seed D1 from git if you change a JSON file by hand before then.
 
 ## Privacy

@@ -75,13 +75,15 @@ Videos YouTube no longer returns, or that are live with no length yet, are left 
 
 ## Weekly schedule: `site/data/schedule.json`
 
-The page «جدول الدروس الأسبوعي» (`/schedule/`, linked in the header, drawer and footer) exists only while this file does. Edit the file to change the timetable; nothing else needs touching.
+**Database-owned since phase 5:** edit the timetable in the admin portal («الجدول», then «النشر»); Publish rewrites this file. (The format below is still what the build reads.) The page «جدول الدروس الأسبوعي» (`/schedule/`, linked in the header, drawer and footer) exists only while this file does. Nothing else needs touching.
 
 ```jsonc
 {
   "note": "الجدول قابل للتغيير؛ …",                       // optional line under the table
+  "live": { "url": "https://mixlr.com/…", "label": "…", "sub": "…" },   // optional live-broadcast button (mixlr.com only)
   "slots": [
-    { "days": ["الأحد", "الخميس", "السبت"],               // Arabic day names (الأحد الإثنين الثلاثاء الأربعاء الخميس الجمعة السبت)
+    { "id": "s1",                                         // stable id (a-z, 0-9, -; default s<position>); "no lesson tonight" notices refer to it
+      "days": ["الأحد", "الخميس", "السبت"],               // Arabic day names (الأحد الإثنين الثلاثاء الأربعاء الخميس الجمعة السبت)
       "order": 2,                                         // lessons of the same day are listed by this number
       "time": "بعد المغرب",                                // free text, shown as written
       "title": "شرح صحيح مسلم",
@@ -102,3 +104,13 @@ Written by `tools/mirror_media.py`: `{ "<original URL>": { "url": "https://media
 ## Optional: `site/data/bio.json`
 
 Biography page, text supplied by the Sheikh's team (`docs/bio.md`, copied unchanged into the JSON; edit the JSON directly from now on). Format in [bio-spec.md](bio-spec.md). Until the file exists there is no `/about/` page and no link to it. Files linked from it (the Sheikh's PDF) live in `site/files/`.
+
+## Files owned by the admin database (written by Publish — do not edit by hand)
+
+`library.json`, `makkah.json`, `haram.json` (lessons/series/books as described above), `schedule.json`, plus three small ones:
+
+- **`site/data/overrides.json`** — editors' patches on YouTube items: `{ "lessons": { "<id>": { "title"?, "n"?, "section"?, "series"?, "hd"?, "date"?, "hidden"? } }, "series": { "<id>": { "title"?, "sec"?, "description"?, "hidden"? … } } }`. Only fields that differ from the sync's value are stored. Applied at build time by `applyOverrides()` (`core.js`); not shipped to browsers (the build writes the patched `dist/catalogue.json`).
+- **`site/data/order.json`** — saved display order: `{ "<seriesId>": ["<lessonId>", …] }`. Applied by `applyOrder()`: lessons get `ord`, the series `manual: true`. Not shipped to browsers.
+- **`site/data/home.json`** — home page layout: `{ "blocks": [ { "id": "news|schedule|about|sections|shelf|latest", "on": true, "title"?: "plain text ≤ 60", "count"?: n (shelf 3–16, latest 4–24), "series"?: ["<id>", …] (shelf only: hand-picked) } ] }`. Optional: without the file the home page keeps the default layout. Cleaned by `cleanHome()` (`core.js`); shipped to browsers only when present.
+
+`catalogue.json` is still owned by the daily YouTube sync, and `media.json`/`bio.json` are unchanged.
