@@ -85,6 +85,7 @@ node tests/a11y_check.mjs http://localhost:8000
 | `site/js/core.js` | data model, helpers, input cleaning, URL builders (no DOM) |
 | `site/js/views.js` | every page as a function that returns HTML and SEO metadata |
 | `site/js/app.js` | browser only: navigation, search, players |
+| `site/js/i18n.js`, `site/i18n/langs.json` | the language engine (Arabic dictionary, `t()`, language switch). **The site is Arabic only at the Sheikh's request; other languages are on hold** and their draft translations are not in the repository — see [docs/i18n-plan.md](docs/i18n-plan.md) |
 | `scripts/build.mjs` | pre-renders `site/` into `dist/`, writes sitemap, redirects, 404 |
 | `ingest.py`, `build_catalogue.py`, `manage.py` | YouTube → SQLite → `site/catalogue.json`; manual curation |
 | `import_wordpress.py` | saved WordPress pages → `site/data/library.json` (one-off; the database owns that file now) |
@@ -115,7 +116,7 @@ The structure carries over; the content-specific parts are few.
 - **The portal is built for a small team on free tiers.** Cloudflare Access (50 users), D1 (100,000 writes a day) and Workers (100,000 requests a day, 10 ms CPU on the free plan) are enough here, but the big report pages are the first thing to watch (see CLAUDE.md, "Decisions and consequences"). Publishing takes about two minutes because it is a real build and deploy.
 - **Some media still depends on third parties.** Video stays on YouTube, and any audio or PDF not yet copied to our own storage is served from its original host.
 - **Client-side search suits a few thousand items.** Past that, the JSON files would need splitting or a search service.
-- **Arabic only for now.** An English edition is planned in [ROADMAP.md](ROADMAP.md).
+- **Arabic only (Sheikh's request).** Other languages are on hold; the inert engine and the plan are in [docs/i18n-plan.md](docs/i18n-plan.md).
 - **The audio for the video lessons has to come from the Sheikh's team.** The project does not download audio from YouTube.
 - **The mirror and link-check tools are run by hand,** not scheduled.
 

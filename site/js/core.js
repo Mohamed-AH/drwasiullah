@@ -1,34 +1,38 @@
 /* Shared by the browser app and the Node pre-renderer: constants, helpers, data model. No DOM access here. */
 import { ICONS } from "./icons.js";
+import { t, AR, getLang, setLang, langPrefix, LANG_META } from "./i18n.js";
+import { unitName, seriesTitle, seriesDesc, sectionName, composeLesson, markArabicDoc } from "./titles.js";
+export { t, getLang, setLang, langPrefix, LANG_META, registerDict, registerGlossary } from "./i18n.js";
+export { sectionName, bookTitle, groupName, phrase, markArabic, markArabicDoc, hasArabic } from "./titles.js";
 
 export const SITE = "https://drwasiullah.com";
-export const NAME = "الشيخ وصي الله بن محمد عباس";
-export const NAME_FULL = `${NAME} حفظه الله`;
+export const NAME = AR["brand.name"];
+export const NAME_FULL = `${NAME} ${AR["brand.dua"]}`;
 // Wording supplied by the Sheikh's team (2026-10-04): the site's official name, his full name and his posts.
-export const OFFICIAL_PRE = "الموقع الرسمي لفضيلة الشيخ الأستاذ الدكتور";
-export const FULL_NAME = "وصي الله بن محمد عباس بن أحمد عباس";
-export const ROLE = "المدرس بالمسجد الحرام والأستاذ بجامعة أم القرى";
+export const OFFICIAL_PRE = AR["brand.officialPre"];
+export const FULL_NAME = AR["brand.fullName"];
+export const ROLE = AR["brand.role"];
 export const OFFICIAL_NAME = `${OFFICIAL_PRE} ${FULL_NAME}`;
 export const YT_CHANNEL = "https://www.youtube.com/@wahatsunnah12";
 export const WP_SITE = "https://wasiullahabbas.wordpress.com/";
 
 /* ───────── Site structure ─────────  Every series belongs to one section (series.sec). Books are their own collection. */
 export const SECTIONS = [
-  { id: "duroos",   title: "الدروس المرئية",  icon: "video",       desc: "شروح الكتب والسلاسل العلمية مرئيةً، على يوتيوب." },
-  { id: "audio",    title: "الدروس الصوتية",  icon: "headphones",  desc: "سلاسل علمية صوتية للاستماع والتحميل." },
-  { id: "lectures", title: "المحاضرات",       icon: "mic-vocal",   desc: "محاضرات وكلمات وفتاوى ولقاءات منفردة." },
-  { id: "khutab",   title: "الخطب",           icon: "scroll-text", desc: "خطب الجمعة والمناسبات." },
-  { id: "urdu",     title: "الدروس بالأردية", icon: "languages",   desc: "دروس ومحاضرات باللغة الأردية." },
-  { id: "books",    title: "الكتب",           icon: "book-open",   desc: "مؤلفات الشيخ وتحقيقاته للقراءة والتحميل." },
-];
-const UNIT = { muslim: "المجلس", "fadail-sahabah": "المجلس", nasai: "المجلس" };   // numbered-lesson label per series
+  { id: "duroos",   icon: "video" },
+  { id: "audio",    icon: "headphones" },
+  { id: "lectures", icon: "mic-vocal" },
+  { id: "khutab",   icon: "scroll-text" },
+  { id: "urdu",     icon: "languages" },
+  { id: "books",    icon: "book-open" },
+].map(s => Object.defineProperties(s, { title: { get: () => t(`sec.${s.id}.title`), enumerable: true }, desc: { get: () => t(`sec.${s.id}.desc`), enumerable: true } }));   // text follows the page language
+const UNIT = { muslim: AR["unit.majlis"], "fadail-sahabah": AR["unit.majlis"], nasai: AR["unit.majlis"] };   // numbered-lesson label per series
 export const SPINE = { muslim: "#1d5a47", "ibn-majah": "#7d2a1d", "fadail-sahabah": "#1f3556", jami: "#8a5a16", nuzhat: "#52305f", nasai: "#175561", misc: "#3b3630" };
 export const SPINE_PALETTE = ["#1d5a47", "#7d2a1d", "#1f3556", "#8a5a16", "#52305f", "#175561", "#3b3630", "#5a3d1c", "#2f4a2a"];
 export const SPINE_H = [318, 284, 300, 262, 292, 248, 276];
 export const PAGE = 60;
 
 /* ───────── Data (filled by init) ─────────  lookup tables have no prototype: "__proto__" is not an id */
-export const state = { DB: null, bio: null, schedule: null, home: null, homeCustom: false };
+export const state = { DB: null, bio: null, bioLang: "ar", schedule: null, home: null, homeCustom: false };
 export const byId = Object.create(null), seriesById = Object.create(null), secById = Object.create(null);
 
 /* Make our own R2 copy (tools/mirror_media.py -> data/media.json) the primary link and keep the original as src_alt / url_alt.
@@ -111,7 +115,7 @@ export function init(cat, lib = {}, bio = null, media = null, schedule = null, h
   lib = applyMedia(lib, media);
   SECTIONS.forEach(s => secById[s.id] = s);
   const DB = {
-    series: [...cat.series, ...(lib.series || [])].map(s => ({ ...s, sec: s.sec || "duroos", unit: s.unit || UNIT[s.id] })),
+    series: [...cat.series, ...(lib.series || [])].map(s => localised({ ...s, sec: s.sec || "duroos", unit: s.unit || UNIT[s.id] })),
     lessons: [...cat.lessons, ...(lib.lessons || [])].map((l, o) => ({ ...l, kind: l.kind || "video", date: l.date || "", duration: l.duration || 0, o })),
     books: lib.books || [], updated: cat.updated,
   };
@@ -126,15 +130,30 @@ export function init(cat, lib = {}, bio = null, media = null, schedule = null, h
   state.DB = DB;
   state.schedule = cleanSchedule(schedule);   // optional: the weekly timetable (data/schedule.json)
   state.home = cleanHome(home); state.homeCustom = !!home;               // optional: order/visibility of the home page blocks (data/home.json); without it the default layout
-  state.bio = bio && typeof bio === "object" && (bio.summary || (Array.isArray(bio.sections) && bio.sections.length)) ? bio : null;   // optional: supplied by the Sheikh's team
+  setBio(bio);
   return DB;
+}
+/* optional bio (supplied by the Sheikh's team); `lang` = the language the text is in, so a page in another language can say when it shows the Arabic one */
+export function setBio(bio, lang = "ar") {
+  state.bio = bio && typeof bio === "object" && (bio.summary || (Array.isArray(bio.sections) && bio.sections.length)) ? bio : null;
+  state.bioLang = lang;
+}
+/* a series keeps its Arabic text (`title_ar`, `description_ar`); `title` / `description` follow the language of the page being rendered (glossary, else the Arabic) */
+function localised(o) {
+  const t0 = o.title, d0 = o.description;
+  Object.defineProperties(o, {
+    title_ar: { value: t0, enumerable: false }, description_ar: { value: d0, enumerable: false },
+    title: { get() { return getLang() === "ar" ? t0 : seriesTitle(this) || t0; }, set(v) { Object.defineProperty(this, "title", { value: v, writable: true, enumerable: true, configurable: true }); }, enumerable: true, configurable: true },
+    description: { get() { return getLang() === "ar" || !d0 ? d0 : seriesDesc(this) || d0; }, set(v) { Object.defineProperty(this, "description", { value: v, writable: true, enumerable: true, configurable: true }); }, enumerable: true, configurable: true },
+  });
+  return o;
 }
 
 /* ───────── Home layout ─────────  data/home.json -> { blocks: [{ id, on, title?, count?, series? }] }. The hero stays first and fixed.
    A fixed palette of blocks (not a page builder): unknown ids are dropped, missing ones are appended with their defaults, everything else is clamped. */
 export const HOME_BLOCKS = [
-  { id: "news", name: "آخر الإعلانات" }, { id: "schedule", name: "جدول الدروس الأسبوعي" }, { id: "about", name: "عن الشيخ" },
-  { id: "sections", name: "الأقسام" }, { id: "shelf", name: "خزانة الكتب", count: 10, min: 3, max: 16 }, { id: "latest", name: "أحدث المواد", count: 8, min: 4, max: 24 },
+  { id: "news", name: AR["home.news"] }, { id: "schedule", name: AR["home.schedule"] }, { id: "about", name: AR["home.about"] },
+  { id: "sections", name: AR["home.sections"] }, { id: "shelf", name: AR["home.shelf"], count: 10, min: 3, max: 16 }, { id: "latest", name: AR["home.latest"], count: 8, min: 4, max: 24 },
 ];
 export function cleanHome(raw) {
   const given = raw && typeof raw === "object" && Array.isArray(raw.blocks) ? raw.blocks : [], seen = new Set(), out = [];
@@ -153,11 +172,11 @@ export function cleanHome(raw) {
 
 /* ───────── Weekly schedule ─────────  data/schedule.json -> { note, days: [{ i, day, slots: [{ time, title, series?, lang, note? }] }] } or null.
    Everything is whitelisted: days by name, language by value, series must exist, strings are length-capped; slots marked "pending" never show. */
-export const WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];   // index = Date#getDay()
+export const WEEKDAYS = AR["weekdays"];   // index = Date#getDay(); these Arabic names are also the keys used in schedule.json
 export function cleanSchedule(raw) {
   if (!raw || typeof raw !== "object" || !Array.isArray(raw.slots)) return null;
   const str = (x, n) => typeof x === "string" ? x.replace(/[\u0000-\u001f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim().slice(0, n) : "";
-  const idx = d => WEEKDAYS.indexOf(str(d, 20).replace("الاثنين", "الإثنين"));
+  const idx = d => WEEKDAYS.indexOf(str(d, 20).replace("الاثنين", "الإثنين")  /* i18n-allow */);
   const byDay = WEEKDAYS.map(() => []);
   raw.slots.forEach((x, k) => {
     if (!x || typeof x !== "object" || x.pending) return;
@@ -167,42 +186,52 @@ export function cleanSchedule(raw) {
   });
   const days = byDay.map((slots, i) => ({ i, day: WEEKDAYS[i], slots: slots.sort((a, b) => a.order - b.order || a.k - b.k) })).filter(d => d.slots.length);
   let live = null;   // optional live-stream button: https link on mixlr.com only
-  if (raw.live && typeof raw.live === "object") { try { const u = new URL(String(raw.live.url)); if (u.protocol === "https:" && /^(www\.)?mixlr\.com$/.test(u.hostname)) live = { url: u.href, label: str(raw.live.label, 40) || "حضور البث المباشر", sub: str(raw.live.sub, 60) }; } catch {} }
+  if (raw.live && typeof raw.live === "object") { try { const u = new URL(String(raw.live.url)); if (u.protocol === "https:" && /^(www\.)?mixlr\.com$/.test(u.hostname)) live = { url: u.href, label: str(raw.live.label, 40) || AR["sched.liveDefault"], sub: str(raw.live.sub, 60) }; } catch {} }
   return days.length ? { note: str(raw.note, 300), days, live } : null;
 }
 
 /* ───────── Helpers ───────── */
-export const ic = (n, s = 20, cls = "") => `<svg class="ic ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[n] || ""}</svg>`;
+export const isLtr = () => LANG_META[getLang()].dir === "ltr";
+/* the chevrons are drawn for right-to-left pages ("chevron-left" = forward); in a left-to-right page forward points right */
+export const ic = (n, s = 20, cls = "") => `<svg class="ic ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[n === "chevron-left" && isLtr() ? "chevron-right" : n] || ""}</svg>`;
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Arabic-insensitive search: drop tashkeel/tatweel, unify alef/ya/ta-marbuta, Arabic digits -> latin
 export const norm = s => String(s || "").toLowerCase()
-  .replace(/[ً-ٰٟـ]/g, "")
-  .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
-  .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
-const nf = new Intl.NumberFormat("ar-EG", { useGrouping: false });
-export const fmtNum = n => nf.format(n);
+  .replace(/[ً-ٰٟـ]/g, "")  /* i18n-allow */
+  .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")  /* i18n-allow */
+  .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))  /* i18n-allow */
+  .replace(/[\u06cc\u06d2]/g, "\u064a").replace(/\u06a9/g, "\u0643").replace(/[\u06c1\u06be\u06c3]/g, "\u0647").replace(/\u06ba/g, "\u0646")   // Urdu letters -> the Arabic ones (ی ے ک ہ ھ ۃ ں): an Urdu query finds Arabic titles and the other way round
+  .replace(/[\p{Script=Latin}\u02b0-\u02ff\u0300-\u036f’']+/gu, r => r.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[ʿʾʻʼ’']/g, ""));   // Latin: ā ḥ ṣ … -> a h s …, the apostrophe-like letters (ʿayn, hamza) dropped
+const nf = new Intl.NumberFormat("ar-EG", { useGrouping: false }), nfWest = new Intl.NumberFormat("en-US");
+export const fmtNum = n => getLang() === "ar" ? nf.format(n) : nfWest.format(n);                 // other languages: Western digits (docs/i18n-plan.md)
+const N = x => getLang() === "ar" ? nf.format(x) : String(x);                                    // years and day numbers: never grouped
 // Dates are shown in the Hijri (Umm al-Qura) calendar only. Input: YYYY-MM-DD.
 const HIJRI = "ar-SA-u-ca-islamic-umalqura-nu-arab";
 const hijriFull = new Intl.DateTimeFormat(HIJRI, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const hijriYear = new Intl.DateTimeFormat(HIJRI, { year: "numeric", timeZone: "UTC" });
 const at = d => new Date(d + "T12:00:00Z");
-export const fmtDate = d => d ? hijriFull.format(at(d)) : "";
-const HM = ["محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"];
+const hijriEn = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "numeric", year: "numeric", timeZone: "UTC" });
+const hijriParts = d => { const o = {}; for (const p of hijriEn.formatToParts(at(d))) o[p.type === "relatedYear" ? "year" : p.type] = p.value; return o; };
+export const fmtDate = d => {
+  if (!d) return "";
+  if (getLang() === "ar") return hijriFull.format(at(d));
+  const o = hijriParts(d); return t("date.fmt", { d: String(+o.day), m: t("hijri.months")[o.month - 1], y: String(+o.year), era: t("hijri.era") });
+};
 // `hd` = Hijri date taken from the source ("1433-3-2", "1427-3" or just "1426"); otherwise convert the Gregorian `date`.
-const fmtHijri = hd => { const [y, m, d] = hd.split("-").map(Number); return [d ? fmtNum(d) : "", m ? HM[m - 1] : "", fmtNum(y), "هـ"].filter(Boolean).join(" "); };
+const fmtHijri = hd => { const [y, m, d] = hd.split("-").map(Number); return t("date.fmt", { d: d ? N(d) : "", m: m ? t("hijri.months")[m - 1] : "", y: N(y), era: t("hijri.era") }); };
 export const ldate = l => l.hd ? fmtHijri(l.hd) : l.date ? fmtDate(l.date) : "";
-export const fmtYear = d => d ? hijriYear.format(at(d)).replace(/\s*هـ$/, "") : "";
+export const fmtYear = d => d ? (getLang() === "ar" ? hijriYear.format(at(d)).replace(/\s*هـ$/, "") : String(+hijriParts(d).year)) : "";  /* i18n-allow */
 export const dur = s => { if (!s) return ""; const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
   return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
 export const isoDur = s => s ? `PT${Math.floor(s / 3600)}H${Math.floor(s % 3600 / 60)}M${s % 60}S` : "";
-export const hours = s => { const h = Math.round(s / 3600); return h ? fmtNum(h) + " ساعة" : ""; };
-export const dg = s => String(s ?? "").replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);   // Arabic-Indic digits for titles from any source
+export const hours = s => { const h = Math.round(s / 3600); return h ? t("hours", { n: fmtNum(h) }) : ""; };
+export const dg = s => getLang() === "ar" ? String(s ?? "").replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]) : String(s ?? "");  /* i18n-allow */   // Arabic-Indic digits for titles from any source
 
 /* ───────── Input sanitising ─────────  Everything that comes from the user (search boxes, URL) or from data files goes through these. */
 export const MAXQ = 100, MAXTOKENS = 8;
 // strip invisible/bidi-control characters (RLO tricks etc.) and control chars; keep ZWNJ/ZWJ used in Persian/Urdu
 export const cleanQuery = s => String(s ?? "").normalize("NFC")
-  .replace(/[­؜​‎‏‪-‮⁠-⁯﻿]/g, "")
+  .replace(/[­؜​‎‏‪-‮⁠-⁯﻿]/g, "")  /* i18n-allow */
   .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ").replace(/\s+/g, " ").trim()
   .slice(0, MAXQ).split(" ").slice(0, MAXTOKENS).join(" ");
 export const safeDecode = s => { try { return decodeURIComponent(s); } catch { return ""; } };   // malformed %-sequences must not crash routing
@@ -215,9 +244,24 @@ export const jsonLd = o => JSON.stringify(o).replace(/</g, "\\u003c");          
 /* ───────── Model helpers ───────── */
 export const kindIcon = l => l.kind === "audio" ? "headphones" : "video";
 export const useLabel = l => l.kind === "video" && l.n != null && l.series !== "misc";   // YouTube titles are long; show "المجلس N" instead
-export const label = l => `${seriesById[l.series].unit || "الدرس"} ${fmtNum(l.n)}`;
-export const mainTitle = (l, withBook = true) => useLabel(l) ? `${label(l)}${withBook && l.section ? " — " + l.section : ""}` : dg(l.title);
-export const fullTitle = l => { const s = seriesById[l.series]; return useLabel(l) ? `${label(l)} — ${s.title}` : s.ordered ? `${dg(l.title)} — ${s.title}` : dg(l.title); };
+export const label = l => `${unitName(seriesById[l.series].unit) || t("unit.lesson")} ${fmtNum(l.n)}`;
+/* other languages: titles of numbered lessons are composed from their Arabic template (titles.js composeLesson); free text stays Arabic (null here) */
+let knownTitles = null;
+function composed(l) {
+  const L = getLang(); if (L === "ar") return null;
+  const key = "_c" + L; if (own(l, key)) return l[key];
+  const s = seriesById[l.series], P = (k, n) => t(k, { n: fmtNum(n) });
+  if (!knownTitles) knownTitles = new Set(Object.values(seriesById).map(x => norm(x.title_ar)));
+  let r = null;
+  try {
+    r = composeLesson(l, s, { unit: () => unitName(s.unit || AR["unit.lesson"]), unitOf: u => unitName(u), sectionEn: l.section && sectionName(l.section) !== l.section ? sectionName(l.section) : "", seriesAr: s.title_ar, sec: sectionName,
+      knownSeriesText: x => knownTitles.has(norm(x)), part: n => P("cx.part", n), hadith: n => P("cx.hadith", n), no: n => P("cx.no", n), fromHadith: n => P("cx.fromHadith", n), more: t("cx.more"), a: t("cx.a"), b: t("cx.b") });
+  } catch { r = null; }
+  Object.defineProperty(l, key, { value: r, enumerable: false, configurable: true, writable: true });
+  return r;
+}
+export const mainTitle = (l, withBook = true) => useLabel(l) ? `${label(l)}${withBook && l.section ? " — " + sectionName(l.section) : ""}` : composed(l) || dg(l.title);
+export const fullTitle = l => { const s = seriesById[l.series], c = useLabel(l) ? null : composed(l); return useLabel(l) ? `${label(l)} — ${s.title}` : c ? `${c} — ${s.title}` : s.ordered ? `${dg(l.title)} — ${s.title}` : dg(l.title); };
 export const secOfSeries = s => secById[s.sec] || secById.duroos;
 export const secOfLesson = l => secOfSeries(seriesById[l.series]);
 export const seriesOrder = (a, b) => (a.ord ?? 1e9) - (b.ord ?? 1e9) || (a.n ?? 1e9) - (b.n ?? 1e9) || (a.o - b.o);   // ord = the editors' saved display order (see applyOrder), else number, else original position
@@ -228,7 +272,13 @@ export const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="fals
 export function match(l, q) {
   if (!q) return true;
   const s = seriesById[l.series];
-  const hay = l._h || (l._h = norm(`${l.title} ${s.title} ${secOfSeries(s).title} ${l.section || ""} ${l.n != null ? "المجلس الدرس " + l.n : ""} ${fmtYear(l.date)}`));
+  const L = getLang();
+  if (l._hl !== L) {   // cached per language: the build renders several languages in one process
+    l._hl = L;
+    l._h = norm(`${l.title} ${s.title} ${secOfSeries(s).title} ${l.section || ""} ${l.n != null ? "المجلس الدرس " + l.n : ""} ${fmtYear(l.date)}`  /* i18n-allow */
+      + (L === "ar" ? "" : ` ${s.title_ar} ${secOfSeries(s).title} ${l.section ? sectionName(l.section) : ""} ${l.n != null ? t("search.words", { n: l.n }) : ""} ${mainTitle(l)} ${fullTitle(l)}`));
+  }
+  const hay = l._h;
   return norm(q).split(/\s+/).filter(Boolean).every(t => hay.includes(t));
 }
 
@@ -238,12 +288,20 @@ export const visible = () => SECTIONS.filter(s => sectionCount(s.id) > 0);
 export const isFlat = secId => seriesIn(secId).length === 1;   // a section with one series has no page of its own: it links to that series
 
 /* ───────── URLs (real paths, root-relative) ───────── */
+/* every internal link goes through here: the language prefix ("" for Arabic, "/en", "/ur") comes from the page being rendered */
 export const href = {
-  home: () => "/", library: () => "/library/", books: () => "/books/", about: () => "/about/", schedule: () => "/schedule/",
-  series: id => `/series/${encodeURIComponent(id)}/`,
-  lesson: id => `/lesson/${encodeURIComponent(id)}/`,
-  search: (qs = "") => "/search/" + qs,
-  section: sec => sec.id === "books" ? "/books/" : isFlat(sec.id) ? href.series(seriesIn(sec.id)[0].id) : `/section/${encodeURIComponent(sec.id)}/`,
+  home: () => langPrefix() + "/", library: () => langPrefix() + "/library/", books: () => langPrefix() + "/books/", about: () => langPrefix() + "/about/",
+  schedule: () => langPrefix() + "/schedule/", news: () => langPrefix() + "/news/",
+  series: id => `${langPrefix()}/series/${encodeURIComponent(id)}/`,
+  lesson: id => `${langPrefix()}/lesson/${encodeURIComponent(id)}/`,
+  search: (qs = "") => langPrefix() + "/search/" + qs,
+  section: sec => sec.id === "books" ? href.books() : isFlat(sec.id) ? href.series(seriesIn(sec.id)[0].id) : `${langPrefix()}/section/${encodeURIComponent(sec.id)}/`,
+};
+/* languages that exist in this build (the pre-renderer sets it; the browser adds the language of the page it is on) */
+export const LANGS = { enabled: ["ar"], indexed: ["ar"] };   // enabled = built; indexed = also in the sitemap / hreflang (a language can be built but not yet public)
+export const splitLang = pathname => {                       // "/en/series/x/" -> { lang: "en", path: "/series/x/" }; Arabic paths have no prefix
+  const m = /^\/([a-z]{2})(\/.*)?$/.exec(String(pathname));
+  return m && m[1] !== "ar" && LANGS.enabled.includes(m[1]) ? { lang: m[1], path: m[2] || "/" } : { lang: "ar", path: String(pathname) };
 };
 export { seriesIn };
 
