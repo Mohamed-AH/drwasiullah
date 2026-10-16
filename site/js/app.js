@@ -1,7 +1,14 @@
 /* Browser app. Pages arrive pre-rendered (scripts/build.mjs); this script wires them up and handles client-side navigation. */
-import { init, state, byId, seriesById, secById, ic, safeYt, cleanQuery, oneOf, hashToPath, PAGE, SECTIONS } from "./core.js";
-import { resolve, searchResults, seriesInfo, seriesList } from "./views.js";
+import { init, state, byId, seriesById, secById, ic, safeYt, cleanQuery, oneOf, hashToPath, PAGE, SECTIONS, fmtNum, t, href, setLang, registerDict, registerGlossary, setBio, splitLang, isLtr, LANGS, LANG_META } from "./core.js";
+import { resolve, searchResults, seriesInfo, seriesList, langLinks, switcherOn } from "./views.js";
 import { loadLive, renderBanners, fillNews, applyNotices } from "./live.js";
+
+/* language of this page: the build writes <html lang dir> (and data-langs / data-indexed once more than Arabic is live); other languages bring their own dictionary */
+const PAGE_LANG = document.documentElement.lang || "ar", dset = document.documentElement.dataset;
+if (dset.langs) LANGS.enabled = dset.langs.split(","); else LANGS.enabled = ["ar", PAGE_LANG].filter((x, i, a) => a.indexOf(x) === i);
+if (dset.indexed) LANGS.indexed = dset.indexed.split(",");
+setLang(PAGE_LANG);
+const langReady = PAGE_LANG === "ar" ? Promise.resolve() : import(`/i18n/${PAGE_LANG}.js`).then(m => { registerDict(PAGE_LANG, m.default); if (m.glossary) registerGlossary(PAGE_LANG, m.glossary); }).catch(() => {});   // on failure the Arabic text is the fallback
 
 /* live layer (banners, announcements, schedule notices): fetched once per page load, shown wherever the current page has a place for it */
 const liveData = loadLive();
@@ -38,6 +45,7 @@ function route(initial) {
   const hydrated = initial && app.dataset.route === p.path && p.status === 200;
   if (!hydrated) { app.innerHTML = p.html; app.dataset.route = p.path; applyMeta(p); }
   markNav(p.nav);
+  if (p.status === 200) document.querySelectorAll(".langs a[data-lang]").forEach(a => { const l = langLinks(p.path).find(x => x.lang === a.dataset.lang); if (l) a.href = l.href + (p.path === href.search() ? u.search : ""); });   // the switcher follows the page
   wire(p, !initial);
   if (!initial) {
     const h1 = app.querySelector("h1");
@@ -74,7 +82,7 @@ document.addEventListener("click", async e => {
   if (!DL_FETCH.has(host) || dlFailed.has(host)) return openTab(a.href);
   const label = [...a.childNodes].reverse().find(n => n.nodeType === 3), text = label ? label.textContent : "";
   const say = t => { if (label) label.textContent = t; };
-  a.setAttribute("aria-busy", "true"); say(" جارٍ التحميل…");
+  a.setAttribute("aria-busy", "true"); say(t("dl.busy"));
   const name = (a.dataset.dl || "audio").replace(/[\\/:*?"<>|\u0000-\u001f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) + (/\.(mp3|m4a|ogg|wav)$/i.exec(new URL(a.href).pathname) || [".mp3"])[0];
   try {
     const r = await fetch(a.href, { credentials: "omit", referrerPolicy: "no-referrer" });
@@ -84,7 +92,7 @@ document.addEventListener("click", async e => {
     for (;;) {
       const { done, value } = await rd.read(); if (done) break;
       parts.push(value); got += value.length;
-      if (total) say(` ${Math.min(99, Math.floor(got * 100 / total)).toLocaleString("ar-EG")}٪`);
+      if (total) say(t("dl.pct", { n: fmtNum(Math.min(99, Math.floor(got * 100 / total))) }));
     }
     const url = URL.createObjectURL(new Blob(parts, { type: r.headers.get("content-type") || "audio/mpeg" }));
     saveFile(url, name); setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -98,6 +106,8 @@ document.addEventListener("click", e => {
   if ((a.target && a.target !== "_self") || a.hasAttribute("download") || a.origin !== location.origin) return;
   if (a.getAttribute("href") === "#") return;
   if (!a.pathname.endsWith("/")) return;                      // files (.pdf, .json …) and the 404 page: normal navigation
+  if (a.dataset.lang) { try { localStorage.setItem("lang", a.dataset.lang); } catch { /* storage blocked */ } return; }   // the language switcher: a real page load, and the choice is remembered
+  if (splitLang(a.pathname).lang !== PAGE_LANG) return;       // a page of another language is a different build: full load
   e.preventDefault();
   if (a.href === location.href) { scrollTo(0, 0); return; }
   go(a.pathname + a.search);
@@ -123,7 +133,7 @@ function wireShelves() {
       const b = document.createElement("button"); b.type = "button"; b.className = "icon-btn shelf-nav " + cls; b.setAttribute("aria-label", label); b.innerHTML = ic("chevron-left", 20);
       b.addEventListener("click", () => sh.scrollBy({ left: dir * sh.clientWidth * 0.8, behavior: "smooth" })); wrap.appendChild(b); return b;
     };
-    const more = mk("l", "عرض مزيد من الكتب", -1), back = mk("r", "الرجوع إلى الكتب السابقة", 1);   // physical left/right: the page is RTL, the first books are at the right
+    const more = isLtr() ? mk("r", t("shelf.more"), 1) : mk("l", t("shelf.more"), -1), back = isLtr() ? mk("l", t("shelf.back"), -1) : mk("r", t("shelf.back"), 1);   // physical left/right: RTL pages start at the right, LTR pages at the left
     const update = () => {
       const max = sh.scrollWidth - sh.clientWidth, pos = Math.abs(sh.scrollLeft);
       wrap.classList.toggle("ovf", max > 4); more.hidden = pos >= max - 4; back.hidden = pos <= 4;
@@ -138,12 +148,12 @@ function wireSchedule() {
   let day = ""; try { day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Riyadh" }).format(new Date()); } catch { return; }
   const i = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(day);
   const el = app.querySelector(`.sched-day[data-day="${i}"]`);
-  if (el) { el.classList.add("today"); el.insertAdjacentHTML("afterbegin", '<span class="today-tag">اليوم</span>'); }
+  if (el) { el.classList.add("today"); el.insertAdjacentHTML("afterbegin", '<span class="today-tag">' + t("today.tag") + '</span>'); }
   const line = app.querySelector("#live-today"); if (!line) return;
   const cards = [...app.querySelectorAll(".sched-day")];
-  const text = card => { const li = [...card.querySelectorAll(".sched-slots li")]; return li.map(x => x.dataset.t).join(" ثم ") + (li.length && li[li.length - 1].dataset.w ? " — " + li[li.length - 1].dataset.w : ""); };
+  const text = card => { const li = [...card.querySelectorAll(".sched-slots li")]; return li.map(x => x.dataset.t).join(t("today.then")) + (li.length && li[li.length - 1].dataset.w ? " — " + li[li.length - 1].dataset.w : ""); };
   const next = cards.find(c => +c.dataset.day > i) || cards[0];
-  line.textContent = el ? "اليوم: " + text(el) : next ? `الدرس القادم يوم ${next.querySelector("h2,h3").textContent}: ${text(next)}` : "";
+  line.textContent = el ? t("today.line", { text: text(el) }) : next ? t("today.next", { day: next.querySelector("h2,h3").textContent, text: text(next) }) : "";
   line.hidden = !line.textContent;
 }
 
@@ -151,7 +161,7 @@ function wireHome() {
   wireSchedule();
   liveData.then(d => { const box = app.querySelector("#live-news"); if (box && fillNews(box, d, 3)) box.hidden = false; });
   const f = app.querySelector("form.search"); if (!f) return;
-  f.addEventListener("submit", e => { e.preventDefault(); const q = cleanQuery(f.q.value); go("/search/" + (q ? "?q=" + encodeURIComponent(q) : "")); });
+  f.addEventListener("submit", e => { e.preventDefault(); const q = cleanQuery(f.q.value); go(href.search() + (q ? "?q=" + encodeURIComponent(q) : "")); });
 }
 
 function pills(container, onPick) {
@@ -166,7 +176,7 @@ function pills(container, onPick) {
 function wireSeries(id) {
   const info = seriesInfo(id), q = $("#q"), sort = $("#sort"), out = $("#out"), count = $("#count");
   const st = { q: "", sec: "", sort: oneOf(sort.value, ["new", "old", "num"], "new") };
-  const paint = () => { const r = seriesList(info, st); count.textContent = new Intl.NumberFormat("ar-EG", { useGrouping: false }).format(r.count) + " درسًا"; out.innerHTML = r.html; };
+  const paint = () => { const r = seriesList(info, st); count.textContent = t("count.lessons", { n: fmtNum(r.count) }); out.innerHTML = r.html; };
   q.addEventListener("input", debounce(e => { st.q = cleanQuery(e.target.value); paint(); }));
   sort.addEventListener("change", e => { st.sort = oneOf(e.target.value, ["new", "old", "num"], "new"); paint(); });
   pills($("#secs"), s => { st.sec = s; paint(); });
@@ -176,14 +186,13 @@ function wireSearch() {
   const params = new URL(location.href).searchParams;
   const st = { q: cleanQuery(params.get("q")), sec: oneOf(params.get("sec"), SECIDS), sort: oneOf(params.get("sort"), ["new", "old"], "new"), shown: PAGE };
   const out = $("#out"), count = $("#count"), q = $("#q");
-  const nfmt = new Intl.NumberFormat("ar-EG", { useGrouping: false });
   const paint = () => {
     const r = searchResults(st);
-    count.textContent = r.count ? `${nfmt.format(r.count)} نتيجة` : "";
-    out.innerHTML = r.html + (r.more ? `<button type="button" class="more" id="more">عرض المزيد</button>` : "");
+    count.textContent = r.count ? t("count.results", { n: fmtNum(r.count) }) : "";
+    out.innerHTML = r.html + (r.more ? `<button type="button" class="more" id="more">${t("list.more")}</button>` : "");
     const m = $("#more"); if (m) m.onclick = () => { st.shown += PAGE; paint(); m.blur(); };
     const sp = new URLSearchParams(); if (st.q) sp.set("q", st.q); if (st.sec) sp.set("sec", st.sec); if (st.sort !== "new") sp.set("sort", st.sort);
-    history.replaceState(null, "", "/search/" + (sp.toString() ? "?" + sp : ""));
+    history.replaceState(null, "", href.search() + (sp.toString() ? "?" + sp : ""));
   };
   q.addEventListener("input", debounce(e => { st.q = cleanQuery(e.target.value); st.shown = PAGE; paint(); }));
   $("#sort").addEventListener("change", e => { st.sort = oneOf(e.target.value, ["new", "old"], "new"); paint(); });
@@ -195,7 +204,7 @@ function wireSearch() {
 function wireLesson(w, byNavigation) {
   const sc = $(".side .scroll"), cur = sc && sc.querySelector(".now");
   if (cur) sc.scrollTop = cur.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - sc.clientHeight / 2;
-  $("#share")?.addEventListener("click", e => { navigator.clipboard?.writeText(location.href); e.currentTarget.innerHTML = ic("check", 17) + " تم النسخ"; });
+  $("#share")?.addEventListener("click", e => { navigator.clipboard?.writeText(location.href); e.currentTarget.innerHTML = ic("check", 17) + " " + t("lesson.copied"); });
 
   const lite = $(".player.lite");   // YouTube is only loaded when the visitor presses play (faster, more private)
   if (lite) lite.querySelector(".lite-play").addEventListener("click", () => {
@@ -214,7 +223,7 @@ function wireLesson(w, byNavigation) {
       if (aud.dataset.alt && aud.src !== aud.dataset.alt) { const t = aud.currentTime; aud.src = aud.dataset.alt; aud.load(); aud.currentTime = t; if (byNavigation) aud.play().catch(() => {}); return; }   // our copy failed: use the original
       if (!retried) { retried = true; const t = aud.currentTime; setTimeout(() => { aud.load(); aud.currentTime = t; if (byNavigation) aud.play().catch(() => {}); }, 1500); return; }
       if ($(".ap-err")) return;
-      aud.insertAdjacentHTML("afterend", `<p class="ap-err" role="alert">تعذّر تشغيل هذا التسجيل الآن (الملف غير متاح عند المصدر). ${w.next ? "يمكنك الانتقال إلى الدرس التالي." : ""}</p>`);
+      aud.insertAdjacentHTML("afterend", `<p class="ap-err" role="alert">${t("audio.error", { next: w.next })}</p>`);
     });
     if (byNavigation) aud.play().catch(() => {});       // the visitor just clicked a lesson: start it (never on a cold page load)
     let heard = 0, lastT = 0, counted = false;          // a play counts after 30 s of real listening (seeking forward does not count)
@@ -268,17 +277,41 @@ addEventListener("keydown", e => {
 
 const root = document.documentElement, themeBtn = $("#theme");
 const isDark = () => root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme:dark)").matches;
-const paintTheme = () => { themeBtn.innerHTML = ic(isDark() ? "sun" : "moon", 20); themeBtn.setAttribute("aria-label", isDark() ? "التبديل إلى الوضع النهاري" : "التبديل إلى الوضع الليلي"); };
+const paintTheme = () => { themeBtn.innerHTML = ic(isDark() ? "sun" : "moon", 20); themeBtn.setAttribute("aria-label", t(isDark() ? "nav.toLight" : "nav.toDark")); };
 themeBtn.addEventListener("click", () => { root.dataset.theme = isDark() ? "light" : "dark"; try { localStorage.setItem("theme", root.dataset.theme); } catch {} paintTheme(); });
 paintTheme();
 
+/* ───────── Language suggestion (Arabic pages only, once another language is public) ─────────
+   Arabic is the default for everybody. A visitor whose browser languages do NOT include Arabic and start with Urdu or English gets one quiet line offering that
+   language; nothing happens automatically. A choice made with the switcher (localStorage "lang") or a dismissal ("langHintDismissed") ends it for good. */
+async function suggestLanguage() {
+  try {
+    if (PAGE_LANG !== "ar" || !switcherOn() || localStorage.getItem("lang") || localStorage.getItem("langHintDismissed")) return;
+    const prefs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""]).map(x => String(x).toLowerCase().slice(0, 2));
+    if (prefs.includes("ar")) return;
+    const pick = prefs.find(x => (x === "ur" || x === "en") && LANGS.indexed.includes(x)); if (!pick) return;
+    const link = langLinks(location.pathname).find(x => x.lang === pick); if (!link) return;
+    const D = (await import(`/i18n/${pick}.js`)).default;          // the offer is written in the language it offers: its own dictionary (only requested when the banner is about to show)
+    if (document.querySelector(".lang-hint")) return;
+    const box = document.createElement("div"); box.className = "lang-hint"; box.lang = pick; box.dir = LANG_META[pick].dir; box.setAttribute("role", "region"); box.setAttribute("aria-label", D["lang.switch"]);
+    const msg = document.createElement("span"); msg.textContent = D["lang.hint.msg"];
+    const go = document.createElement("a"); go.className = "btn sm"; go.textContent = D["lang.hint.go"]; go.href = link.href + location.search; go.dataset.lang = pick; go.hreflang = pick;
+    const x = document.createElement("button"); x.type = "button"; x.className = "lang-hint-x"; x.textContent = "×"; x.setAttribute("aria-label", D["lang.hint.close"]);
+    x.addEventListener("click", () => { try { localStorage.setItem("langHintDismissed", "1"); } catch { /* ignore */ } box.remove(); });
+    box.append(msg, go, x);
+    document.getElementById("live-banner").after(box);
+  } catch { /* the suggestion is optional */ }
+}
+
 /* ───────── Boot ───────── */
+suggestLanguage();
 liveData.then(d => renderBanners(document.getElementById("live-banner"), d));
 const getJSON = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
-const hasBio = !!document.querySelector('a[href="/about/"]'), hasSchedule = !!document.querySelector('a[href="/schedule/"]'), hasHome = !!document.querySelector("#live-banner[data-home]");   // the build links /about/ only when data/bio.json exists: no 404 request while the bio is dormant
-Promise.all([getJSON("/catalogue.json"), getJSON("/data/library.json"), hasBio ? getJSON("/data/bio.json") : null, hasSchedule ? getJSON("/data/schedule.json") : null, hasHome ? getJSON("/data/home.json") : null]).then(([cat, lib, bio, schedule, home]) => {
+const hasBio = !!document.querySelector(`a[href="${href.about()}"]`), hasSchedule = !!document.querySelector(`a[href="${href.schedule()}"]`), hasHome = !!document.querySelector("#live-banner[data-home]");   // the build links /about/ only when data/bio.json exists: no 404 request while the bio is dormant
+Promise.all([langReady, getJSON("/catalogue.json"), getJSON("/data/library.json"), hasBio ? (PAGE_LANG === "ar" ? getJSON("/data/bio.json") : getJSON(`/data/bio.${PAGE_LANG}.json`).then(b => b ? { b, l: PAGE_LANG } : getJSON("/data/bio.json").then(a => a && { b: a, l: "ar" }))) : null, hasSchedule ? getJSON("/data/schedule.json") : null, hasHome ? getJSON("/data/home.json") : null]).then(([, cat, lib, bio, schedule, home]) => {
   if (!cat) throw new Error("no catalogue");
-  init(cat, lib || {}, bio, null, schedule, home);
+  init(cat, lib || {}, bio && bio.b ? bio.b : bio, null, schedule, home);
+  if (bio && bio.b) setBio(bio.b, bio.l);
   const legacy = () => { if (location.hash.startsWith("#/")) { history.replaceState(null, "", hashToPath(location.hash)); return true; } return false; };   // old shared links (#/watch/ID …)
   legacy();
   addEventListener("hashchange", () => { if (legacy()) route(false); });

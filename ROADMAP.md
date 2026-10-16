@@ -14,10 +14,10 @@ The "Phases" below were written before the admin portal existed. Current state:
 | 3a YouTube daily sync | **Done, live** |
 | 3b Mixlr | **Open** (needs the account owner); a Mixlr button already exists on the schedule |
 | 4 Audio for video lessons (team-supplied) | **Open** — waiting for the team's first batch (`tools/ingest_audio.py`, «audio only» toggle) |
-| 5 English edition | **Open** — needs the owner's decisions (UI only or titles too; transliteration) |
+| 5 English edition | **ON HOLD** — the Sheikh asked for an Arabic-only site (2026-10-16); the language engine is in the repo, inert; draft translations kept privately by the owner (`docs/i18n-plan.md`) |
 | **Admin portal (docs/admin-portal-spec.md)** phases 1–8: database, login/roles/audit, audio upload + Publish, counters, editing, YouTube patches, lesson ordering, banners/announcements/schedule, home layout, analytics, reports | **All built, deployed and owner-verified.** Manual: `docs/admin-manual.md` |
 | Also done beyond the plan | Fath al-Bari (makkahscholars.org) and Haram-channel imports; weekly schedule page; health monitoring; content report PDFs |
-| Next (see CLAUDE.md «What is left») | CI that runs the tests · team audio · English edition · Mixlr live · optional portal extras (standalone items, approval queue, ingestion into D1, Arabic manual) · owner housekeeping (Search Console, 2FA/DNSSEC, screen-reader pass, token renewal) |
+| Next (see CLAUDE.md «What is left») | CI that runs the tests · team audio · English edition (on hold) · Mixlr live · optional portal extras (standalone items, approval queue, ingestion into D1, Arabic manual) · owner housekeeping (Search Console, 2FA/DNSSEC, screen-reader pass, token renewal) |
 
 ## 0. Where we are (snapshot, Oct 2026 — historical: the original starting point)
 
@@ -53,7 +53,7 @@ The "Phases" below were written before the admin portal existed. Current state:
 | D2 | Bio text + photo | **Decided:** the Sheikh's team provides them (we build the page; no biographical text is written by us) |
 | D3 | Budget ceiling | **Decided: ≤ US$1 / month** for storage (expected ≈ US$0.5 at completion, §3) |
 | D4 | Keep archive.org as a permanent fallback | Open (recommended: yes — and see §3: it stays the **primary** host of the existing audio unless we mirror it) |
-| D5 | English edition: **Hijri dates only, in both languages (decided)**. Still open: UI only, or also translated series/book titles? | Partly decided |
+| D5 | English edition: **ON HOLD (Sheikh's request, 2026-10-16).** If resumed: Hijri dates only in both languages (decided); titles per `docs/i18n-plan.md` | On hold |
 | D6 | Repo visibility | **Decided: public** (unlimited free GitHub Actions minutes) |
 | D7 | Hosting | **Decided: Cloudflare only.** `netlify.toml` and the GitHub Pages workflow are deleted; delete the old Netlify site in its dashboard |
 | D8 | R2 usage of the owner's other project | **Answered: 12.19 GB** (bucket `wurud-audio`, 2.37 k objects; $0.00 billed so far). We use a separate bucket in the same account |
@@ -197,7 +197,7 @@ No YouTube downloading: the Sheikh's team provides the audio (better quality, no
 - Optional 4b: re-encode the existing archive.org audio to the same spec for uniform loudness/format (keep originals; A/B-test 5 files first).
 - **Done when:** all video lessons with supplied audio have an audio twin at the uniform spec; loudness within ±1 LU across a random sample; lessons without audio are listed for the team.
 
-### Phase 5 — English edition (L)  *(needs D5)*
+### Phase 5 — English edition (L)  *(ON HOLD — Arabic only at the Sheikh's request; see docs/i18n-plan.md)*
 - Architecture: UI strings in `i18n/ar.json`, `i18n/en.json`; pages generated at `/en/…` (LTR) alongside the Arabic ones; `hreflang` pairs + `x-default`; language switcher (remembers choice); CSS already uses logical properties (`inset-inline`, `margin-inline`), so mirroring is mostly icon directions and the bookshelf's vertical spine text.
 - Content: translate UI + section/series/book names (curated `titles_en` table, owner-reviewed; transliteration policy: *Sheikh Wasiullah ibn Muhammad Abbas, may Allah preserve him*); lesson titles stay Arabic (shown with an English series context) — machine-translating religious titles is **not** done without review.
 - Typography: add a Latin serif that matches the manuscript look (self-hosted), numerals Western in English.

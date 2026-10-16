@@ -1,0 +1,13 @@
+/* Language switcher and notes: loaded by every page once more than one language is built (scripts/build.mjs). */
+.langs{display:flex;gap:2px;align-items:center;font:600 13.5px var(--kufi)}
+.langs a{padding:2px 9px;border:1px solid transparent;border-radius:2px;color:var(--ink-2)}
+.langs a[aria-current]{border-color:var(--rubric);color:var(--rubric)}
+.langs a:hover{color:var(--ink)}
+.langs.in-top{display:none;max-width:1140px;margin:0 auto;padding:3px 22px 0;justify-content:flex-end;font-size:12.5px}   /* a slim strip above the header, desktop only (the drawer carries it on small screens) */
+@media (min-width:1180px){.langs.in-top{display:flex}}
+.langs.in-drawer{padding:10px 20px;border-top:1px solid var(--rule)}
+.langs.in-foot{margin-top:10px}
+.lang-note{margin:14px 0;padding:8px 14px;border:1px solid var(--rule);border-inline-start:3px solid var(--gold);background:var(--paper-2);font-size:15px;color:var(--ink-2)}
+.lang-hint{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;padding:7px 44px 7px 16px;position:relative;background:var(--paper-2);border-bottom:1px solid var(--rule);font:500 15px/1.5 var(--kufi);color:var(--ink-2)}
+.lang-hint .btn.sm{padding:2px 14px;font-size:13.5px}
+.lang-hint-x{position:absolute;inset-block:0;inset-inline-end:8px;background:none;border:0;font-size:24px;line-height:1;color:var(--ink-2);cursor:pointer;padding:0 8px}

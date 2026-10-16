@@ -21,7 +21,7 @@ export async function runChecks(env, fetcher = timed) {
   const [home, sitemap, data, media] = await Promise.all([
     guard(async () => {
       const r = await env.ASSETS.fetch(new Request(SITE + "/")); const t = await r.text();
-      return r.status === 200 && t.includes("وصي الله") ? { ok: true, detail: "200" } : { ok: false, detail: `HTTP ${r.status}${r.status === 200 ? ", expected text missing" : ""}` };
+      return r.status === 200 && t.includes("وصي الله") /* i18n-allow */ ? { ok: true, detail: "200" } : { ok: false, detail: `HTTP ${r.status}${r.status === 200 ? ", expected text missing" : ""}` };
     }),
     guard(async () => {
       const r = await env.ASSETS.fetch(new Request(SITE + "/sitemap.xml")); const t = await r.text(); const n = t.split("<loc>").length - 1;
