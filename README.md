@@ -63,6 +63,7 @@ Admin portal (admin.drwasiullah.com: Cloudflare Access + Worker + D1 database + 
 - **New YouTube lessons** arrive through a daily GitHub Action ([docs/youtube-sync.md](docs/youtube-sync.md)). It refuses to publish if lessons suddenly disappear, and a video appears only if its title names the Sheikh or someone approved it.
 - **Dead links** are found with `python tools/check_links.py`. It separates files that are gone (404) from files whose host is failing (5xx), and only the first kind is ever removed.
 - **Own copies of the media** are made with `python tools/mirror_media.py`, run by hand on a machine that can reach the sources ([docs/mirror-setup.md](docs/mirror-setup.md)).
+- **Bulk audio uploads** (a folder of new recordings that need optimising) use `node tools/audio_batch.mjs`: scan → convert (ffmpeg) → upload to R2 → register in the database as unpublished changes → Publish in the portal ([docs/audio-batch.md](docs/audio-batch.md)).
 
 ## Run it locally
 

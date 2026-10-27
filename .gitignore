@@ -49,3 +49,4 @@ tools/channel_hits.json
 .wrangler/
 db/seed.sql
 db/restore-live.sql
+tools/audio_batch_work/
