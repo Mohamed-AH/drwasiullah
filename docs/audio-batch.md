@@ -51,6 +51,17 @@ The first test upload was registered as lesson 171 but is the recording dated 29
 ## What the optimisation does
 Mono, AAC-LC 48 kbps (m4a), loudness normalised to -16 LUFS (two passes, peaks limited to -1.5 dB), index at the front of the file (`+faststart`, so it starts playing at once), original tags removed (title / artist / album are set; nothing of the original file name), byte-for-byte reproducible. About 22 MB per hour of lesson; a 72-minute lesson is ~26 MB. The R2 name is `audio/<first 16 hex of the sha-256>.m4a` like the portal's.
 
+## Cloudflare login problems («Authentication error [code: 10000]»)
+The tool talks to Cloudflare through `wrangler`. `scan` and `verify` only need to READ the database; `upload` needs R2 write; `register` needs **D1 write**. The error means the login wrangler is using does not have that permission. Check in Git Bash:
+```bash
+npx wrangler whoami                      # shows how you are logged in and which permissions the login has
+[ -n "$CLOUDFLARE_API_TOKEN" ] && echo "an API token is set in this terminal" || echo "no token set"
+```
+- **If a token is set** (for example an old one made for R2 or the backups): it overrides your browser login and may lack D1. Run `unset CLOUDFLARE_API_TOKEN` and try again (also `unset CLOUDFLARE_ACCOUNT_ID` if you set it). If it comes from your `~/.bashrc`, remove it from there.
+- **If you are logged in with the browser login** but whoami does not list `d1 (write)` and `workers_r2 (write)`: `npx wrangler logout`, then `npx wrangler login` again and accept ALL the permissions on the consent page.
+- **Or use an API token** (Cloudflare dashboard → My Profile → API Tokens → Create Token → «Edit Cloudflare Workers» template, or custom with *Account → D1 → Edit* and *Account → Workers R2 Storage → Edit*, limited to this account). Then in Git Bash: `export CLOUDFLARE_API_TOKEN=...` (only for this terminal window; never put it in a file in the repository).
+- After fixing, run the **same command again**: nothing was changed by the failed one.
+
 ## If something goes wrong
 - **Every stage can simply be run again**: finished work is skipped (state is in `tools\audio_batch_work\state.json`). `convert --force` redoes conversions.
 - **`register` stopped halfway / network error**: run it again. The SQL only inserts what is missing, never duplicates, and never deletes the new record.

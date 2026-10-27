@@ -42,7 +42,11 @@ function run(cmd, args, { input, allowFail = false } = {}) {                  //
   const r = WIN && /^(npx|npm)$/.test(cmd) ? spawnSync(`${cmd}.cmd ${args.map(quote).join(" ")}`, { shell: true, encoding: "utf8", input, maxBuffer: 256 << 20 })
     : spawnSync(cmd, args, { encoding: "utf8", input, maxBuffer: 256 << 20 });
   if (r.error) throw new Error(`${cmd}: ${r.error.message}${r.error.code === "ENOENT" ? " (is it installed and on PATH?)" : ""}`);
-  if (r.status !== 0 && !allowFail) throw new Error(`${cmd} ${args.slice(0, 4).join(" ")} … failed (exit ${r.status}):\n${(r.stderr || r.stdout || "").slice(-1500)}`);
+  if (r.status !== 0 && !allowFail) {
+    const out = (r.stderr || "") + (r.stdout || "");
+    const hint = /Authentication error|code: 10000|10000|not authenticated|login/i.test(out) ? "\n\nCLOUDFLARE LOGIN PROBLEM: wrangler is logged in without permission for this step (or an old CLOUDFLARE_API_TOKEN is set in your terminal). Run  npx wrangler whoami  — see docs/audio-batch.md «Cloudflare login problems»." : "";
+    throw new Error(`${cmd} ${args.slice(0, 4).join(" ")} … failed (exit ${r.status}):\n${out.slice(-1500)}${hint}`);
+  }
   return r;
 }
 
@@ -56,9 +60,11 @@ function d1(opts, sqlFile, { json = false } = {}) {
   if (a < 0) throw new Error("unexpected wrangler output:\n" + t.slice(-800));
   return JSON.parse(t.slice(a, b + 1));
 }
-function d1Select(opts, work, sql) {
-  const f = path.join(work, "_query.sql"); fs.writeFileSync(f, sql + "\n");
-  const res = d1(opts, f, { json: true });
+function d1Select(opts, work, sql) {                                           // reads use --command (the query API): a token that may only READ the database is enough for scan/verify
+  const r = wrangler(opts, ["d1", "execute", DB, ...where(opts), "--command", sql.replace(/\s+/g, " ").trim(), "--json", ...(opts.local ? [] : ["--yes"])]);
+  const t = r.stdout, a = t.indexOf("["), b = t.lastIndexOf("]");
+  if (a < 0) throw new Error("unexpected wrangler output:\n" + t.slice(-800));
+  const res = JSON.parse(t.slice(a, b + 1));
   return (res[res.length - 1] && res[res.length - 1].results) || [];
 }
 const inList = ids => ids.map(i => `'${i.replace(/'/g, "''")}'`).join(",");
