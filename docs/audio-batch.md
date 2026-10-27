@@ -3,10 +3,15 @@
 For a folder of many lessons (like the 37 files of Oct 2026) use this tool instead of the portal's upload screen. It **optimises** the audio (the portal cannot), puts it in R2, and registers the lessons in the database. **It never publishes**: the lessons wait under «التغييرات غير المنشورة» in the portal until you press Publish.
 For one or two files the portal screen is still the easiest way (`docs/admin-manual.md`).
 
+## Git Bash tips
+- Write the folder with **forward slashes**: `"C:/projects/wasiullahdrive/downloads"` (backslashes inside quotes also work, but forward slashes never go wrong). Arabic file names are fine.
+- Copy the commands one line at a time. Lines starting with `#` are comments.
+- If a command shows `ffmpeg: ... is it installed and on PATH?`, close Git Bash, open it again (it reads PATH when it starts) and check `ffmpeg -version`.
+
 ## What you need (once)
 - Node 20+, **ffmpeg and ffprobe on PATH** (check: `ffmpeg -version`), and a Cloudflare login: `npx wrangler login` (the same account as the site; it needs R2 and D1 access). Check with `npx wrangler whoami`.
 - A fresh copy of the repo: `git pull` in `C:\projects\...\drwasiullah`.
-- Run every command from the repository folder (PowerShell). Your **original files are never changed or deleted**.
+- Run every command from the repository folder, in **Git Bash** or PowerShell (the commands below are written for Git Bash; in PowerShell the same lines work, only the `#` comments differ). Your **original files are never changed or deleted**.
 
 ## File names the tool understands
 `<4-digit number><title text> <day>-<month>-<Hijri year>هـ [تكملة].<mp3|wav|m4a|flac|ogg|aac>` — e.g. `0149صحيح مسلم30-2-1448هـ.mp3`.
@@ -16,9 +21,9 @@ For one or two files the portal screen is still the easiest way (`docs/admin-man
 - The Hijri date is converted to Gregorian with the same calendar the portal uses. The tool warns about a date that does not exist, numbers that jump, a lesson dated before the previous one, and a Muslim lesson that is not on a Wed/Thu/Sat.
 
 ## Step by step
-```powershell
+```bash
 # 1. scan: reads the folder, asks the database what exists, writes the spreadsheet. Nothing is changed anywhere.
-node tools/audio_batch.mjs scan --dir "C:\projects\wasiullahdrive\downloads"
+node tools/audio_batch.mjs scan --dir "C:/projects/wasiullahdrive/downloads"
 #    -> read the warnings. Open tools\audio_batch_work\manifest.csv in Excel to check/edit titles, sections, series, status (published / draft / skip).
 #    (Save as CSV UTF-8. Do not rename the columns. Delete a row or set status=skip to leave a file out.)
 
@@ -31,8 +36,9 @@ node tools/audio_batch.mjs convert
 node tools/audio_batch.mjs upload
 
 # 4. register in the database. The first time, the old mis-numbered test record must be replaced (see below).
-node tools/audio_batch.mjs register --replace sahih-muslim-0171
-#    it prints what it will do, and waits for you to type YES.
+#    it prints what it will do. In Git Bash it cannot ask a question, so do it in two steps:
+node tools/audio_batch.mjs register --replace sahih-muslim-0171 --dry-run     # shows the plan, writes tools/audio_batch_work/register.sql, changes nothing
+node tools/audio_batch.mjs register --replace sahih-muslim-0171 --yes         # the real thing (PowerShell/cmd users can leave out --yes and type YES instead)
 
 # 5. check
 node tools/audio_batch.mjs verify

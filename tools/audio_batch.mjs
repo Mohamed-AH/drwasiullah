@@ -179,6 +179,7 @@ async function register(o) {
   console.log(`${ready.filter(r => r.action === "new").length} new lesson(s), ${ready.filter(r => r.action === "replace").length} replacing a mis-numbered one, ${rows.filter(r => r.action === "exists").length} already registered (skipped).`);
   for (const e of replaceExisting) console.log(`  will DELETE ${e.id} (dated ${e.hd}, ${e.src}) — its audit entry keeps the old record`);
   if (o.flags.has("dry-run")) { console.log(`dry run: SQL written to ${P.sql}`); return; }
+  if (!o.flags.has("yes") && !process.stdin.isTTY) throw new Error(`this terminal cannot ask a question (Git Bash / mintty). Read the plan above and ${P.sql}, then run the same command again with --yes   (or start it as: winpty node tools/audio_batch.mjs ...)`);
   if (!o.flags.has("yes")) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const a = await rl.question(`Write this to ${o.local ? "the LOCAL test database" : "the LIVE database (nothing goes public until you press Publish)"}? Type YES: `); rl.close();
