@@ -102,6 +102,9 @@ async function scan(o) {
     fs.writeFileSync(P.existing, JSON.stringify(existing, null, 1));
   }
   const { notes } = checkExisting(rows, existing, list(o.replace));
+  if (!o.flags.has("offline")) {                                              // show what the database answered, so an empty answer cannot pass unnoticed
+    for (const sid of [...new Set(rows.map(r => r.series))]) { const e = existing.filter(x => x.series_id === sid); console.log(`  database: ${e.length} lesson(s) already in «${sid}»` + (e.length ? `: ${e.map(x => `${x.id} (${x.hd || "no date"}, ${x.status})`).slice(0, 6).join("; ")}${e.length > 6 ? " …" : ""}` : "  <-- zero: is that right? (see existing.json)")); }
+  }
   fs.writeFileSync(P.csv, toCsv(rows));
   fs.writeFileSync(path.join(o.work, "source_dir.txt"), path.resolve(o.dir));
   const lessons = new Set(rows.map(r => r.series + r.seq)).size;
