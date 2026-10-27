@@ -128,7 +128,7 @@ else {
   const src = path.join(T, "0150صحيح مسلم 2-3-1448هـ.wav");
   execFileSync("ffmpeg", ["-loglevel", "error", "-y", "-f", "lavfi", "-i", "anoisesrc=d=40:c=pink:a=0.1", "-af", "tremolo=f=3:d=0.6", "-ac", "2", src]);
   const out = path.join(T, "o.m4a"), out2 = path.join(T, "o2.m4a");
-  convertOne(src, out, { title: "الدرس 150", album: "شرح صحيح مسلم" }); convertOne(src, out2, { title: "الدرس 150", album: "شرح صحيح مسلم" });
+  await Promise.all([convertOne(src, out, { title: "الدرس 150", album: "شرح صحيح مسلم" }), convertOne(src, out2, { title: "الدرس 150", album: "شرح صحيح مسلم" })]);   // two at once, like the tool does
   const probe = f => JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_name,profile,channels,sample_rate,bit_rate:format=duration:format_tags", "-of", "json", f], { encoding: "utf8" }));
   const p = probe(out), s = p.streams[0], tags = p.format.tags || {};
   check("AAC-LC, mono, 44.1 kHz, about 48 kbps, same length as the source", s.codec_name === "aac" && s.profile === "LC" && s.channels === 1 && s.sample_rate === "44100" && Math.abs(+s.bit_rate - 48000) < 3000 && Math.abs(+p.format.duration - 40) < 0.3, JSON.stringify(s));

@@ -31,7 +31,8 @@ node tools/audio_batch.mjs scan --dir "C:/projects/wasiullahdrive/downloads"
 node tools/audio_batch.mjs convert --only sahih-muslim-0150,sahih-muslim-0162
 #    compare size and sound with the originals. Tell Claude if the quality is not good enough: the settings can be changed.
 
-# 3. everything: convert (about 1-2 min per hour of audio; files already converted are skipped), then upload to R2
+# 3. everything: convert (SLOW: about 10 minutes per lesson of ~80 minutes, several lessons at the same time; plan 1-2 hours for 35 files and let it run.
+#    You can stop with Ctrl+C and start the same command again: finished files are kept), then upload to R2
 node tools/audio_batch.mjs convert
 node tools/audio_batch.mjs upload
 

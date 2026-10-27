@@ -8,13 +8,13 @@
      register  writes register.sql and runs it on D1 (asks for YES): inserts the lessons, replaces mis-numbered ones listed with --replace
      verify    checks D1 rows, R2 objects and the public URLs, writes report.csv
    Nothing is published by this tool: open the portal, look at «التغييرات غير المنشورة», listen to a few, then press Publish.
-   Options: --dir <folder of recordings> --work <folder> (default tools/audio_batch_work) --only id,id --replace id,id --offline (scan without asking D1)
+   Options: --dir <folder of recordings> --work <folder> (default tools/audio_batch_work) --only id,id --replace id,id --jobs N (parallel conversions, default: CPU cores - 1, max 4) --offline (scan without asking D1)
             --local <dir>  use a local wrangler state (tests) instead of the real Cloudflare account   --yes  do not ask for confirmation   --dry-run  (register) only write register.sql */
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import readline from "node:readline/promises";
 import { planBatch, checkExisting, registerSql, toCsv, fromCsv, rowFromCsv, MEDIA_BASE, SHEIKH, PART_AR } from "./audio_batch_lib.mjs";
@@ -48,6 +48,15 @@ function run(cmd, args, { input, allowFail = false } = {}) {                  //
     throw new Error(`${cmd} ${args.slice(0, 4).join(" ")} … failed (exit ${r.status}):\n${out.slice(-1500)}${hint}`);
   }
   return r;
+}
+
+function runAsync(cmd, args) {                                                 // for ffmpeg: several conversions at once (no shell needed: ffmpeg.exe is a real program)
+  return new Promise((res, rej) => {
+    const c = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] }); let out = "", err = "";
+    c.stdout.on("data", d => { out += d; if (out.length > 1e7) out = out.slice(-1e6); }); c.stderr.on("data", d => { err += d; if (err.length > 1e7) err = err.slice(-1e6); });
+    c.on("error", e => rej(new Error(`${cmd}: ${e.message}${e.code === "ENOENT" ? " (is it installed and on PATH?)" : ""}`)));
+    c.on("close", code => code === 0 ? res({ stdout: out, stderr: err }) : rej(new Error(`${cmd} failed (exit ${code}):\n${err.slice(-1500)}`)));
+  });
 }
 
 /* ───── wrangler (real account, or a local state folder for tests) ───── */
@@ -120,17 +129,17 @@ async function scan(o) {
 
 /* ───── convert ───── */
 const probeDuration = f => Math.round(parseFloat(run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).stdout) || 0);
-function loudnormJson(src) {
-  const r = run("ffmpeg", ["-hide_banner", "-nostats", "-i", src, "-vn", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"]);
+async function loudnormJson(src) {
+  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", "-i", src, "-vn", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"]);
   const t = r.stderr, a = t.lastIndexOf("{"), b = t.lastIndexOf("}");
   try { const j = JSON.parse(t.slice(a, b + 1)); return Number.isFinite(+j.input_i) ? j : null; } catch { return null; }
 }
-export function convertOne(src, dest, meta) {
-  const ln = loudnormJson(src);
+export async function convertOne(src, dest, meta) {
+  const ln = await loudnormJson(src);
   const filter = (ln ? `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${ln.input_i}:measured_TP=${ln.input_tp}:measured_LRA=${ln.input_lra}:measured_thresh=${ln.input_thresh}:offset=${ln.target_offset}:linear=true`
     : "loudnorm=I=-16:TP=-1.5:LRA=11") + ",aresample=44100";                              // silent / unmeasurable files fall back to one-pass
   const tmp = dest + ".part.m4a";
-  run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-i", src, "-vn", "-map_metadata", "-1", "-af", filter, "-ac", "1", "-c:a", "aac", "-b:a", "48k",
+  await runAsync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-i", src, "-vn", "-map_metadata", "-1", "-af", filter, "-ac", "1", "-c:a", "aac", "-b:a", "48k",
     "-fflags", "+bitexact", "-flags:a", "+bitexact", "-movflags", "+faststart", "-metadata", `title=${meta.title}`, "-metadata", `artist=${SHEIKH}`, "-metadata", `album=${meta.album}`, tmp]);
   fs.renameSync(tmp, dest);
   return { measured: ln ? +ln.input_i : null };
@@ -140,16 +149,21 @@ async function convert(o) {
   fs.mkdirSync(P.m4a, { recursive: true });
   const todo = rows.filter(r => r.action !== "exists");
   let done = 0, saved = 0, skipped = 0;
-  for (const r of todo) {
-    const src = path.join(srcDir, r.file), st = fs.statSync(src), dest = path.join(P.m4a, `${r.id}.m4a`), cur = state.byId[r.id];
-    if (cur && cur.srcSize === st.size && cur.srcMtime === Math.round(st.mtimeMs) && fs.existsSync(dest) && !o.flags.has("force")) { skipped++; continue; }
-    const t0 = Date.now(), title = (r.title || "") + (r.part ? ` — ${PART_AR[r.part]}` : "");
-    const info = convertOne(src, dest, { title, album: SERIES_TITLE[r.series] || r.series });
-    const size = fs.statSync(dest).size, sha = await sha256(dest), duration = probeDuration(dest);
-    state.byId[r.id] = { file: r.file, srcSize: st.size, srcMtime: Math.round(st.mtimeMs), size, sha, key: `audio/${sha.slice(0, 16)}.m4a`, duration, measuredLufs: info.measured, uploaded: false, registered: false };
-    saveState(P, state); done++; saved += st.size - size;
-    console.log(`  ${r.id}: ${mb(st.size)} -> ${mb(size)}, ${Math.round(duration / 60)} min  (${Math.round((Date.now() - t0) / 1000)} s)  [${done + skipped}/${todo.length}]`);
-  }
+  const jobs = Math.max(1, Math.min(8, +o.jobs || Math.max(1, Math.min(4, os.cpus().length - 1)))), queue = todo.slice();
+  console.log(`converting ${todo.length} file(s), ${jobs} at a time (each takes several minutes; you can stop with Ctrl+C and run the same command again: finished files are kept)`);
+  const worker = async () => {
+    for (let r; (r = queue.shift());) {
+      const src = path.join(srcDir, r.file), st = fs.statSync(src), dest = path.join(P.m4a, `${r.id}.m4a`), cur = state.byId[r.id];
+      if (cur && cur.srcSize === st.size && cur.srcMtime === Math.round(st.mtimeMs) && fs.existsSync(dest) && !o.flags.has("force")) { skipped++; continue; }
+      const t0 = Date.now(), title = (r.title || "") + (r.part ? ` — ${PART_AR[r.part]}` : "");
+      const info = await convertOne(src, dest, { title, album: SERIES_TITLE[r.series] || r.series });
+      const size = fs.statSync(dest).size, sha = await sha256(dest), duration = probeDuration(dest);
+      state.byId[r.id] = { file: r.file, srcSize: st.size, srcMtime: Math.round(st.mtimeMs), size, sha, key: `audio/${sha.slice(0, 16)}.m4a`, duration, measuredLufs: info.measured, uploaded: false, registered: false };
+      saveState(P, state); done++; saved += st.size - size;
+      console.log(`  ${r.id}: ${mb(st.size)} -> ${mb(size)}, ${Math.round(duration / 60)} min  (${Math.round((Date.now() - t0) / 1000)} s)  [${done + skipped}/${todo.length}]`);
+    }
+  };
+  await Promise.all(Array.from({ length: jobs }, worker));
   console.log(`converted ${done}, already done ${skipped}; saved ${mb(saved)} against the originals.  Next:  node tools/audio_batch.mjs upload --work "${o.work}"`);
 }
 
