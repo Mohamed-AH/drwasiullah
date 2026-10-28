@@ -180,6 +180,17 @@ else {
   fs.writeFileSync(path.join(W, "manifest.csv"), csv.join("\r\n"));
   r = cli("convert"); check("after editing the trim columns, convert redoes the file", /trimmed/.test(r.stdout), r.stdout + r.stderr);
   r = cli("convert"); check("a second convert skips it (nothing changed)", /already done 1/.test(r.stdout), r.stdout);
+  // cut: the original is replaced by the cut file, the untouched original is kept
+  const IN2 = path.join(T, "in2"), W2 = path.join(T, "w2"); fs.mkdirSync(IN2); const nm = path.basename(blank); fs.copyFileSync(blank, path.join(IN2, nm));
+  const cli2 = (...a) => spawnSync("node", ["--no-warnings", "tools/audio_batch.mjs", ...a, "--work", W2], { encoding: "utf8" });
+  cli2("scan", "--dir", IN2, "--offline"); fs.writeFileSync(path.join(T, "trims.txt"), "# comment\nsahih-muslim-0300 3:00 7:00\n");
+  const durOf = f => +JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "json", f], { encoding: "utf8" })).format.duration;
+  r = cli2("cut", "--trims", path.join(T, "trims.txt"));
+  check("cut: the original is cut (180 s - 2 s lead-in .. 420 s = 242 s) and the untouched original is kept in a backup folder", r.status === 0 && Math.abs(durOf(path.join(IN2, nm)) - 242) < 1 && Math.abs(durOf(path.join(IN2, "_originals_before_cut", nm)) - 540) < 1, r.stdout + r.stderr);
+  r = cli2("cut", "--trims", path.join(T, "trims.txt"));
+  check("cut again starts from the backup, not from the already cut file", r.status === 0 && Math.abs(durOf(path.join(IN2, nm)) - 242) < 1 && Math.abs(durOf(path.join(IN2, "_originals_before_cut", nm)) - 540) < 1, r.stdout + r.stderr);
+  fs.writeFileSync(path.join(T, "bad.txt"), "sahih-muslim-0999 3:00\nsahih-muslim-0300 soon\n");
+  r = cli2("cut", "--trims", path.join(T, "bad.txt")); check("cut refuses a wrong id or time and changes nothing", r.status !== 0 && /no such id/.test(r.stderr) && /expected/.test(r.stderr) && Math.abs(durOf(path.join(IN2, nm)) - 242) < 1);
   r = cli("check"); check("check is clean after trimming", /all 1 files look continuous/.test(r.stdout), r.stdout);
   fs.rmSync(T, { recursive: true, force: true });
 }

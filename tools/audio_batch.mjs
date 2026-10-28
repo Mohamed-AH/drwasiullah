@@ -5,6 +5,7 @@
      scan      read the folder, parse the names, write manifest.csv (open it in Excel, fix what you like) and print warnings
   convert   ffmpeg: mono, AAC-LC 48 kbps, -16 LUFS two-pass, +faststart, tags stripped  -> <work>/m4a/<id>.m4a   (+ duration, sha256)
      check     look for blank/silent stretches (leading, trailing, gaps) in the converted files; suggests trim_start / trim_end
+     cut       --trims <file>: cut blank starts/ends out of the ORIGINAL files (originals are kept in <dir>/_originals_before_cut); then run convert again
      upload    wrangler r2 object put  audio/<sha256[:16]>.m4a  (content-addressed, same keys as the portal)
      register  writes register.sql and runs it on D1 (asks for YES): inserts the lessons, replaces mis-numbered ones listed with --replace
      verify    checks D1 rows, R2 objects and the public URLs, writes report.csv
@@ -18,7 +19,7 @@ import crypto from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import readline from "node:readline/promises";
-import { planBatch, checkExisting, registerSql, toCsv, fromCsv, rowFromCsv, MEDIA_BASE, SHEIKH, PART_AR, analyzeProfile, parseRms, fmtTime } from "./audio_batch_lib.mjs";
+import { planBatch, checkExisting, registerSql, toCsv, fromCsv, rowFromCsv, MEDIA_BASE, SHEIKH, PART_AR, analyzeProfile, parseRms, fmtTime, parseTime } from "./audio_batch_lib.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DB = "drwasiullah", BUCKET = "drwasiullah-media", WIN = process.platform === "win32";
@@ -208,6 +209,32 @@ async function check(o) {
   console.log(flagged ? `\n${flagged} of ${todo.length} need a look. After editing the trim columns run convert again (only changed files are redone), then check again.` : `\nall ${todo.length} files look continuous (no silent stretch of 2+ minutes at the start/end or 3+ minutes inside). This is a safety net, not a listening test.`);
 }
 
+/* ───── cut: remove the blank start (or end) from the ORIGINAL files, keeping the untouched originals in a backup folder ───── */
+async function cut(o) {
+  if (!o.trims) throw new Error("--trims <text file> is required. One line per file, ids and times only:   sahih-muslim-0150 4:40     (start)   or   sahih-muslim-0150 4:40 1:20:00   (start and end)");
+  const P = paths(o.work), rows = loadRows(P, []), byId = new Map(rows.map(r => [r.id, r])), srcDir = o.dir || fs.readFileSync(path.join(o.work, "source_dir.txt"), "utf8");
+  const margin = o.margin == null ? 2 : +o.margin, backup = path.join(srcDir, "_originals_before_cut");
+  const jobs = []; const bad = [];
+  fs.readFileSync(o.trims, "utf8").replace(/^\ufeff/, "").split(/\r?\n/).forEach((line, i) => {
+    const t = line.replace(/#.*/, "").trim(); if (!t) return;
+    const m = /^([a-z0-9-]+)\s+(\S+)(?:\s+(\S+))?$/.exec(t);
+    const row = m && byId.get(m[1]), a = m ? parseTime(m[2]) : NaN, b = m && m[3] ? parseTime(m[3]) : null;
+    if (!row || !Number.isFinite(a) || (b != null && !Number.isFinite(b))) bad.push(`line ${i + 1}: «${t}»` + (m && !row ? " — no such id in manifest.csv" : " — expected: <id> <start> [<end>], times like 4:40 or 1:05:30")); else jobs.push({ row, a, b });
+  });
+  if (bad.length) throw new Error("trims file has problems:\n  " + bad.join("\n  "));
+  fs.mkdirSync(backup, { recursive: true });
+  for (const { row, a, b } of jobs) {
+    const live = path.join(srcDir, row.file), bak = path.join(backup, row.file);
+    if (!fs.existsSync(bak)) { if (!fs.existsSync(live)) throw new Error(`${live} not found`); fs.renameSync(live, bak); }   // the original is moved, never overwritten; cutting again starts from the backup
+    const start = Math.max(0, a - margin), whole = probeDuration(bak), end = b == null ? whole : b;
+    await runAsync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-ss", String(start), ...(b != null ? ["-to", String(b)] : []), "-i", bak, "-c", "copy", "-map_metadata", "0", live]);
+    const got = probeDuration(live), want = end - start;
+    if (Math.abs(got - want) > 3) { fs.rmSync(live, { force: true }); fs.renameSync(bak, live); throw new Error(`${row.id}: the cut file is ${got} s but ${Math.round(want)} s were expected; the original was put back. Nothing else was changed.`); }
+    console.log(`  ${row.id}: ${fmtTime(whole)} -> ${fmtTime(got)} (cut ${fmtTime(start)} from the start${b != null ? `, end at ${fmtTime(b)}` : ""}; ${margin} s of lead-in kept)`);
+  }
+  console.log(`cut ${jobs.length} file(s). Originals are safe in ${backup}.  Next:  node tools/audio_batch.mjs convert   (only the cut files are converted again), then check, upload`);
+}
+
 /* ───── upload ───── */
 async function upload(o) {
   const P = paths(o.work), rows = loadRows(P, list(o.only)), state = loadState(P);
@@ -288,7 +315,7 @@ async function verify(o) {
 export async function main(argv) {
   const o = parseArgs(argv), cmd = o._[0];
   o.work = path.resolve(o.work || path.join(HERE, "audio_batch_work")); fs.mkdirSync(o.work, { recursive: true });
-  const cmds = { scan, convert, check, upload, register, verify };
+  const cmds = { scan, convert, check, cut, upload, register, verify };
   if (!cmds[cmd]) { console.log(fs.readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 16).map(l => l.replace(/^\/\* ?|^ {3}/, "")).join("\n")); process.exitCode = cmd ? 1 : 0; return; }
   try { await cmds[cmd](o); } catch (e) { console.error("\nSTOPPED: " + e.message); process.exitCode = process.exitCode || 1; }
 }

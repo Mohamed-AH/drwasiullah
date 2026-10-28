@@ -53,7 +53,12 @@ The first test upload was registered as lesson 171 but is the recording dated 29
 ## Blank or damaged stretches: `check` and trimming
 Some recordings have a silent stretch (for example 35 minutes of blank at the start). `check` listens to every converted file minute by minute and reports: silence at the start (2+ minutes), at the end (2+ minutes), or a gap inside (3+ minutes), with a suggested cut point. It is a safety net, **not** a replacement for listening: it cannot hear a wrong lesson, a cut-off ending or an echo.
 To cut a file, open `tools/audio_batch_work/manifest.csv` and fill the columns **`trim_start`** and/or **`trim_end`** of that row, as `35:10` (minutes:seconds) or `1:05:30` (hours:minutes:seconds). The times are positions in your ORIGINAL file. Then run `convert` again: only the changed rows are redone, from the untouched original. Run `check` again to confirm.
-Alternatively cut the original yourself with ffmpeg (`ffmpeg -ss 35:10 -i original.mp3 -c copy cut.mp3`) and put the cut file in the folder in place of the original: `convert` notices the changed file.
+**Cutting the originals instead** (`cut`): write a text file with one line per file, ids and times only (no Arabic to type), e.g. `tools/audio_batch_work/trims.txt`:
+```
+sahih-muslim-0150 4:40
+sahih-muslim-0172a 35:10
+```
+then `node tools/audio_batch.mjs cut --trims tools/audio_batch_work/trims.txt`. For each line it MOVES the original into `<folder>/_originals_before_cut/` and puts a cut copy (no re-encoding) under the original name, keeping 2 seconds before the time you gave (`--margin N` to change). Running it again starts from the backup, never from an already cut file. Then run `convert` (it sees the changed files).
 If a file was already uploaded and you re-convert it, the new version gets a new name in R2; the earlier upload stays there unused (about 30 MB, harmless). `register` always uses the newest conversion.
 
 If you started before this existed (your `manifest.csv` has no trim columns): run `scan --dir ... --force` once; finished conversions are kept.
