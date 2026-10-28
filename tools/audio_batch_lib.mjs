@@ -44,7 +44,7 @@ export function planBatch(files) {
     const route = routeFor(p.text), cfg = route || FALLBACK;
     if (!route) warnings.push(`${f.file}: not a known course, routed to «${FALLBACK.series}» (unnumbered) — check the series column`);
     rows.push({ file: f.file, size: f.size || 0, ext: p.ext, series: cfg.series, seq: p.seq, numbered: cfg.numbered, cont: p.cont, part: "", id: "", title: cfg.numbered ? `الدرس ${p.seq}` : p.text,
-      hd, date, section: "", status: "published", weekdays: cfg.weekdays || null });
+      hd, date, section: "", trim_start: "", trim_end: "", status: "published", weekdays: cfg.weekdays || null });
   }
   const groups = new Map();                                   // parts: group by series + number
   for (const r of rows) { const k = `${r.series}|${r.seq}`; (groups.get(k) || groups.set(k, []).get(k)).push(r); }
@@ -132,7 +132,7 @@ export function registerSql(rows, replaceExisting = []) {
 }
 
 /* ───── the review spreadsheet (UTF-8 with BOM so Excel shows Arabic) ───── */
-export const CSV_COLUMNS = ["file", "series", "seq", "part", "id", "numbered", "title", "hd", "date", "section", "status", "action", "note"];
+export const CSV_COLUMNS = ["file", "series", "seq", "part", "id", "numbered", "title", "hd", "date", "section", "trim_start", "trim_end", "status", "action", "note"];
 const csvCell = v => { const s = String(v ?? ""); return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 export const toCsv = rows => "﻿" + [CSV_COLUMNS.join(","), ...rows.map(r => CSV_COLUMNS.map(c => csvCell(c === "numbered" ? (r.numbered ? "yes" : "no") : r[c])).join(","))].join("\r\n") + "\r\n";
 export function fromCsv(text) {
@@ -150,6 +150,17 @@ export function fromCsv(text) {
   const head = rows.shift() || [];
   return rows.map(r => Object.fromEntries(head.map((h, i) => [h.trim(), (r[i] ?? "").trim()])));
 }
+/* "35:10" | "1:02:03" | "95" | "95.5" -> seconds (NaN when it is not a time) */
+export function parseTime(x) {
+  const t = String(x ?? "").trim();
+  if (!t) return null;
+  const m = /^(?:(\d+):)?(?:(\d+):)?(\d+(?:\.\d+)?)$/.exec(t);
+  if (!m) return NaN;
+  const parts = t.split(":").map(Number);
+  return parts.reduce((a, v) => a * 60 + v, 0);
+}
+export const fmtTime = sec => { const s = Math.round(sec), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return `${h}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+
 /* a row read back from the (possibly hand-edited) csv */
 export function rowFromCsv(o) {
   const seq = +o.seq, m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(o.hd || "");
@@ -163,5 +174,28 @@ export function rowFromCsv(o) {
   if (!date) errors.push("hd (that Hijri date does not exist)");
   if (!["published", "draft", "skip"].includes(o.status)) errors.push("status (published / draft / skip)");
   if (o.part && !PARTS.includes(o.part)) errors.push("part (empty, a, b, c or d)");
-  return { row: { file: o.file, series, seq, numbered, part, id, title: o.title, hd: m ? `${+m[1]}-${+m[2]}-${+m[3]}` : "", date, section: o.section || "", status: o.status || "published", action: o.action || "", note: o.note || "" }, errors };
+  const ts = parseTime(o.trim_start), te = parseTime(o.trim_end);
+  if (Number.isNaN(ts)) errors.push("trim_start (like 35:10 or 1:05:30 or 2110)");
+  if (Number.isNaN(te)) errors.push("trim_end (like 1:20:00)");
+  if (ts != null && te != null && te <= ts) errors.push("trim_end must be after trim_start");
+  return { row: { file: o.file, series, seq, numbered, part, id, title: o.title, hd: m ? `${+m[1]}-${+m[2]}-${+m[3]}` : "", date, section: o.section || "", trim_start: o.trim_start || "", trim_end: o.trim_end || "", trimStart: Number.isFinite(ts) ? ts : null, trimEnd: Number.isFinite(te) ? te : null, status: o.status || "published", action: o.action || "", note: o.note || "" }, errors };
 }
+
+/* ───── silence / blank-stretch detection ───── */
+/* levels = RMS level in dB of each consecutive minute of a recording (-Infinity or very low for silence). A minute is "quiet" when it is 20 dB or more below the median minute. */
+export function analyzeProfile(levels, { dropDb = 20 } = {}) {
+  const n = levels.length, fin = levels.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!n) return { minutes: 0, flags: ["no audio"], lead: 0, trail: 0, gaps: [], median: null };
+  if (!fin.length) return { minutes: n, flags: ["WHOLE FILE IS SILENT"], lead: n, trail: 0, gaps: [], median: null };
+  const median = fin[Math.floor(fin.length / 2)], quiet = levels.map(v => !Number.isFinite(v) || v < median - dropDb);
+  let lead = 0; while (lead < n && quiet[lead]) lead++;
+  let trail = 0; while (trail < n - lead && quiet[n - 1 - trail]) trail++;
+  const gaps = []; for (let i = lead; i < n - trail;) { if (quiet[i]) { let j = i; while (j < n - trail && quiet[j]) j++; if (j - i >= 3) gaps.push({ from: i, minutes: j - i }); i = j; } else i++; }
+  const flags = [];
+  if (lead >= 2) flags.push(`LEADING SILENCE ~${lead} min`);
+  if (trail >= 2) flags.push(`TRAILING SILENCE ~${trail} min`);
+  for (const g of gaps) flags.push(`GAP of ~${g.minutes} min at minute ${g.from}`);
+  return { minutes: n, flags, lead, trail, gaps, median, levels };
+}
+/* ffmpeg `ametadata=print` output -> [dB per window] */
+export const parseRms = text => [...String(text).matchAll(/lavfi\.astats\.Overall\.RMS_level=(-?inf|-?\d+(?:\.\d+)?)/g)].map(m => /inf/.test(m[1]) ? -Infinity : +m[1]);

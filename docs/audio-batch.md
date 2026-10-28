@@ -34,6 +34,7 @@ node tools/audio_batch.mjs convert --only sahih-muslim-0150,sahih-muslim-0162
 # 3. everything: convert (SLOW: about 10 minutes per lesson of ~80 minutes, several lessons at the same time; plan 1-2 hours for 35 files and let it run.
 #    You can stop with Ctrl+C and start the same command again: finished files are kept), then upload to R2
 node tools/audio_batch.mjs convert
+node tools/audio_batch.mjs check     # BEFORE upload: finds blank/silent stretches at the start, the end, or inside (and suggests where to cut)
 node tools/audio_batch.mjs upload
 
 # 4. register in the database. The first time, the old mis-numbered test record must be replaced (see below).
@@ -48,6 +49,14 @@ Then open the portal (admin.drwasiullah.com): the lessons appear in the list of 
 
 ### The conflict of Oct 2026 (`sahih-muslim-0171`)
 The first test upload was registered as lesson 171 but is the recording dated 29-4-1448, which your files call **0172**. `register --replace sahih-muslim-0171` deletes that record (its full content stays in the audit log) and then registers the real 0171 (27-4) and 0172 a/b. Without `--replace` the tool refuses and writes nothing. The old audio file stays in R2, unused.
+
+## Blank or damaged stretches: `check` and trimming
+Some recordings have a silent stretch (for example 35 minutes of blank at the start). `check` listens to every converted file minute by minute and reports: silence at the start (2+ minutes), at the end (2+ minutes), or a gap inside (3+ minutes), with a suggested cut point. It is a safety net, **not** a replacement for listening: it cannot hear a wrong lesson, a cut-off ending or an echo.
+To cut a file, open `tools/audio_batch_work/manifest.csv` and fill the columns **`trim_start`** and/or **`trim_end`** of that row, as `35:10` (minutes:seconds) or `1:05:30` (hours:minutes:seconds). The times are positions in your ORIGINAL file. Then run `convert` again: only the changed rows are redone, from the untouched original. Run `check` again to confirm.
+Alternatively cut the original yourself with ffmpeg (`ffmpeg -ss 35:10 -i original.mp3 -c copy cut.mp3`) and put the cut file in the folder in place of the original: `convert` notices the changed file.
+If a file was already uploaded and you re-convert it, the new version gets a new name in R2; the earlier upload stays there unused (about 30 MB, harmless). `register` always uses the newest conversion.
+
+If you started before this existed (your `manifest.csv` has no trim columns): run `scan --dir ... --force` once; finished conversions are kept.
 
 ## What the optimisation does
 Mono, AAC-LC 48 kbps (m4a), loudness normalised to -16 LUFS (two passes, peaks limited to -1.5 dB), index at the front of the file (`+faststart`, so it starts playing at once), original tags removed (title / artist / album are set; nothing of the original file name), byte-for-byte reproducible. About 22 MB per hour of lesson; a 72-minute lesson is ~26 MB. The R2 name is `audio/<first 16 hex of the sha-256>.m4a` like the portal's.

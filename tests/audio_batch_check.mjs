@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { parseName, planBatch, checkExisting, registerSql, lessonData, toCsv, fromCsv, rowFromCsv, PART_AR } from "../tools/audio_batch_lib.mjs";
+import { parseName, planBatch, checkExisting, registerSql, lessonData, toCsv, fromCsv, rowFromCsv, PART_AR, parseTime, analyzeProfile, parseRms } from "../tools/audio_batch_lib.mjs";
 import { addLessons } from "../admin/src/upload.mjs";
 
 let bad = 0;
@@ -119,6 +119,24 @@ else {
   check("an unnumbered lecture has n NULL and no n in its JSON (so the misc page does not turn numeric)", m.n === null && !("n" in JSON.parse(m.data)) && JSON.parse(m.data).id === "misc-0100");
 }
 
+/* ───── silence detection and trimming (pure part) ───── */
+{
+  check("parseTime: 35:10, 1:05:30, 95, 95.5, empty, garbage", parseTime("35:10") === 2110 && parseTime("1:05:30") === 3930 && parseTime("95") === 95 && parseTime("95.5") === 95.5 && parseTime("") === null && Number.isNaN(parseTime("abc")) && Number.isNaN(parseTime("1:2:3:4")));
+  const speech = n => Array.from({ length: n }, (_, i) => -22 + (i % 5));
+  const lead = analyzeProfile([...Array(35).fill(-Infinity), ...speech(60)]);
+  check("a 35-minute blank start is flagged as LEADING SILENCE", lead.lead === 35 && lead.flags.some(f => /LEADING SILENCE ~35/.test(f)), lead.flags.join());
+  const low = analyzeProfile([...Array(35).fill(-71), ...speech(60)]);
+  check("a start with only faint noise (-71 dB) is flagged too", low.lead === 35);
+  const tr = analyzeProfile([...speech(70), -90, -90, -90]);
+  check("a silent end is flagged as TRAILING", tr.trail === 3 && tr.lead === 0);
+  const gap = analyzeProfile([...speech(30), ...Array(5).fill(-80), ...speech(30)]);
+  check("a gap of 5 minutes inside is flagged; a quiet single minute is not", gap.gaps.length === 1 && gap.gaps[0].from === 30 && analyzeProfile([...speech(30), -60, ...speech(30)]).flags.length === 0, gap.flags.join());
+  check("a normal lesson has no flags; a silent file is reported", analyzeProfile(speech(80)).flags.length === 0 && analyzeProfile([-Infinity, -Infinity, -Infinity]).flags[0] === "WHOLE FILE IS SILENT");
+  check("ffmpeg's printed levels are parsed (including -inf)", JSON.stringify(parseRms("lavfi.astats.Overall.RMS_level=-23.5\nx\nlavfi.astats.Overall.RMS_level=-inf\n")) === "[-23.5,null]" || (parseRms("lavfi.astats.Overall.RMS_level=-23.5\nlavfi.astats.Overall.RMS_level=-inf")[1] === -Infinity));
+  const e = rowFromCsv({ file: "x", series: "sahih-muslim", seq: "150", part: "", hd: "1448-3-2", status: "published", numbered: "yes", trim_start: "35:10", trim_end: "1:20:00" });
+  check("trim columns are read from the CSV (35:10 = 2110 s) and checked", !e.errors.length && e.row.trimStart === 2110 && e.row.trimEnd === 4800 && rowFromCsv({ file: "x", series: "misc", seq: "1", hd: "1448-3-2", status: "published", trim_start: "10:00", trim_end: "5:00" }).errors.some(x => /after trim_start/.test(x)) && rowFromCsv({ file: "x", series: "misc", seq: "1", hd: "1448-3-2", status: "published", trim_start: "soon" }).errors.some(x => /trim_start/.test(x)));
+}
+
 /* ───── ffmpeg output ───── */
 const ff = spawnSync("ffmpeg", ["-version"]).status === 0;
 if (!ff) console.log("SKIP conversion checks: ffmpeg not found");
@@ -140,6 +158,29 @@ else {
   const lufs = execFileSync("ffmpeg", ["-nostats", "-i", out, "-af", "ebur128", "-f", "null", "-"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }); // ffmpeg prints the summary on stderr
   const m = /I:\s+(-?\d+\.\d+) LUFS/.exec(spawnSync("ffmpeg", ["-nostats", "-i", out, "-af", "ebur128", "-f", "null", "-"], { encoding: "utf8" }).stderr.split("Summary")[1] || "");
   check("loudness is -16 LUFS within one unit", m && Math.abs(+m[1] + 16) <= 1, m && m[1]);
+  // a recording that starts with 3 minutes of blank, then speech-like sound, then 2 minutes of blank
+  const blank = path.join(T, "0300صحيح مسلم 3-5-1448هـ.mp3");
+  execFileSync("ffmpeg", ["-loglevel", "error", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono:d=180", "-f", "lavfi", "-i", "anoisesrc=d=240:c=pink:a=0.1", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono:d=120", "-filter_complex", "[1:a]tremolo=f=3:d=0.6[s];[0:a][s][2:a]concat=n=3:v=0:a=1", blank]);
+  const { profileFile } = await import("../tools/audio_batch.mjs");
+  const conv = path.join(T, "c.m4a"); await convertOne(blank, conv, { title: "t", album: "a" });
+  const prof = analyzeProfile(await profileFile(conv));
+  check("ffmpeg profile of a real file finds 3 minutes of blank at the start and 2 at the end", prof.lead === 3 && prof.trail === 2 && prof.flags.length === 2, JSON.stringify(prof.flags));
+  const cut = path.join(T, "cut.m4a"); await convertOne(blank, cut, { title: "t", album: "a" }, { start: 180, end: 420 });
+  const dur = +JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "json", cut], { encoding: "utf8" })).format.duration;
+  check("trim_start / trim_end cut the file (180 s .. 420 s = 240 s) and the result has no blank stretch", Math.abs(dur - 240) < 1 && analyzeProfile(await profileFile(cut)).flags.length === 0, String(dur));
+  // the CLI: scan -> convert -> check suggests the trim -> edit the CSV -> convert again (only that file) -> check is clean
+  const IN = path.join(T, "in"), W = path.join(T, "w"); fs.mkdirSync(IN); fs.copyFileSync(blank, path.join(IN, path.basename(blank)));
+  const cli = (...a) => spawnSync("node", ["--no-warnings", "tools/audio_batch.mjs", ...a, "--work", W], { encoding: "utf8" });
+  cli("scan", "--dir", IN, "--offline"); cli("convert");
+  let r = cli("check");
+  const sug = /trim_start = (\d+:\d\d:\d\d)/.exec(r.stdout), sugEnd = /trim_end = (\d+:\d\d:\d\d)/.exec(r.stdout);
+  check("CLI check flags the file and suggests a start close to 3:00 and an end close to 7:00", sug && sugEnd && Math.abs(parseTime(sug[1]) - 180) <= 6 && Math.abs(parseTime(sugEnd[1]) - 420) <= 6, r.stdout);
+  const csv = fs.readFileSync(path.join(W, "manifest.csv"), "utf8").split("\r\n"), head = csv[0].split(",");
+  const cells = csv[1].split(","); cells[head.indexOf("trim_start")] = sug[1]; cells[head.indexOf("trim_end")] = sugEnd[1]; csv[1] = cells.join(",");
+  fs.writeFileSync(path.join(W, "manifest.csv"), csv.join("\r\n"));
+  r = cli("convert"); check("after editing the trim columns, convert redoes the file", /trimmed/.test(r.stdout), r.stdout + r.stderr);
+  r = cli("convert"); check("a second convert skips it (nothing changed)", /already done 1/.test(r.stdout), r.stdout);
+  r = cli("check"); check("check is clean after trimming", /all 1 files look continuous/.test(r.stdout), r.stdout);
   fs.rmSync(T, { recursive: true, force: true });
 }
 

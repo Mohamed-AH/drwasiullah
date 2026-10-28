@@ -3,7 +3,8 @@
    Runs on the owner's machine: needs Node 20+, ffmpeg + ffprobe on PATH, and `npx wrangler login` (R2 + D1 access). No keys, no npm packages.
    Runbook: docs/audio-batch.md.   Stages (each can be repeated; state is kept in the work folder, so a failure resumes where it stopped):
      scan      read the folder, parse the names, write manifest.csv (open it in Excel, fix what you like) and print warnings
-     convert   ffmpeg: mono, AAC-LC 48 kbps, -16 LUFS two-pass, +faststart, tags stripped  -> <work>/m4a/<id>.m4a   (+ duration, sha256)
+  convert   ffmpeg: mono, AAC-LC 48 kbps, -16 LUFS two-pass, +faststart, tags stripped  -> <work>/m4a/<id>.m4a   (+ duration, sha256)
+     check     look for blank/silent stretches (leading, trailing, gaps) in the converted files; suggests trim_start / trim_end
      upload    wrangler r2 object put  audio/<sha256[:16]>.m4a  (content-addressed, same keys as the portal)
      register  writes register.sql and runs it on D1 (asks for YES): inserts the lessons, replaces mis-numbered ones listed with --replace
      verify    checks D1 rows, R2 objects and the public URLs, writes report.csv
@@ -17,7 +18,7 @@ import crypto from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import readline from "node:readline/promises";
-import { planBatch, checkExisting, registerSql, toCsv, fromCsv, rowFromCsv, MEDIA_BASE, SHEIKH, PART_AR } from "./audio_batch_lib.mjs";
+import { planBatch, checkExisting, registerSql, toCsv, fromCsv, rowFromCsv, MEDIA_BASE, SHEIKH, PART_AR, analyzeProfile, parseRms, fmtTime } from "./audio_batch_lib.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DB = "drwasiullah", BUCKET = "drwasiullah-media", WIN = process.platform === "win32";
@@ -129,17 +130,18 @@ async function scan(o) {
 
 /* ───── convert ───── */
 const probeDuration = f => Math.round(parseFloat(run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).stdout) || 0);
-async function loudnormJson(src) {
-  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", "-i", src, "-vn", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"]);
+const trimArgs = t => [...(t && t.start != null ? ["-ss", String(t.start)] : []), ...(t && t.end != null ? ["-to", String(t.end)] : [])];   // input options: cut before the filters, so loudness is measured on what is kept
+async function loudnormJson(src, trim) {
+  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", ...trimArgs(trim), "-i", src, "-vn", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"]);
   const t = r.stderr, a = t.lastIndexOf("{"), b = t.lastIndexOf("}");
   try { const j = JSON.parse(t.slice(a, b + 1)); return Number.isFinite(+j.input_i) ? j : null; } catch { return null; }
 }
-export async function convertOne(src, dest, meta) {
-  const ln = await loudnormJson(src);
+export async function convertOne(src, dest, meta, trim = null) {
+  const ln = await loudnormJson(src, trim);
   const filter = (ln ? `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${ln.input_i}:measured_TP=${ln.input_tp}:measured_LRA=${ln.input_lra}:measured_thresh=${ln.input_thresh}:offset=${ln.target_offset}:linear=true`
     : "loudnorm=I=-16:TP=-1.5:LRA=11") + ",aresample=44100";                              // silent / unmeasurable files fall back to one-pass
   const tmp = dest + ".part.m4a";
-  await runAsync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-i", src, "-vn", "-map_metadata", "-1", "-af", filter, "-ac", "1", "-c:a", "aac", "-b:a", "48k",
+  await runAsync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", ...trimArgs(trim), "-i", src, "-vn", "-map_metadata", "-1", "-af", filter, "-ac", "1", "-c:a", "aac", "-b:a", "48k",
     "-fflags", "+bitexact", "-flags:a", "+bitexact", "-movflags", "+faststart", "-metadata", `title=${meta.title}`, "-metadata", `artist=${SHEIKH}`, "-metadata", `album=${meta.album}`, tmp]);
   fs.renameSync(tmp, dest);
   return { measured: ln ? +ln.input_i : null };
@@ -154,17 +156,56 @@ async function convert(o) {
   const worker = async () => {
     for (let r; (r = queue.shift());) {
       const src = path.join(srcDir, r.file), st = fs.statSync(src), dest = path.join(P.m4a, `${r.id}.m4a`), cur = state.byId[r.id];
-      if (cur && cur.srcSize === st.size && cur.srcMtime === Math.round(st.mtimeMs) && fs.existsSync(dest) && !o.flags.has("force")) { skipped++; continue; }
+      const trimKey = `${r.trim_start || ""}|${r.trim_end || ""}`;
+      if (cur && cur.srcSize === st.size && cur.srcMtime === Math.round(st.mtimeMs) && (cur.trim || "|") === trimKey && fs.existsSync(dest) && !o.flags.has("force")) { skipped++; continue; }
       const t0 = Date.now(), title = (r.title || "") + (r.part ? ` — ${PART_AR[r.part]}` : "");
-      const info = await convertOne(src, dest, { title, album: SERIES_TITLE[r.series] || r.series });
+      const info = await convertOne(src, dest, { title, album: SERIES_TITLE[r.series] || r.series }, { start: r.trimStart, end: r.trimEnd });
       const size = fs.statSync(dest).size, sha = await sha256(dest), duration = probeDuration(dest);
-      state.byId[r.id] = { file: r.file, srcSize: st.size, srcMtime: Math.round(st.mtimeMs), size, sha, key: `audio/${sha.slice(0, 16)}.m4a`, duration, measuredLufs: info.measured, uploaded: false, registered: false };
+      state.byId[r.id] = { file: r.file, srcSize: st.size, srcMtime: Math.round(st.mtimeMs), trim: trimKey, size, sha, key: `audio/${sha.slice(0, 16)}.m4a`, duration, measuredLufs: info.measured, uploaded: false, registered: false };
       saveState(P, state); done++; saved += st.size - size;
-      console.log(`  ${r.id}: ${mb(st.size)} -> ${mb(size)}, ${Math.round(duration / 60)} min  (${Math.round((Date.now() - t0) / 1000)} s)  [${done + skipped}/${todo.length}]`);
+      console.log(`  ${r.id}: ${mb(st.size)} -> ${mb(size)}, ${Math.round(duration / 60)} min${trimKey !== "|" ? `  (trimmed ${r.trim_start || "0"} – ${r.trim_end || "end"})` : ""}  (${Math.round((Date.now() - t0) / 1000)} s)  [${done + skipped}/${todo.length}]`);
     }
   };
   await Promise.all(Array.from({ length: jobs }, worker));
-  console.log(`converted ${done}, already done ${skipped}; saved ${mb(saved)} against the originals.  Next:  node tools/audio_batch.mjs upload --work "${o.work}"`);
+  console.log(`converted ${done}, already done ${skipped}; saved ${mb(saved)} against the originals.  Next:  node tools/audio_batch.mjs check --work "${o.work}"   (looks for silent stretches), then upload`);
+}
+
+/* ───── check: blank or silent stretches in the converted files ───── */
+export async function profileFile(file) {                                       // RMS level of every minute
+  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", "-i", file, "-vn", "-af", "asetnsamples=n=2646000:p=0,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-", "-f", "null", "-"]);
+  const levels = parseRms(r.stdout), dur = probeDuration(file), keep = dur % 60 >= 30 ? Math.ceil(dur / 60) : Math.floor(dur / 60);   // a last window of under 30 s is only a remainder: it must not count as a quiet minute
+  return levels.slice(0, Math.max(1, keep));
+}
+async function firstSilenceEnd(file, seconds, noiseDb) {                          // exact second where speech starts (end of the first silence block)
+  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", "-t", String(seconds), "-i", file, "-vn", "-af", `silencedetect=noise=${noiseDb}dB:d=2`, "-f", "null", "-"]);
+  const m = /silence_end: (\d+(?:\.\d+)?)/.exec(r.stderr); return m ? +m[1] : null;
+}
+async function lastSilenceStart(file, from, noiseDb) {
+  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", "-ss", String(from), "-i", file, "-vn", "-af", `silencedetect=noise=${noiseDb}dB:d=2`, "-f", "null", "-"]);
+  const all = [...r.stderr.matchAll(/silence_start: (\d+(?:\.\d+)?)/g)]; return all.length ? from + +all[all.length - 1][1] : null;
+}
+async function check(o) {
+  const P = paths(o.work), rows = loadRows(P, list(o.only)), state = loadState(P), out = ["id,minutes,flags,suggested_trim_start,suggested_trim_end"];
+  const todo = rows.filter(r => state.byId[r.id] && fs.existsSync(path.join(P.m4a, `${r.id}.m4a`))), queue = todo.slice(), jobs = Math.max(1, Math.min(8, +o.jobs || Math.max(1, Math.min(4, os.cpus().length - 1)))), results = new Map();
+  console.log(`checking ${todo.length} converted file(s) for silent stretches (a minute or less each)…`);
+  const worker = async () => {
+    for (let r; (r = queue.shift());) {
+      const f = path.join(P.m4a, `${r.id}.m4a`), a = analyzeProfile(await profileFile(f)), base = r.trimStart || 0, noise = a.median == null ? -50 : Math.round(a.median - 25);
+      let sugStart = "", sugEnd = "";
+      if (a.lead >= 2) { const e = await firstSilenceEnd(f, (a.lead + 2) * 60, noise); if (e != null) sugStart = fmtTime(Math.max(0, base + e - 3)); }
+      if (a.trail >= 2) { const s0 = await lastSilenceStart(f, Math.max(0, (a.minutes - a.trail - 2) * 60), noise); if (s0 != null) sugEnd = fmtTime(base + s0 + 3); }
+      results.set(r.id, { a, sugStart, sugEnd });
+    }
+  };
+  await Promise.all(Array.from({ length: jobs }, worker));
+  let flagged = 0;
+  for (const r of todo) {
+    const { a, sugStart, sugEnd } = results.get(r.id);
+    out.push([r.id, a.minutes, `"${a.flags.join("; ")}"`, sugStart, sugEnd].join(","));
+    if (a.flags.length) { flagged++; console.log(`  !! ${r.id} (${a.minutes} min): ${a.flags.join("; ")}` + (sugStart ? `\n       -> in manifest.csv set  trim_start = ${sugStart}   (speech starts about there; LISTEN to confirm)` : "") + (sugEnd ? `\n       -> in manifest.csv set  trim_end = ${sugEnd}` : "")); }
+  }
+  fs.writeFileSync(path.join(o.work, "check_report.csv"), "\ufeff" + out.join("\r\n") + "\r\n");
+  console.log(flagged ? `\n${flagged} of ${todo.length} need a look. After editing the trim columns run convert again (only changed files are redone), then check again.` : `\nall ${todo.length} files look continuous (no silent stretch of 2+ minutes at the start/end or 3+ minutes inside). This is a safety net, not a listening test.`);
 }
 
 /* ───── upload ───── */
@@ -247,7 +288,7 @@ async function verify(o) {
 export async function main(argv) {
   const o = parseArgs(argv), cmd = o._[0];
   o.work = path.resolve(o.work || path.join(HERE, "audio_batch_work")); fs.mkdirSync(o.work, { recursive: true });
-  const cmds = { scan, convert, upload, register, verify };
+  const cmds = { scan, convert, check, upload, register, verify };
   if (!cmds[cmd]) { console.log(fs.readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 16).map(l => l.replace(/^\/\* ?|^ {3}/, "")).join("\n")); process.exitCode = cmd ? 1 : 0; return; }
   try { await cmds[cmd](o); } catch (e) { console.error("\nSTOPPED: " + e.message); process.exitCode = process.exitCode || 1; }
 }
