@@ -219,6 +219,8 @@ else {
   r = cli3("convert");
   const d1 = durOf(path.join(W3, "m4a", "sahih-muslim-0301.m4a")), d2 = durOf(path.join(W3, "m4a", "sahih-muslim-0302.m4a"));
   check("convert removes the stretch: 0301 = 120 + 120 s + a ~3 s pause, 0302 = ~122 s", Math.abs(d1 - 243) < 3 && Math.abs(d2 - 122) < 3, `${d1} ${d2}\n${r.stdout}`);
+  r = cli3("seams"); const sc = fs.existsSync(path.join(W3, "seam_clips")) ? fs.readdirSync(path.join(W3, "seam_clips")) : [];
+  check("seams: one 20 s clip around the join of 0301 (2:00 into the converted file)", /join 1 at 0:02:0\d/.test(r.stdout) && sc.length === 1 && Math.abs(durOf(path.join(W3, "seam_clips", sc[0])) - 20) < 1, r.stdout + r.stderr + sc.join());
   r = cli3("gaps"); check("gaps again: nothing left of a minute or more", /no quiet stretch/.test(r.stdout), r.stdout);
   r = cli3("convert"); check("convert again skips both (nothing changed)", /already done 2/.test(r.stdout), r.stdout);
   r = cli("check"); check("check is clean after trimming", /all 1 files look continuous/.test(r.stdout), r.stdout);

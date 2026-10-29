@@ -71,7 +71,7 @@ Lessons that stop for prayer and resume leave a long quiet stretch in the record
 - quiet at the very **start** → `trim_start`; quiet at the very **end** → `trim_end`;
 - quiet in the **middle** → a range in the **`remove`** column of `manifest.csv`, like `0:13:02-0:32:15` (several ranges are separated by `;`). The tool keeps 1.5 seconds of the quiet on each side, so the lesson continues after a natural 3-second pause, not mid-breath.
 Without options it only reports. `--clips` writes 20-second samples around every edge into `tools/audio_batch_work/gap_clips/` (10 s before + 10 s after the start and the end of each quiet stretch) so you can hear that the cut points are right. `--apply` writes the proposals into `manifest.csv` (it never overwrites a trim you typed yourself). You can also edit the `remove` cells by hand; times are positions in the ORIGINAL file. `--min 90` changes the minimum length, `--keep 3` the seconds kept on each side.
-`convert` then applies them (only the changed rows are redone), and `gaps` again should find nothing.
+`convert` then applies them (only the changed rows are redone), and `gaps` again should find nothing. Then `node tools/audio_batch.mjs seams` writes a 20-second clip around every join into `tools/audio_batch_work/seam_clips/` (the join is at 0:10 in the clip): listen to them to hear that each cut is natural.
 Listen to the area around at least a few of the cut points: the tool cannot tell a prayer break from, say, a student asking a question very quietly.
 
 ## What the optimisation does

@@ -6,6 +6,7 @@
   convert   ffmpeg: mono, AAC-LC 48 kbps, -16 LUFS two-pass, +faststart, tags stripped  -> <work>/m4a/<id>.m4a   (+ duration, sha256)
      check     look for blank/silent stretches (leading, trailing, gaps) in the converted files; suggests trim_start / trim_end
      gaps      find quiet stretches of 1+ minute (prayer breaks), --clips to hear the edges, --apply to write trim/remove into manifest.csv; convert then cuts them out
+     seams     20-second clips around every cut-out stretch (the join in the middle) to listen to
      cut       --trims <file>: cut blank starts/ends out of the ORIGINAL files (originals are kept in <dir>/_originals_before_cut); then run convert again
      upload    wrangler r2 object put  audio/<sha256[:16]>.m4a  (content-addressed, same keys as the portal)
      register  writes register.sql and runs it on D1 (asks for YES): inserts the lessons, replaces mis-numbered ones listed with --replace
@@ -225,6 +226,24 @@ async function gaps(o) {
   else console.log("nothing was changed. Add --apply to write these into manifest.csv, then run convert.");
 }
 
+/* ───── seams: 20-second clips around every place where a stretch was cut out, to hear that the join is natural ───── */
+async function seams(o) {
+  const P = paths(o.work), rows = loadRows(P, list(o.only)), state = loadState(P), dir = path.join(o.work, "seam_clips");
+  fs.mkdirSync(dir, { recursive: true }); let n = 0;
+  for (const r of rows) {
+    if (!r.removeRanges.length || !state.byId[r.id]) continue;
+    const f = path.join(P.m4a, `${r.id}.m4a`); if (!fs.existsSync(f)) continue;
+    let before = 0;
+    for (const [k, [a, b]] of r.removeRanges.entries()) {
+      const at = a - (r.trimStart || 0) - before;                                     // where the join is in the converted file
+      await runAsync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-ss", String(Math.max(0, at - 10)), "-t", "20", "-i", f, "-c", "copy", path.join(dir, `${r.id}_join${k + 1}_at-${fmtTime(at).replace(/:/g, "-")}.m4a`)]);
+      console.log(`  ${r.id}: join ${k + 1} at ${fmtTime(at)} (the file continues after a ${Math.round((b - a) / 60 * 10) / 10}-minute cut)`);
+      before += b - a; n++;
+    }
+  }
+  console.log(n ? `\n${n} clip(s) in ${dir}: each is 10 s before + 10 s after the join, so the join is in the middle (at 0:10). You should hear the Sheikh stop, a short pause, then the lesson resume.` : "no removed stretches in the manifest, so there are no joins.");
+}
+
 /* ───── check: blank or silent stretches in the converted files ───── */
 export async function profileFile(file) {                                       // RMS level of every minute
   const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", "-i", file, "-vn", "-af", "asetnsamples=n=2646000:p=0,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-", "-f", "null", "-"]);
@@ -369,7 +388,7 @@ async function verify(o) {
 export async function main(argv) {
   const o = parseArgs(argv), cmd = o._[0];
   o.work = path.resolve(o.work || path.join(HERE, "audio_batch_work")); fs.mkdirSync(o.work, { recursive: true });
-  const cmds = { scan, convert, check, gaps, cut, upload, register, verify };
+  const cmds = { scan, convert, check, gaps, seams, cut, upload, register, verify };
   if (!cmds[cmd]) { console.log(fs.readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 16).map(l => l.replace(/^\/\* ?|^ {3}/, "")).join("\n")); process.exitCode = cmd ? 1 : 0; return; }
   try { await cmds[cmd](o); } catch (e) { console.error("\nSTOPPED: " + e.message); process.exitCode = process.exitCode || 1; }
 }
