@@ -34,7 +34,10 @@ node tools/audio_batch.mjs convert --only sahih-muslim-0150,sahih-muslim-0162
 # 3. everything: convert (SLOW: about 10 minutes per lesson of ~80 minutes, several lessons at the same time; plan 1-2 hours for 35 files and let it run.
 #    You can stop with Ctrl+C and start the same command again: finished files are kept), then upload to R2
 node tools/audio_batch.mjs convert
-node tools/audio_batch.mjs check     # BEFORE upload: finds blank/silent stretches at the start, the end, or inside (and suggests where to cut)
+node tools/audio_batch.mjs gaps --clips   # quiet stretches of 1+ minute (prayer breaks, waiting): listen to the clips, then:
+node tools/audio_batch.mjs gaps --apply   # writes the cut points into manifest.csv (look at them), then:
+node tools/audio_batch.mjs convert        # redoes only the changed files, with the stretches cut out
+node tools/audio_batch.mjs check          # BEFORE upload: a second safety net (silence at the start/end, gaps of 3+ minutes)
 node tools/audio_batch.mjs upload
 
 # 4. register in the database. The first time, the old mis-numbered test record must be replaced (see below).
@@ -62,6 +65,14 @@ then `node tools/audio_batch.mjs cut --trims tools/audio_batch_work/trims.txt`. 
 If a file was already uploaded and you re-convert it, the new version gets a new name in R2; the earlier upload stays there unused (about 30 MB, harmless). `register` always uses the newest conversion.
 
 If you started before this existed (your `manifest.csv` has no trim columns): run `scan --dir ... --force` once; finished conversions are kept.
+
+## Prayer breaks and other quiet stretches: `gaps`
+Lessons that stop for prayer and resume leave a long quiet stretch in the recording. `gaps` finds every stretch of **60 seconds or more** that is much quieter than the lesson itself (20 dB below its usual level; a cough inside the quiet does not interrupt it), and proposes what to do:
+- quiet at the very **start** → `trim_start`; quiet at the very **end** → `trim_end`;
+- quiet in the **middle** → a range in the **`remove`** column of `manifest.csv`, like `0:13:02-0:32:15` (several ranges are separated by `;`). The tool keeps 1.5 seconds of the quiet on each side, so the lesson continues after a natural 3-second pause, not mid-breath.
+Without options it only reports. `--clips` writes 20-second samples around every edge into `tools/audio_batch_work/gap_clips/` (10 s before + 10 s after the start and the end of each quiet stretch) so you can hear that the cut points are right. `--apply` writes the proposals into `manifest.csv` (it never overwrites a trim you typed yourself). You can also edit the `remove` cells by hand; times are positions in the ORIGINAL file. `--min 90` changes the minimum length, `--keep 3` the seconds kept on each side.
+`convert` then applies them (only the changed rows are redone), and `gaps` again should find nothing.
+Listen to the area around at least a few of the cut points: the tool cannot tell a prayer break from, say, a student asking a question very quietly.
 
 ## What the optimisation does
 Mono, AAC-LC 48 kbps (m4a), loudness normalised to -16 LUFS (two passes, peaks limited to -1.5 dB), index at the front of the file (`+faststart`, so it starts playing at once), original tags removed (title / artist / album are set; nothing of the original file name), byte-for-byte reproducible. About 22 MB per hour of lesson; a 72-minute lesson is ~26 MB. The R2 name is `audio/<first 16 hex of the sha-256>.m4a` like the portal's.

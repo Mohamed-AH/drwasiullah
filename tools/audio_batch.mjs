@@ -5,6 +5,7 @@
      scan      read the folder, parse the names, write manifest.csv (open it in Excel, fix what you like) and print warnings
   convert   ffmpeg: mono, AAC-LC 48 kbps, -16 LUFS two-pass, +faststart, tags stripped  -> <work>/m4a/<id>.m4a   (+ duration, sha256)
      check     look for blank/silent stretches (leading, trailing, gaps) in the converted files; suggests trim_start / trim_end
+     gaps      find quiet stretches of 1+ minute (prayer breaks), --clips to hear the edges, --apply to write trim/remove into manifest.csv; convert then cuts them out
      cut       --trims <file>: cut blank starts/ends out of the ORIGINAL files (originals are kept in <dir>/_originals_before_cut); then run convert again
      upload    wrangler r2 object put  audio/<sha256[:16]>.m4a  (content-addressed, same keys as the portal)
      register  writes register.sql and runs it on D1 (asks for YES): inserts the lessons, replaces mis-numbered ones listed with --replace
@@ -19,7 +20,7 @@ import crypto from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import readline from "node:readline/promises";
-import { planBatch, checkExisting, registerSql, toCsv, fromCsv, rowFromCsv, MEDIA_BASE, SHEIKH, PART_AR, analyzeProfile, parseRms, fmtTime, parseTime } from "./audio_batch_lib.mjs";
+import { planBatch, checkExisting, registerSql, toCsv, fromCsv, rowFromCsv, MEDIA_BASE, SHEIKH, PART_AR, analyzeProfile, parseRms, fmtTime, parseTime, parseRanges, fmtRanges, mergeRanges, mapToSource, removeFilter, findQuietRuns, CSV_COLUMNS } from "./audio_batch_lib.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DB = "drwasiullah", BUCKET = "drwasiullah-media", WIN = process.platform === "win32";
@@ -32,7 +33,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (!a.startsWith("--")) { o._.push(a); continue; }
     const k = a.slice(2);
-    if (["offline", "yes", "dry-run", "force"].includes(k)) o.flags.add(k); else o[k] = argv[++i];
+    if (["offline", "yes", "dry-run", "force", "clips", "apply"].includes(k)) o.flags.add(k); else o[k] = argv[++i];
   }
   return o;
 }
@@ -133,13 +134,13 @@ async function scan(o) {
 const probeDuration = f => Math.round(parseFloat(run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).stdout) || 0);
 const trimArgs = t => [...(t && t.start != null ? ["-ss", String(t.start)] : []), ...(t && t.end != null ? ["-to", String(t.end)] : [])];   // input options: cut before the filters, so loudness is measured on what is kept
 async function loudnormJson(src, trim) {
-  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", ...trimArgs(trim), "-i", src, "-vn", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"]);
+  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", ...trimArgs(trim), "-i", src, "-vn", "-af", `${removeFilter(trim && trim.remove || [], trim && trim.start)}loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json`, "-f", "null", "-"]);
   const t = r.stderr, a = t.lastIndexOf("{"), b = t.lastIndexOf("}");
   try { const j = JSON.parse(t.slice(a, b + 1)); return Number.isFinite(+j.input_i) ? j : null; } catch { return null; }
 }
 export async function convertOne(src, dest, meta, trim = null) {
   const ln = await loudnormJson(src, trim);
-  const filter = (ln ? `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${ln.input_i}:measured_TP=${ln.input_tp}:measured_LRA=${ln.input_lra}:measured_thresh=${ln.input_thresh}:offset=${ln.target_offset}:linear=true`
+  const filter = removeFilter(trim && trim.remove || [], trim && trim.start) + (ln ? `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${ln.input_i}:measured_TP=${ln.input_tp}:measured_LRA=${ln.input_lra}:measured_thresh=${ln.input_thresh}:offset=${ln.target_offset}:linear=true`
     : "loudnorm=I=-16:TP=-1.5:LRA=11") + ",aresample=44100";                              // silent / unmeasurable files fall back to one-pass
   const tmp = dest + ".part.m4a";
   await runAsync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", ...trimArgs(trim), "-i", src, "-vn", "-map_metadata", "-1", "-af", filter, "-ac", "1", "-c:a", "aac", "-b:a", "48k",
@@ -157,18 +158,71 @@ async function convert(o) {
   const worker = async () => {
     for (let r; (r = queue.shift());) {
       const src = path.join(srcDir, r.file), st = fs.statSync(src), dest = path.join(P.m4a, `${r.id}.m4a`), cur = state.byId[r.id];
-      const trimKey = `${r.trim_start || ""}|${r.trim_end || ""}`;
-      if (cur && cur.srcSize === st.size && cur.srcMtime === Math.round(st.mtimeMs) && (cur.trim || "|") === trimKey && fs.existsSync(dest) && !o.flags.has("force")) { skipped++; continue; }
+      const trimKey = `${r.trim_start || ""}|${r.trim_end || ""}|${r.remove || ""}`;
+      if (cur && cur.srcSize === st.size && cur.srcMtime === Math.round(st.mtimeMs) && (cur.trim || "||").replace(/^\|$/, "||") === trimKey && fs.existsSync(dest) && !o.flags.has("force")) { skipped++; continue; }
       const t0 = Date.now(), title = (r.title || "") + (r.part ? ` — ${PART_AR[r.part]}` : "");
-      const info = await convertOne(src, dest, { title, album: SERIES_TITLE[r.series] || r.series }, { start: r.trimStart, end: r.trimEnd });
+      const info = await convertOne(src, dest, { title, album: SERIES_TITLE[r.series] || r.series }, { start: r.trimStart, end: r.trimEnd, remove: r.removeRanges });
       const size = fs.statSync(dest).size, sha = await sha256(dest), duration = probeDuration(dest);
       state.byId[r.id] = { file: r.file, srcSize: st.size, srcMtime: Math.round(st.mtimeMs), trim: trimKey, size, sha, key: `audio/${sha.slice(0, 16)}.m4a`, duration, measuredLufs: info.measured, uploaded: false, registered: false };
       saveState(P, state); done++; saved += st.size - size;
-      console.log(`  ${r.id}: ${mb(st.size)} -> ${mb(size)}, ${Math.round(duration / 60)} min${trimKey !== "|" ? `  (trimmed ${r.trim_start || "0"} – ${r.trim_end || "end"})` : ""}  (${Math.round((Date.now() - t0) / 1000)} s)  [${done + skipped}/${todo.length}]`);
+      console.log(`  ${r.id}: ${mb(st.size)} -> ${mb(size)}, ${Math.round(duration / 60)} min${trimKey !== "||" ? `  (${r.trim_start || r.trim_end ? `trimmed ${r.trim_start || "0"} – ${r.trim_end || "end"}` : ""}${r.removeRanges.length ? ` removed ${r.removeRanges.length} stretch(es), ${Math.round(r.removeRanges.reduce((a, [x, y]) => a + y - x, 0) / 60)} min` : ""})` : ""}  (${Math.round((Date.now() - t0) / 1000)} s)  [${done + skipped}/${todo.length}]`);
     }
   };
   await Promise.all(Array.from({ length: jobs }, worker));
   console.log(`converted ${done}, already done ${skipped}; saved ${mb(saved)} against the originals.  Next:  node tools/audio_batch.mjs check --work "${o.work}"   (looks for silent stretches), then upload`);
+}
+
+/* ───── gaps: quiet stretches (prayer breaks, waiting) of a minute or more -> cut out ───── */
+export async function profileSeconds(file) {                                   // RMS level of every second (the converted files are 44.1 kHz)
+  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", "-i", file, "-vn", "-af", "asetnsamples=n=44100:p=0,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-", "-f", "null", "-"]);
+  const levels = parseRms(r.stdout), dur = probeDuration(file);
+  return levels.slice(0, Math.max(1, Math.ceil(dur)));
+}
+function writeManifest(P, raw) {
+  const out = raw.map(o => ({ ...Object.fromEntries(CSV_COLUMNS.map(c => [c, o[c] ?? ""])), numbered: /^(yes|true|1)$/i.test(o.numbered) }));
+  fs.writeFileSync(P.csv, toCsv(out));
+}
+async function gaps(o) {
+  const P = paths(o.work), rows = loadRows(P, list(o.only)), state = loadState(P), minS = +o.min || 60, keep = o.keep == null ? 1.5 : +o.keep;
+  const todo = rows.filter(r => state.byId[r.id] && fs.existsSync(path.join(P.m4a, `${r.id}.m4a`))), queue = todo.slice(), found = new Map();
+  const jobs = Math.max(1, Math.min(8, +o.jobs || Math.max(1, Math.min(4, os.cpus().length - 1))));
+  console.log(`looking for quiet stretches of ${minS}+ seconds in ${todo.length} converted file(s) (1-2 minutes each, ${jobs} at a time)…`);
+  const worker = async () => {
+    for (let r; (r = queue.shift());) {
+      const f = path.join(P.m4a, `${r.id}.m4a`), lv = await profileSeconds(f), { runs, median } = findQuietRuns(lv, { minSeconds: minS });
+      found.set(r.id, { runs, median, dur: lv.length });
+      if (o.flags.has("clips") && runs.length) {                                  // 20 s around each edge of every stretch, so the cut points can be heard
+        fs.mkdirSync(path.join(o.work, "gap_clips"), { recursive: true });
+        for (const [k, g] of runs.entries()) for (const [edge, t] of [["from", g.from], ["to", g.to]]) await runAsync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-ss", String(Math.max(0, t - 10)), "-t", "20", "-i", f, "-c", "copy", path.join(o.work, "gap_clips", `${r.id}_gap${k + 1}_${edge}-${fmtTime(t).replace(/:/g, "-")}.m4a`)]);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: jobs }, worker));
+  const raw = fromCsv(fs.readFileSync(P.csv, "utf8")), byId = new Map(raw.map(x => [x.id, x]));
+  const report = ["id,stretch_in_converted_file,length_s,action,value"]; let n = 0, changed = 0;
+  for (const r of todo) {
+    const { runs, dur } = found.get(r.id); if (!runs.length) continue;
+    const rm = [], edits = [];
+    for (const g of runs) {
+      const startsAtZero = g.from <= 3, endsAtEnd = g.to >= dur - 3, len = g.to - g.from;
+      const conv = `${fmtTime(g.from)}-${fmtTime(g.to)}`;
+      if (startsAtZero && !endsAtEnd) { const v = fmtTime(mapToSource(g.to - keep, r.trimStart || 0, r.removeRanges)); edits.push(["trim_start", v]); report.push(`${r.id},${conv},${len},trim_start,${v}`); console.log(`  ${r.id}: quiet at the START for ${Math.round(len / 60 * 10) / 10} min (${conv}) -> trim_start = ${v}`); }
+      else if (endsAtEnd && !startsAtZero) { const v = fmtTime(mapToSource(g.from + keep, r.trimStart || 0, r.removeRanges)); edits.push(["trim_end", v]); report.push(`${r.id},${conv},${len},trim_end,${v}`); console.log(`  ${r.id}: quiet at the END for ${Math.round(len / 60 * 10) / 10} min (${conv}) -> trim_end = ${v}`); }
+      else if (startsAtZero && endsAtEnd) { console.log(`  !! ${r.id}: the whole file is quiet. Not touched: look at the original.`); report.push(`${r.id},${conv},${len},WHOLE FILE QUIET,`); }
+      else { const a = mapToSource(g.from + keep, r.trimStart || 0, r.removeRanges), b = mapToSource(g.to - keep, r.trimStart || 0, r.removeRanges); rm.push([a, b]); report.push(`${r.id},${conv},${len},remove,${fmtTime(a)}-${fmtTime(b)}`); console.log(`  ${r.id}: quiet for ${Math.round(len / 60 * 10) / 10} min at ${conv} -> remove ${fmtTime(a)}-${fmtTime(b)} (${keep} s of silence kept on each side)`); }
+      n++;
+    }
+    if (o.flags.has("apply")) {
+      const x = byId.get(r.id); if (!x) continue;
+      for (const [col, v] of edits) if (!x[col]) { x[col] = v; changed++; }              // never overwrite a trim you set yourself
+      if (rm.length) { x.remove = fmtRanges(mergeRanges(parseRanges(x.remove).ranges || [], rm)); changed++; }
+    }
+  }
+  fs.writeFileSync(path.join(o.work, "gaps_report.csv"), "\ufeff" + report.join("\r\n") + "\r\n");
+  if (!n) { console.log(`no quiet stretch of ${minS}+ seconds in any file.`); return; }
+  console.log(`\n${n} stretch(es). Report: ${path.join(o.work, "gaps_report.csv")}` + (o.flags.has("clips") ? `; clips of every edge in ${path.join(o.work, "gap_clips")} (listen: 10 s before + 10 s after each edge)` : ""));
+  if (o.flags.has("apply")) { writeManifest(P, raw); console.log(`written into manifest.csv (columns trim_start / trim_end / remove) — ${changed} cell(s). Look at them, then run:  node tools/audio_batch.mjs convert   and  check`); }
+  else console.log("nothing was changed. Add --apply to write these into manifest.csv, then run convert.");
 }
 
 /* ───── check: blank or silent stretches in the converted files ───── */
@@ -315,7 +369,7 @@ async function verify(o) {
 export async function main(argv) {
   const o = parseArgs(argv), cmd = o._[0];
   o.work = path.resolve(o.work || path.join(HERE, "audio_batch_work")); fs.mkdirSync(o.work, { recursive: true });
-  const cmds = { scan, convert, check, cut, upload, register, verify };
+  const cmds = { scan, convert, check, gaps, cut, upload, register, verify };
   if (!cmds[cmd]) { console.log(fs.readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 16).map(l => l.replace(/^\/\* ?|^ {3}/, "")).join("\n")); process.exitCode = cmd ? 1 : 0; return; }
   try { await cmds[cmd](o); } catch (e) { console.error("\nSTOPPED: " + e.message); process.exitCode = process.exitCode || 1; }
 }

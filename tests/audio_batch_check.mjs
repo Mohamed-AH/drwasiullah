@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { parseName, planBatch, checkExisting, registerSql, lessonData, toCsv, fromCsv, rowFromCsv, PART_AR, parseTime, analyzeProfile, parseRms } from "../tools/audio_batch_lib.mjs";
+import { parseName, planBatch, checkExisting, registerSql, lessonData, toCsv, fromCsv, rowFromCsv, PART_AR, parseTime, analyzeProfile, parseRms, parseRanges, fmtRanges, mergeRanges, mapToSource, removeFilter, findQuietRuns } from "../tools/audio_batch_lib.mjs";
 import { addLessons } from "../admin/src/upload.mjs";
 
 let bad = 0;
@@ -137,6 +137,18 @@ else {
   check("trim columns are read from the CSV (35:10 = 2110 s) and checked", !e.errors.length && e.row.trimStart === 2110 && e.row.trimEnd === 4800 && rowFromCsv({ file: "x", series: "misc", seq: "1", hd: "1448-3-2", status: "published", trim_start: "10:00", trim_end: "5:00" }).errors.some(x => /after trim_start/.test(x)) && rowFromCsv({ file: "x", series: "misc", seq: "1", hd: "1448-3-2", status: "published", trim_start: "soon" }).errors.some(x => /trim_start/.test(x)));
 }
 
+/* ───── quiet stretches inside a recording: pure helpers ───── */
+{
+  const sp = n => Array(n).fill(-24);
+  const one = findQuietRuns([...sp(100), ...Array(150).fill(-70), ...sp(100)]).runs;
+  check("findQuietRuns: a 150 s quiet stretch is found at 100-250 s", one.length === 1 && one[0].from === 100 && one[0].to === 250, JSON.stringify(one));
+  check("findQuietRuns: a cough (2 loud seconds) inside the stretch does not split it", findQuietRuns([...sp(100), ...Array(70).fill(-70), -30, -30, ...Array(80).fill(-70), ...sp(100)]).runs.length === 1);
+  check("findQuietRuns: a pause shorter than a minute is left alone", findQuietRuns([...sp(100), ...Array(50).fill(-70), ...sp(100)]).runs.length === 0 && findQuietRuns([...sp(100), ...Array(59).fill(-70), ...sp(100)]).runs.length === 0);
+  check("parseRanges / fmtRanges / mergeRanges", JSON.stringify(parseRanges("13:02-32:15;50:00-52:10").ranges) === "[[782,1935],[3000,3130]]" && fmtRanges([[782, 1935]]) === "0:13:02-0:32:15" && parseRanges("5-3").error && parseRanges("1-5;4-9").error === "ranges overlap" && JSON.stringify(mergeRanges([[0, 10]], [[10, 20], [30, 40]])) === "[[0,20],[30,40]]");
+  check("mapToSource undoes the start trim and the removed ranges", mapToSource(100, 10, [[50, 80]]) === 140 && mapToSource(30, 10, [[50, 80]]) === 40);
+  check("removeFilter: ranges are shifted by the start trim", removeFilter([[782, 1935]], 0).includes("between(t,782.000,1935.000)") && removeFilter([[782, 1935]], 600).includes("between(t,182.000,1335.000)") && removeFilter([], 0) === "");
+}
+
 /* ───── ffmpeg output ───── */
 const ff = spawnSync("ffmpeg", ["-version"]).status === 0;
 if (!ff) console.log("SKIP conversion checks: ffmpeg not found");
@@ -191,6 +203,24 @@ else {
   check("cut again starts from the backup, not from the already cut file", r.status === 0 && Math.abs(durOf(path.join(IN2, nm)) - 242) < 1 && Math.abs(durOf(path.join(IN2, "_originals_before_cut", nm)) - 540) < 1, r.stdout + r.stderr);
   fs.writeFileSync(path.join(T, "bad.txt"), "sahih-muslim-0999 3:00\nsahih-muslim-0300 soon\n");
   r = cli2("cut", "--trims", path.join(T, "bad.txt")); check("cut refuses a wrong id or time and changes nothing", r.status !== 0 && /no such id/.test(r.stderr) && /expected/.test(r.stderr) && Math.abs(durOf(path.join(IN2, nm)) - 242) < 1);
+  // gaps: a recording = 2 min speech, 150 s of quiet (a prayer break), 2 min speech; and one that starts with 150 s of quiet
+  const IN3 = path.join(T, "in3"), W3 = path.join(T, "w3"); fs.mkdirSync(IN3);
+  const gapFile = path.join(IN3, "0301صحيح مسلم 4-5-1448هـ.mp3"), leadFile = path.join(IN3, "0302صحيح مسلم 6-5-1448هـ.mp3");
+  const speech = d => `anoisesrc=d=${d}:c=pink:a=0.1`, quietNoise = d => `anoisesrc=d=${d}:c=pink:a=0.0004`;
+  const mk = (out, parts) => execFileSync("ffmpeg", ["-loglevel", "error", "-y", ...parts.flatMap(p => ["-f", "lavfi", "-i", p]), "-filter_complex", parts.map((_, i) => `[${i}:a]${i % 2 === (parts.length === 3 ? 0 : 1) ? "tremolo=f=3:d=0.6" : "anull"}[a${i}]`).join(";") + ";" + parts.map((_, i) => `[a${i}]`).join("") + `concat=n=${parts.length}:v=0:a=1`, out]);
+  mk(gapFile, [speech(120), quietNoise(150), speech(120)]); mk(leadFile, [quietNoise(150), speech(120)]);
+  const cli3 = (...a) => spawnSync("node", ["--no-warnings", "tools/audio_batch.mjs", ...a, "--work", W3], { encoding: "utf8" });
+  cli3("scan", "--dir", IN3, "--offline"); cli3("convert");
+  r = cli3("gaps", "--clips");
+  check("gaps: finds the 150 s break inside 0301 (remove ~2:01-4:29) and the quiet start of 0302 (trim_start ~2:28)", /sahih-muslim-0301: quiet for 2\.5 min/.test(r.stdout) && /sahih-muslim-0302: quiet at the START/.test(r.stdout) && fs.existsSync(path.join(W3, "gap_clips")) && fs.readdirSync(path.join(W3, "gap_clips")).length >= 2, r.stdout + r.stderr);
+  check("gaps without --apply changes nothing", !/remove/.test(fs.readFileSync(path.join(W3, "manifest.csv"), "utf8").split("\r\n")[1]) && /nothing was changed/.test(r.stdout));
+  r = cli3("gaps", "--apply"); const man = fs.readFileSync(path.join(W3, "manifest.csv"), "utf8");
+  check("gaps --apply writes the remove range and the trim into manifest.csv", /0:02:0\d-0:04:2\d/.test(man) && /0:02:2\d/.test(man), man);
+  r = cli3("convert");
+  const d1 = durOf(path.join(W3, "m4a", "sahih-muslim-0301.m4a")), d2 = durOf(path.join(W3, "m4a", "sahih-muslim-0302.m4a"));
+  check("convert removes the stretch: 0301 = 120 + 120 s + a ~3 s pause, 0302 = ~122 s", Math.abs(d1 - 243) < 3 && Math.abs(d2 - 122) < 3, `${d1} ${d2}\n${r.stdout}`);
+  r = cli3("gaps"); check("gaps again: nothing left of a minute or more", /no quiet stretch/.test(r.stdout), r.stdout);
+  r = cli3("convert"); check("convert again skips both (nothing changed)", /already done 2/.test(r.stdout), r.stdout);
   r = cli("check"); check("check is clean after trimming", /all 1 files look continuous/.test(r.stdout), r.stdout);
   fs.rmSync(T, { recursive: true, force: true });
 }

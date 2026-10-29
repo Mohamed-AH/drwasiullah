@@ -44,7 +44,7 @@ export function planBatch(files) {
     const route = routeFor(p.text), cfg = route || FALLBACK;
     if (!route) warnings.push(`${f.file}: not a known course, routed to «${FALLBACK.series}» (unnumbered) — check the series column`);
     rows.push({ file: f.file, size: f.size || 0, ext: p.ext, series: cfg.series, seq: p.seq, numbered: cfg.numbered, cont: p.cont, part: "", id: "", title: cfg.numbered ? `الدرس ${p.seq}` : p.text,
-      hd, date, section: "", trim_start: "", trim_end: "", status: "published", weekdays: cfg.weekdays || null });
+      hd, date, section: "", trim_start: "", trim_end: "", remove: "", status: "published", weekdays: cfg.weekdays || null });
   }
   const groups = new Map();                                   // parts: group by series + number
   for (const r of rows) { const k = `${r.series}|${r.seq}`; (groups.get(k) || groups.set(k, []).get(k)).push(r); }
@@ -132,7 +132,7 @@ export function registerSql(rows, replaceExisting = []) {
 }
 
 /* ───── the review spreadsheet (UTF-8 with BOM so Excel shows Arabic) ───── */
-export const CSV_COLUMNS = ["file", "series", "seq", "part", "id", "numbered", "title", "hd", "date", "section", "trim_start", "trim_end", "status", "action", "note"];
+export const CSV_COLUMNS = ["file", "series", "seq", "part", "id", "numbered", "title", "hd", "date", "section", "trim_start", "trim_end", "remove", "status", "action", "note"];
 const csvCell = v => { const s = String(v ?? ""); return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 export const toCsv = rows => "﻿" + [CSV_COLUMNS.join(","), ...rows.map(r => CSV_COLUMNS.map(c => csvCell(c === "numbered" ? (r.numbered ? "yes" : "no") : r[c])).join(","))].join("\r\n") + "\r\n";
 export function fromCsv(text) {
@@ -178,7 +178,9 @@ export function rowFromCsv(o) {
   if (Number.isNaN(ts)) errors.push("trim_start (like 35:10 or 1:05:30 or 2110)");
   if (Number.isNaN(te)) errors.push("trim_end (like 1:20:00)");
   if (ts != null && te != null && te <= ts) errors.push("trim_end must be after trim_start");
-  return { row: { file: o.file, series, seq, numbered, part, id, title: o.title, hd: m ? `${+m[1]}-${+m[2]}-${+m[3]}` : "", date, section: o.section || "", trim_start: o.trim_start || "", trim_end: o.trim_end || "", trimStart: Number.isFinite(ts) ? ts : null, trimEnd: Number.isFinite(te) ? te : null, status: o.status || "published", action: o.action || "", note: o.note || "" }, errors };
+  const rm = parseRanges(o.remove);
+  if (rm.error) errors.push(`remove (${rm.error}; like 13:02-32:15;50:00-52:10)`);
+  return { row: { file: o.file, series, seq, numbered, part, id, title: o.title, hd: m ? `${+m[1]}-${+m[2]}-${+m[3]}` : "", date, section: o.section || "", trim_start: o.trim_start || "", trim_end: o.trim_end || "", trimStart: Number.isFinite(ts) ? ts : null, trimEnd: Number.isFinite(te) ? te : null, remove: o.remove || "", removeRanges: rm.ranges || [], status: o.status || "published", action: o.action || "", note: o.note || "" }, errors };
 }
 
 /* ───── silence / blank-stretch detection ───── */
@@ -199,3 +201,53 @@ export function analyzeProfile(levels, { dropDb = 20 } = {}) {
 }
 /* ffmpeg `ametadata=print` output -> [dB per window] */
 export const parseRms = text => [...String(text).matchAll(/lavfi\.astats\.Overall\.RMS_level=(-?inf|-?\d+(?:\.\d+)?)/g)].map(m => /inf/.test(m[1]) ? -Infinity : +m[1]);
+
+/* ───── removing stretches from the inside of a recording (prayer breaks etc.) ───── */
+/* "13:02-32:15;50:00-52:10" -> { ranges: [[782, 1935], [3000, 3130]] } (seconds, in the timeline of the ORIGINAL file; sorted, not overlapping) or { error } */
+export function parseRanges(x) {
+  const t = String(x ?? "").trim();
+  if (!t) return { ranges: [] };
+  const ranges = [];
+  for (const part of t.split(/[;\n]/).map(v => v.trim()).filter(Boolean)) {
+    const m = /^(\S+?)\s*-\s*(\S+)$/.exec(part);
+    const a = m ? parseTime(m[1]) : NaN, b = m ? parseTime(m[2]) : NaN;
+    if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return { error: `«${part}» is not a range` };
+    ranges.push([a, b]);
+  }
+  ranges.sort((p, q) => p[0] - q[0]);
+  for (let i = 1; i < ranges.length; i++) if (ranges[i][0] < ranges[i - 1][1]) return { error: "ranges overlap" };
+  return { ranges };
+}
+export const fmtRanges = ranges => ranges.map(([a, b]) => `${fmtTime(a)}-${fmtTime(b)}`).join(";");
+/* merge two sorted range lists (overlapping/touching ranges become one) */
+export function mergeRanges(...lists) {
+  const all = lists.flat().map(r => [...r]).sort((a, b) => a[0] - b[0]), out = [];
+  for (const r of all) { const last = out[out.length - 1]; if (last && r[0] <= last[1] + 0.5) last[1] = Math.max(last[1], r[1]); else out.push(r); }
+  return out;
+}
+/* time in the converted file -> time in the original file (undo the start trim and the removed ranges) */
+export function mapToSource(t, trimStart = 0, removed = []) {
+  let x = t + (trimStart || 0);
+  for (const [a, b] of removed) if (x >= a) x += b - a;
+  return x;
+}
+/* The ffmpeg filter that drops the removed ranges (times in the original file; `trimStart` is subtracted because -ss restarts the clock) */
+export function removeFilter(removed, trimStart = 0) {
+  const rs = removed.map(([a, b]) => [a - (trimStart || 0), b - (trimStart || 0)]).filter(([, b]) => b > 0).map(([a, b]) => [Math.max(0, a), b]);
+  return rs.length ? `aselect='not(${rs.map(([a, b]) => `between(t,${a.toFixed(3)},${b.toFixed(3)})`).join("+")})',asetpts=N/SR/TB,` : "";
+}
+/* levels = RMS dB of each consecutive SECOND. A second is quiet when it is `dropDb` below the 70th percentile of the file (the usual speech level, even when a long break makes up half of the recording); loud blips (a cough, a footstep) of up to `mergeSeconds`
+   inside a quiet stretch do not end it. -> [{ from, to }] in seconds, only stretches of at least `minSeconds` */
+export function findQuietRuns(levels, { dropDb = 20, minSeconds = 60, mergeSeconds = 4 } = {}) {
+  const fin = levels.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!fin.length) return { runs: levels.length >= minSeconds ? [{ from: 0, to: levels.length }] : [], median: null };
+  const median = fin[Math.min(fin.length - 1, Math.floor(fin.length * 0.7))], quiet = levels.map(v => !Number.isFinite(v) || v < median - dropDb), runs = [];
+  for (let i = 0; i < quiet.length;) {
+    if (!quiet[i]) { i++; continue; }
+    let j = i;
+    for (;;) { while (j < quiet.length && quiet[j]) j++; let k = j; while (k < quiet.length && !quiet[k] && k - j < mergeSeconds + 1) k++; if (k < quiet.length && quiet[k] && k - j <= mergeSeconds) j = k; else break; }
+    if (j - i >= minSeconds) runs.push({ from: i, to: j });
+    i = j;
+  }
+  return { runs, median };
+}
