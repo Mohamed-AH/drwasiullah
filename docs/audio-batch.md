@@ -104,3 +104,6 @@ Put the new recordings in the folder and run `scan` (use a new `--work` folder o
 - Code: `tools/audio_batch.mjs` (stages, ffmpeg, wrangler) and `tools/audio_batch_lib.mjs` (parsing, planning, conflict rules, CSV, SQL — pure, tested). Tests: `node --no-warnings tests/audio_batch_check.mjs [--wrangler]` — includes the real 37 names (`tests/audio_batch_names.txt`), a byte-for-byte comparison of the registration SQL with the portal's `addLessons()` on SQLite, the ffmpeg output properties, and (with `--wrangler`) the whole pipeline against a local D1 + R2.
 - Registration is SQL run with `wrangler d1 execute --remote --file` (not the portal API: the portal accepts only Cloudflare Access logins). Rows are written like the portal writes them, origin `library`, audit actor `script:audio_batch`, so the portal counts them as unpublished changes.
 - Local test mode: `--local <dir>` uses a wrangler state folder instead of the real account.
+
+## Log
+- **2026-10-29 — first batch:** 37 files scanned, 36 lessons (36.1 h) converted, uploaded, registered (35 new + 1 replacing `sahih-muslim-0171`) and published. `sahih-muslim-0170` was blank and skipped; when a good copy arrives, put it in the folder and run `scan --force`, then `convert`, `upload`, `register --dry-run`, `register --yes`. A `fetch failed` from wrangler is a transient network error: retry.
