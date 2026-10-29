@@ -48,6 +48,8 @@ Saving never changes the live site by itself, except the instant items. Several 
 5. Press **«رفع وحفظ»**. A progress bar shows each file; if the connection drops it retries. **Do not close the tab until it says it is done.** Re-uploading the same file is harmless.
 6. Menu **«النشر» → «نشر الآن»**. The lesson is on the site in about 2 minutes.
 
+> **Many files at once (a whole folder, WAV files, files that need volume normalising and compressing)?** Do not use this screen: use the command-line tool described in [audio-batch.md](audio-batch.md). It optimises the audio, registers the lessons, and leaves them as unpublished changes for you to check and Publish here.
+
 Recommended audio: mono, about 48 kbps (small files, plays on every phone). A very large file (over ~100 MB) is only a warning.
 
 Part lessons (one lesson in two files) use a letter after the number, e.g. 22a and 22b.

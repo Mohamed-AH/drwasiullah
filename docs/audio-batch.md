@@ -1,0 +1,106 @@
+# Uploading many recordings at once — `tools/audio_batch.mjs`
+
+For a folder of many lessons (like the 37 files of Oct 2026) use this tool instead of the portal's upload screen. It **optimises** the audio (the portal cannot), puts it in R2, and registers the lessons in the database. **It never publishes**: the lessons wait under «التغييرات غير المنشورة» in the portal until you press Publish.
+For one or two files the portal screen is still the easiest way (`docs/admin-manual.md`).
+
+## Git Bash tips
+- Write the folder with **forward slashes**: `"C:/projects/wasiullahdrive/downloads"` (backslashes inside quotes also work, but forward slashes never go wrong). Arabic file names are fine.
+- Copy the commands one line at a time. Lines starting with `#` are comments.
+- If a command shows `ffmpeg: ... is it installed and on PATH?`, close Git Bash, open it again (it reads PATH when it starts) and check `ffmpeg -version`.
+
+## What you need (once)
+- Node 20+, **ffmpeg and ffprobe on PATH** (check: `ffmpeg -version`), and a Cloudflare login: `npx wrangler login` (the same account as the site; it needs R2 and D1 access). Check with `npx wrangler whoami`.
+- A fresh copy of the repo: `git pull` in `C:\projects\...\drwasiullah`.
+- Run every command from the repository folder, in **Git Bash** or PowerShell (the commands below are written for Git Bash; in PowerShell the same lines work, only the `#` comments differ). Your **original files are never changed or deleted**.
+
+## File names the tool understands
+`<4-digit number><title text> <day>-<month>-<Hijri year>هـ [تكملة].<mp3|wav|m4a|flac|ogg|aac>` — e.g. `0149صحيح مسلم30-2-1448هـ.mp3`.
+- Titles containing «صحيح مسلم» go to the series **sahih-muslim** as «الدرس N» (number = the 4 digits).
+- Anything else goes to **misc** (lectures), **unnumbered**, with the text of the file name as its title. (Change the `series` column in the spreadsheet if it belongs elsewhere.)
+- A second file with «تكملة» / «تكمله» for the same number becomes **part b** (the base file is **part a**): ids `sahih-muslim-0149a`, `…0149b`, titles «الدرس 149 — الجزء الأول / الجزء الثاني».
+- The Hijri date is converted to Gregorian with the same calendar the portal uses. The tool warns about a date that does not exist, numbers that jump, a lesson dated before the previous one, and a Muslim lesson that is not on a Wed/Thu/Sat.
+
+## Step by step
+```bash
+# 1. scan: reads the folder, asks the database what exists, writes the spreadsheet. Nothing is changed anywhere.
+node tools/audio_batch.mjs scan --dir "C:/projects/wasiullahdrive/downloads"
+#    -> read the warnings. Open tools\audio_batch_work\manifest.csv in Excel to check/edit titles, sections, series, status (published / draft / skip).
+#    (Save as CSV UTF-8. Do not rename the columns. Delete a row or set status=skip to leave a file out.)
+
+# 2. TRIAL on two files first (one mp3, the WAV): convert, then LISTEN to tools\audio_batch_work\m4a\*.m4a
+node tools/audio_batch.mjs convert --only sahih-muslim-0150,sahih-muslim-0162
+#    compare size and sound with the originals. Tell Claude if the quality is not good enough: the settings can be changed.
+
+# 3. everything: convert (SLOW: about 10 minutes per lesson of ~80 minutes, several lessons at the same time; plan 1-2 hours for 35 files and let it run.
+#    You can stop with Ctrl+C and start the same command again: finished files are kept), then upload to R2
+node tools/audio_batch.mjs convert
+node tools/audio_batch.mjs gaps --clips   # quiet stretches of 1+ minute (prayer breaks, waiting): listen to the clips, then:
+node tools/audio_batch.mjs gaps --apply   # writes the cut points into manifest.csv (look at them), then:
+node tools/audio_batch.mjs convert        # redoes only the changed files, with the stretches cut out
+node tools/audio_batch.mjs check          # BEFORE upload: a second safety net (silence at the start/end, gaps of 3+ minutes)
+node tools/audio_batch.mjs upload
+
+# 4. register in the database. The first time, the old mis-numbered test record must be replaced (see below).
+#    it prints what it will do. In Git Bash it cannot ask a question, so do it in two steps:
+node tools/audio_batch.mjs register --replace sahih-muslim-0171 --dry-run     # shows the plan, writes tools/audio_batch_work/register.sql, changes nothing
+node tools/audio_batch.mjs register --replace sahih-muslim-0171 --yes         # the real thing (PowerShell/cmd users can leave out --yes and type YES instead)
+
+# 5. check
+node tools/audio_batch.mjs verify
+```
+Then open the portal (admin.drwasiullah.com): the lessons appear in the list of unpublished changes. Open a few, play them, fix titles/sections in the portal if needed, and press **Publish**. After ~2 minutes check the site.
+
+### The conflict of Oct 2026 (`sahih-muslim-0171`)
+The first test upload was registered as lesson 171 but is the recording dated 29-4-1448, which your files call **0172**. `register --replace sahih-muslim-0171` deletes that record (its full content stays in the audit log) and then registers the real 0171 (27-4) and 0172 a/b. Without `--replace` the tool refuses and writes nothing. The old audio file stays in R2, unused.
+
+## Blank or damaged stretches: `check` and trimming
+Some recordings have a silent stretch (for example 35 minutes of blank at the start). `check` listens to every converted file minute by minute and reports: silence at the start (2+ minutes), at the end (2+ minutes), or a gap inside (3+ minutes), with a suggested cut point. It is a safety net, **not** a replacement for listening: it cannot hear a wrong lesson, a cut-off ending or an echo.
+To cut a file, open `tools/audio_batch_work/manifest.csv` and fill the columns **`trim_start`** and/or **`trim_end`** of that row, as `35:10` (minutes:seconds) or `1:05:30` (hours:minutes:seconds). The times are positions in your ORIGINAL file. Then run `convert` again: only the changed rows are redone, from the untouched original. Run `check` again to confirm.
+**Cutting the originals instead** (`cut`): write a text file with one line per file, ids and times only (no Arabic to type), e.g. `tools/audio_batch_work/trims.txt`:
+```
+sahih-muslim-0150 4:40
+sahih-muslim-0172a 35:10
+```
+then `node tools/audio_batch.mjs cut --trims tools/audio_batch_work/trims.txt`. For each line it MOVES the original into `<folder>/_originals_before_cut/` and puts a cut copy (no re-encoding) under the original name, keeping 2 seconds before the time you gave (`--margin N` to change). Running it again starts from the backup, never from an already cut file. Then run `convert` (it sees the changed files).
+If a file was already uploaded and you re-convert it, the new version gets a new name in R2; the earlier upload stays there unused (about 30 MB, harmless). `register` always uses the newest conversion.
+
+If you started before this existed (your `manifest.csv` has no trim columns): run `scan --dir ... --force` once; finished conversions are kept.
+
+## Prayer breaks and other quiet stretches: `gaps`
+Lessons that stop for prayer and resume leave a long quiet stretch in the recording. `gaps` finds every stretch of **60 seconds or more** that is much quieter than the lesson itself (20 dB below its usual level; a cough inside the quiet does not interrupt it), and proposes what to do:
+- quiet at the very **start** → `trim_start`; quiet at the very **end** → `trim_end`;
+- quiet in the **middle** → a range in the **`remove`** column of `manifest.csv`, like `0:13:02-0:32:15` (several ranges are separated by `;`). The tool keeps 1.5 seconds of the quiet on each side, so the lesson continues after a natural 3-second pause, not mid-breath.
+Without options it only reports. `--clips` writes 20-second samples around every edge into `tools/audio_batch_work/gap_clips/` (10 s before + 10 s after the start and the end of each quiet stretch) so you can hear that the cut points are right. `--apply` writes the proposals into `manifest.csv` (it never overwrites a trim you typed yourself). You can also edit the `remove` cells by hand; times are positions in the ORIGINAL file. `--min 90` changes the minimum length, `--keep 3` the seconds kept on each side.
+`convert` then applies them (only the changed rows are redone), and `gaps` again should find nothing. Then `node tools/audio_batch.mjs seams` writes a 20-second clip around every join into `tools/audio_batch_work/seam_clips/` (the join is at 0:10 in the clip): listen to them to hear that each cut is natural.
+Listen to the area around at least a few of the cut points: the tool cannot tell a prayer break from, say, a student asking a question very quietly.
+
+## What the optimisation does
+Mono, AAC-LC 48 kbps (m4a), loudness normalised to -16 LUFS (two passes, peaks limited to -1.5 dB), index at the front of the file (`+faststart`, so it starts playing at once), original tags removed (title / artist / album are set; nothing of the original file name), byte-for-byte reproducible. About 22 MB per hour of lesson; a 72-minute lesson is ~26 MB. The R2 name is `audio/<first 16 hex of the sha-256>.m4a` like the portal's.
+
+## Cloudflare login problems («Authentication error [code: 10000]»)
+The tool talks to Cloudflare through `wrangler`. `scan` and `verify` only need to READ the database; `upload` needs R2 write; `register` needs **D1 write**. The error means the login wrangler is using does not have that permission. Check in Git Bash:
+```bash
+npx wrangler whoami                      # shows how you are logged in and which permissions the login has
+[ -n "$CLOUDFLARE_API_TOKEN" ] && echo "an API token is set in this terminal" || echo "no token set"
+```
+- **If a token is set** (for example an old one made for R2 or the backups): it overrides your browser login and may lack D1. Run `unset CLOUDFLARE_API_TOKEN` and try again (also `unset CLOUDFLARE_ACCOUNT_ID` if you set it). If it comes from your `~/.bashrc`, remove it from there.
+- **If you are logged in with the browser login** but whoami does not list `d1 (write)` and `workers_r2 (write)`: `npx wrangler logout`, then `npx wrangler login` again and accept ALL the permissions on the consent page.
+- **Or use an API token** (Cloudflare dashboard → My Profile → API Tokens → Create Token → «Edit Cloudflare Workers» template, or custom with *Account → D1 → Edit* and *Account → Workers R2 Storage → Edit*, limited to this account). Then in Git Bash: `export CLOUDFLARE_API_TOKEN=...` (only for this terminal window; never put it in a file in the repository).
+- After fixing, run the **same command again**: nothing was changed by the failed one.
+
+## If something goes wrong
+- **Every stage can simply be run again**: finished work is skipped (state is in `tools\audio_batch_work\state.json`). `convert --force` redoes conversions.
+- **`register` stopped halfway / network error**: run it again. The SQL only inserts what is missing, never duplicates, and never deletes the new record.
+- **A lesson is wrong after registering**: in the portal edit it, or hide it (status). Nothing is public until Publish; after Publish, hide it and Publish again.
+- **`CONFLICT`**: the database already has that id or date under another number. Read the message; if the old record is the mis-numbered one use `--replace <id>`, otherwise fix the number in manifest.csv.
+- **`ffmpeg: ... is it installed and on PATH?`**: install ffmpeg (a "full build" zip, add its `bin` folder to PATH) and open a new PowerShell window.
+- **wrangler asks you to log in / permission error**: `npx wrangler login`.
+- Undoing everything of a batch: hide the lessons in the portal (or ask Claude for the exact SQL from `register.sql`). The R2 files are harmless and cost almost nothing.
+
+## Weekly use
+Put the new recordings in the folder and run `scan` (use a new `--work` folder or `--force` to rescan), `convert`, `upload`, `register`, `verify`. Lessons already registered are recognised and skipped.
+
+## Technical notes (for the developer)
+- Code: `tools/audio_batch.mjs` (stages, ffmpeg, wrangler) and `tools/audio_batch_lib.mjs` (parsing, planning, conflict rules, CSV, SQL — pure, tested). Tests: `node --no-warnings tests/audio_batch_check.mjs [--wrangler]` — includes the real 37 names (`tests/audio_batch_names.txt`), a byte-for-byte comparison of the registration SQL with the portal's `addLessons()` on SQLite, the ffmpeg output properties, and (with `--wrangler`) the whole pipeline against a local D1 + R2.
+- Registration is SQL run with `wrangler d1 execute --remote --file` (not the portal API: the portal accepts only Cloudflare Access logins). Rows are written like the portal writes them, origin `library`, audit actor `script:audio_batch`, so the portal counts them as unpublished changes.
+- Local test mode: `--local <dir>` uses a wrangler state folder instead of the real account.
