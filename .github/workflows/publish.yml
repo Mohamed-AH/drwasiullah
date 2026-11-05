@@ -10,6 +10,11 @@ on:
         description: "Who pressed Publish (set by the portal)"
         required: false
         default: ""
+      allow_drop:
+        description: "Allow a Publish that removes a large share of the content (the safety guard stops it otherwise). Only tick this when the removal is intended."
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -26,6 +31,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       ACTOR: ${{ inputs.actor }}            # passed through the environment, never pasted into the script text
+      ALLOW_DROP: ${{ inputs.allow_drop }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,6 +45,7 @@ jobs:
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::error::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set (docs/d1-setup.md)"; exit 1; fi
           npx --yes wrangler@4 d1 export drwasiullah --remote --output "$RUNNER_TEMP/d1.sql"
           node --no-warnings scripts/db.mjs export --from-sql "$RUNNER_TEMP/d1.sql" --out site --only data/library.json,data/makkah.json,data/haram.json,data/overrides.json,data/order.json,data/schedule.json,data/home.json
+          node scripts/publish_guard.mjs $([ "$ALLOW_DROP" = "true" ] && echo --allow)   # stops an export that would remove a large share of the site (docs/backup-plan.md)
           node scripts/build.mjs | tail -3                       # the site must still build with the new data
           if git diff --quiet -- site/data/library.json site/data/makkah.json site/data/haram.json site/data/overrides.json site/data/order.json site/data/schedule.json site/data/home.json && [ -z "$(git ls-files --others --exclude-standard site/data/overrides.json site/data/order.json site/data/home.json)" ]; then echo "Nothing new to publish."; exit 0; fi
           git config user.name "github-actions[bot]"

@@ -10,9 +10,11 @@ Step by step, for the owner. Read §1 first, then jump to the procedure that mat
 | **Content** (lessons, series, books, patches, order, schedule, home layout, bio, media manifest, **banners and announcements** — **all statuses, drafts and hidden included**) | `backup/` in this repository, committed every night at 02:37 UTC by the «D1 backup» Action (only when something changed) | **Forever** (git history) | Procedure **B** |
 | **Published content** | `site/data/*.json` in git (written by every Publish) | Forever | Procedure **B** (second source), **D** |
 | **The live site** | Cloudflare deployments (every deploy is kept) | Many versions | Procedure **D** |
-| **Audio / PDFs / EPUBs** | R2 bucket `drwasiullah-media` (content-addressed files, never changed by the portal) | not backed up — originals are on archive.org / makkahscholars.org / the team's files; `site/data/media.json` maps original → our copy | re-run `tools/mirror_media.py` (see mirror-setup.md) |
+| **Everything in the database, encrypted, incl. users / audit log / counters / notices** | Backblaze B2 `private/d1/d1-YYYY-MM-DD.sql.gz.gpg`, every night (passphrase = `BACKUP_PASSPHRASE`, in your password manager) | all dates since the first run | Procedure **H** |
+| **Audio / PDFs / EPUBs** | R2 bucket `drwasiullah-media` (content-addressed files, never changed by the portal) | **second copy in B2 `media/`** (weekly, copy only: never deleted). Old lessons also still exist at archive.org / makkahscholars.org (`site/data/media.json` maps original → our copy) | Procedure **I** |
+| **The code and all history** | GitHub | nightly mirror in the private GitLab project | clone the GitLab project (Procedure **J**) |
 
-**NOT in the git backup (only Time Travel covers them, 7 days):** users, audit log, usage counters, «no lesson tonight» notices. (Banners and announcements *are* in the git backup since 2026-10-14 — without the editor's email — so they are public in the repository even while draft/inactive; write drafts accordingly.) **Not backed up anywhere in code:** the Access policy (who may log in), GitHub/Cloudflare secrets and tokens. Keep a private note of the team's emails and re-create secrets from their own setup steps (admin-setup.md).
+**NOT in the git backup (they are in the encrypted B2 dump, procedure H, and for 7 days in Time Travel):** users, audit log, usage counters, «no lesson tonight» notices. (Banners and announcements *are* in the git backup since 2026-10-14 — without the editor's email — so they are public in the repository even while draft/inactive; write drafts accordingly.) **Not backed up anywhere in code:** the Access policy (who may log in), GitHub/Cloudflare secrets and tokens. Keep a private note of the team's emails and re-create secrets from their own setup steps (admin-setup.md).
 
 ## 1. First, what happened? (decision table)
 
@@ -22,7 +24,9 @@ Step by step, for the owner. Read §1 first, then jump to the procedure that mat
 | Many wrong changes in the portal **in the last 7 days** (bulk mistake, wrong layout, wrong hides…) | **A** — Time Travel to just before the mistake |
 | The **public site shows something wrong right now** and you need it fixed in a minute | **D** — roll the site back first, then fix the cause |
 | The database was **damaged, deleted, or the mistake is older than 7 days** | **B** — rebuild from `backup/` |
-| A **file** (audio/PDF) is missing at media.drwasiullah.com | mirror-setup.md (R2 is separate from the database) |
+| A **file** (audio/PDF) is missing at media.drwasiullah.com | **I** (copy it back from B2); old files can also be re-mirrored (mirror-setup.md) |
+| The **GitHub repository or account** is lost | **J** |
+| The whole **database and the git backup** are lost, or the mistake is older than the git backup | **H** |
 | Lost **access** (no admin can log in) | add an admin by command (admin-manual.md §7) |
 
 **Always, before restoring:** (1) tell every editor to **stop editing and not to press «النشر»** until you say so — a Publish would copy the bad state to the public site; (2) write down the **time of the mistake** (Time Travel uses **UTC**: Makkah time minus 3 hours); (3) if you can, note anything saved *after* that time that you will want to re-enter.
@@ -139,5 +143,19 @@ For an item that was only **hidden by mistake**: set its status back to «منش
 3. Keep a private copy of: the list of team emails (and roles), the Access policy, where each secret came from (admin-setup.md).
 4. Don't rehearse Time Travel on the live database. To practise B safely, run steps 1, 2 and 4 and look at `db/seed.sql`, or restore into a throw-away copy of the database name (`wrangler d1 create drwasiullah-test`, point a scratch config at it) — never at `drwasiullah`.
 
+## H. Restore from the encrypted B2 copy (everything, including users, audit log and counters)
+Use when Time Travel (7 days) is gone and `backup/` is not enough, or you need users/counters back. Needs the passphrase and a B2 key (the one in `docs/backup-plan.md`, or log in to Backblaze and download the file in the browser).
+1. Download the newest file under `private/d1/` (B2 web page → bucket → `private/d1/`), or with rclone configured for B2: `rclone copyto b2:<bucket>/private/d1/d1-YYYY-MM-DD.sql.gz.gpg d1.sql.gz.gpg`.
+2. Decrypt (asks for the passphrase) and unzip: `gpg --decrypt d1.sql.gz.gpg | gunzip > d1.sql`
+3. **Rehearse first in a scratch database**, never directly on the live one: `npx wrangler d1 create drwasiullah-test` then `npx wrangler d1 execute drwasiullah-test --remote --file d1.sql`; check the counts (A4 query).
+4. For a real restore into an empty database (deleted or replaced): create it (B3), then `npx wrangler d1 execute drwasiullah --remote --file d1.sql` (the dump contains the tables and all rows; do NOT apply migrations first, they are part of the dump), update the `database_id` in both `wrangler.jsonc` files if the database is new, redeploy both Workers, Publish.
+(This procedure has not been rehearsed on Cloudflare yet. Do the scratch-database rehearsal in step 3 once, soon, and note the date here.)
+
+## I. Copy media back from B2
+One file: in the Backblaze web page, download `media/audio/<key>` and upload it to the R2 bucket under the **same key** (the key is the content hash, so the site links keep working). Many files: with rclone (remotes as in `scripts/rclone_env.sh`) `rclone copy b2:<bucket>/media r2:drwasiullah-media --ignore-existing`. Then purge the Cloudflare cache if a CORS error shows (mirror-setup.md).
+
+## J. The GitHub repository is lost
+Clone the private GitLab project (it has all branches, history and tags up to last night), create a new GitHub repository, push it there (`git remote add github …; git push --all github`), re-add the repository secrets and variables listed in `docs/handover.md`, update `GH_REPO` in `admin/wrangler.jsonc` and redeploy the admin Worker, reconnect Cloudflare's build to the new repository.
+
 ## G. Known gaps (could be closed if wanted)
-Not in the nightly git backup: users and the audit log (the repository is public, they must never go there), the usage counters, and «no lesson tonight» notices (short-lived, tied to a date). Banners and announcements were added to the backup on 2026-10-14. If the counters matter, a periodic copy of the aggregated numbers to a private place could be added; ask Claude.
+Not in the nightly git backup: users and the audit log (the repository is public, they must never go there), the usage counters, and «no lesson tonight» notices (short-lived, tied to a date); since 2026-11 they are in the encrypted B2 copy (H). Banners and announcements were added to the backup on 2026-10-14. If the counters matter, a periodic copy of the aggregated numbers to a private place could be added; ask Claude.

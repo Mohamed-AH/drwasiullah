@@ -1,0 +1,50 @@
+name: Media backup (R2 to Backblaze B2)
+
+# Weekly: copy every file of the R2 bucket drwasiullah-media (audio, PDFs, EPUBs) to Backblaze B2 (<bucket>/media/).
+# COPY ONLY: nothing is ever deleted or overwritten in B2, so a file lost from R2 by mistake survives there.
+# The first run copies everything (13 GB, more once Fath al-Bari is mirrored) and can take an hour or two; later runs only copy new files.
+# Fails (red, GitHub emails you) if any R2 file is missing in B2 afterwards. Not configured yet = a warning, not a failure.
+# Setup: docs/backup-plan.md, step 1.
+on:
+  schedule:
+    - cron: "23 4 * * 0"         # Sundays 04:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: media-backup
+  cancel-in-progress: false
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
+      B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+      B2_BUCKET: ${{ secrets.B2_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy and check
+        shell: bash
+        run: |
+          for v in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY B2_KEY_ID B2_APPLICATION_KEY B2_BUCKET; do
+            if [ -z "${!v}" ]; then echo "::warning::secret $v is not set: the media backup is NOT running (docs/backup-plan.md, step 1)"; echo "SKIPPED=1" >> "$GITHUB_ENV"; exit 0; fi
+          done
+          bash scripts/install_rclone.sh
+          bash scripts/media_backup.sh
+      - name: Heartbeat
+        if: success() && env.SKIPPED != '1'
+        env:
+          HC: ${{ secrets.HC_PING_MEDIA_BACKUP }}
+        run: if [ -n "$HC" ]; then curl -fsS -m 15 --retry 3 -o /dev/null "$HC"; else echo "::notice::no heartbeat secret (HC_PING_MEDIA_BACKUP)"; fi
+      - name: Heartbeat (failure)
+        if: failure()
+        env:
+          HC: ${{ secrets.HC_PING_MEDIA_BACKUP }}
+        run: if [ -n "$HC" ]; then curl -fsS -m 15 --retry 2 -o /dev/null "$HC/fail" || true; fi

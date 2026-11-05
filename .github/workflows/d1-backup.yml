@@ -1,9 +1,12 @@
 name: D1 backup
 
-# Every night: export the content database (Cloudflare D1) and commit the content as plain JSON under backup/ (only when it changed).
-# This is a backup and an audit trail; the site is NOT built from it yet (docs/admin-portal-spec.md, phase 1).
-# Also in backup/: data/banners.json and data/announcements.json (without created_by). NOT written to git, because the repository is public: users, audit log, counters, schedule notices.
-# D1 "Time Travel" keeps 7 days of point-in-time restore for everything, including those.
+# Every night: export the content database (Cloudflare D1), then
+#   1. commit the content as plain JSON under backup/ (only when it changed), after proving the files restore byte for byte (db.mjs verify);
+#   2. keep a FULL, encrypted copy (users, audit log, counters, everything) in Backblaze B2 under private/ (gzip + AES-256 with BACKUP_PASSPHRASE).
+# The repository is public: users, audit log, counters and notices are NEVER written to git, only to the encrypted B2 copy.
+# D1 "Time Travel" keeps 7 days of point-in-time restore on top of this. Setup and restore: docs/backup-plan.md and docs/restore-guide.md.
+# A missing Cloudflare secret is an ERROR (a backup that quietly does nothing is worse than a red run). The optional heartbeat
+# (healthchecks.io, secret HC_PING_D1_BACKUP) emails you when this job stops running at all.
 on:
   schedule:
     - cron: "37 2 * * *"         # 02:37 UTC daily
@@ -19,10 +22,14 @@ concurrency:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
+      B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+      B2_BUCKET: ${{ secrets.B2_BUCKET }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,14 +37,34 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Export and commit
+      - name: Export the database
         shell: bash
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::notice::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set yet (docs/d1-setup.md). Nothing to back up."; exit 0
+            echo "::error::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set (docs/d1-setup.md): the nightly backup is NOT running"; exit 1
           fi
           npx --yes wrangler@4 d1 export drwasiullah --remote --output "$RUNNER_TEMP/d1.sql"
+          [ "$(wc -c < "$RUNNER_TEMP/d1.sql")" -gt 100000 ] || { echo "::error::The export is suspiciously small: not using it"; exit 1; }
+      - name: Content to backup/ and prove it restores
+        shell: bash
+        run: |
           node --no-warnings scripts/db.mjs export --from-sql "$RUNNER_TEMP/d1.sql" --out backup --all
+          node --no-warnings scripts/db.mjs verify --site backup
+      - name: Encrypted full copy to Backblaze B2
+        shell: bash
+        run: |
+          if [ -z "$B2_KEY_ID" ] || [ -z "$B2_APPLICATION_KEY" ] || [ -z "$B2_BUCKET" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::warning::B2 / BACKUP_PASSPHRASE secrets are not set: the encrypted full copy (users, audit log, counters) is NOT being made (docs/backup-plan.md, step 2)"; exit 0
+          fi
+          bash scripts/install_rclone.sh
+          F="d1-$(date -u +%F).sql.gz.gpg"
+          bash scripts/encrypt_backup.sh "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/$F"
+          . scripts/rclone_env.sh
+          rclone copyto "$RUNNER_TEMP/$F" "b2:$B2_BUCKET/private/d1/$F" --retries 5
+          rclone lsf "b2:$B2_BUCKET/private/d1/$F" | grep -qx "$F" && echo "uploaded private/d1/$F"
+      - name: Commit backup/ when it changed
+        shell: bash
+        run: |
           if git diff --quiet -- backup && [ -z "$(git ls-files --others --exclude-standard backup)" ]; then echo "No changes."; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -48,3 +75,13 @@ jobs:
             sleep $((i * 5))
           done
           echo "::error::Could not push to main"; exit 1
+      - name: Heartbeat
+        if: success()
+        env:
+          HC: ${{ secrets.HC_PING_D1_BACKUP }}
+        run: if [ -n "$HC" ]; then curl -fsS -m 15 --retry 3 -o /dev/null "$HC"; else echo "::notice::no heartbeat secret (HC_PING_D1_BACKUP), see docs/backup-plan.md"; fi
+      - name: Heartbeat (failure)
+        if: failure()
+        env:
+          HC: ${{ secrets.HC_PING_D1_BACKUP }}
+        run: if [ -n "$HC" ]; then curl -fsS -m 15 --retry 2 -o /dev/null "$HC/fail" || true; fi

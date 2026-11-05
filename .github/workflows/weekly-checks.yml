@@ -1,0 +1,47 @@
+name: Weekly checks
+
+# Mondays: (1) do the credentials still work and are they about to expire? (2) does every media file the site points to still answer
+# (our R2 copy: must; archive.org / makkahscholars.org fallbacks: listed as warnings only)? Free: public repos have unlimited Actions minutes.
+on:
+  schedule:
+    - cron: "29 5 * * 1"         # Mondays 05:29 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tokens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GH_TOKEN_EXPIRES: ${{ vars.GH_TOKEN_EXPIRES }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Credentials expiring or broken?
+        run: node scripts/expiry_watch.mjs --days 14
+
+  media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build (to learn every media address)
+        run: node scripts/build.mjs | tail -2
+      - name: Our R2 files all answer, with the right size
+        run: node scripts/media_sweep.mjs
+      - name: Fallback / third-party files (warnings only)
+        run: node scripts/media_sweep.mjs --fallbacks
+      - name: Heartbeat
+        if: success()
+        env:
+          HC: ${{ secrets.HC_PING_WEEKLY }}
+        run: if [ -n "$HC" ]; then curl -fsS -m 15 --retry 3 -o /dev/null "$HC"; else echo "::notice::no heartbeat secret (HC_PING_WEEKLY)"; fi

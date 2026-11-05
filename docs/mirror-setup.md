@@ -28,3 +28,6 @@ Without it the button opens the file in a new tab (named by its hash when saved)
 ## Mirroring only some files
 
 By default `--kind audio` skips the lessons hosted on makkahscholars.org (Fath al-Bari and Nuzhat lesson 22, about 10 GB). Choose what to copy with `--series <id> …` (series ids), `--ids <lesson id> …` (single lessons, e.g. `fath-bari-2399`; naming them also lets Makkah lessons through) or `--include-makkah` (everything). Add `--dry-run` first to see the list and the count.
+
+## Backups of the media
+Everything in this bucket is copied weekly to Backblaze B2 by `.github/workflows/media-backup.yml` (copy only, nothing is ever deleted there). See `docs/backup-plan.md`. Fath al-Bari: `python tools/mirror_media.py --kind audio --include-makkah` (team agreed 2026-11-05), then commit `site/data/media.json`.
