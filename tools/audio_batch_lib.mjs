@@ -8,7 +8,7 @@ export const ACTOR = "script:audio_batch";
 export const PART_AR = { a: "الجزء الأول", b: "الجزء الثاني", c: "الجزء الثالث", d: "الجزء الرابع" };
 export const SHEIKH = "الشيخ وصي الله بن محمد عباس";
 const PARTS = ["a", "b", "c", "d"];
-const EXTS = ["mp3", "wav", "m4a", "flac", "ogg", "aac"];
+const EXTS = ["mp3", "wav", "m4a", "flac", "ogg", "aac", "opus", "mpeg", "mpg", "mp4"];
 
 /* name -> series. Anything that matches no route goes to the fallback (misc lectures) and is listed in the warnings so it can be checked. */
 export const ROUTES = [
@@ -18,14 +18,14 @@ export const FALLBACK = { series: "misc", numbered: false };
 
 const NFC = s => String(s).normalize("NFC");
 const tidy = s => NFC(s).replace(/[‎‏‪-‮⁦-⁩]/g, "").replace(/\s+/g, " ").trim();
-const NAME_RE = /^(\d{4})\s*(.*?)\s*(\d{1,2})\s*-\s*(\d{1,2})\s*-\s*(\d{4})\s*ه[ـ]*\s*(?:(تكمل[ةه]|تتمة)\s*)?\.([A-Za-z0-9]{2,5})$/;
+const NAME_RE = /^(\d{4})\s*(.*?)\s*(\d{1,2})\s*-\s*(\d{1,2})\s*-\s*(\d{4})\s*ه[ـ]*\s*(?:(تكمل[ةه]|تتمة)\s*)?((?:\.[A-Za-z0-9]{2,5})+)$/;   // the extension may be doubled («….mp3.mpeg»): the last known one counts
 
 /* "0149صحيح مسلم30-2-1448هـ تكملة.mp3" -> { seq: 149, text: "صحيح مسلم", y: 1448, m: 2, d: 30, cont: true, ext: "mp3" }  (null when the name does not follow the convention) */
 export function parseName(fileName) {
   const m = NAME_RE.exec(NFC(fileName).trim());
   if (!m) return null;
-  const ext = m[7].toLowerCase();
-  if (!EXTS.includes(ext)) return null;
+  const ext = m[7].toLowerCase().split(".").filter(Boolean).reverse().find(e => EXTS.includes(e));
+  if (!ext) return null;
   return { seq: +m[1], text: tidy(m[2]), d: +m[3], m: +m[4], y: +m[5], cont: !!m[6], ext };
 }
 

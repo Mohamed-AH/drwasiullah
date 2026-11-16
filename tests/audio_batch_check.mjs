@@ -37,6 +37,7 @@ const names = fs.readFileSync("tests/audio_batch_names.txt", "utf8").split("\n")
   const same = ["0150صحيح مسلم2-3-1448هـ.mp3", "0150 صحيح مسلم 2-3-1448 هـ.MP3", "0150صحيح  مسلم 2 - 3 - 1448هـ.mp3", "0150صحيح مسلم\u200f 2-3-1448هـ.mp3"].map(parseName);
   check("variants (spaces, case, bidi marks) parse the same", same.every(p => p && p.seq === 150 && p.text === "صحيح مسلم" && p.d === 2 && p.m === 3 && p.y === 1448 && !p.cont), JSON.stringify(same));
   check("«تكملة», «تكمله» and the tatweel «هـ» are all understood", parseName("0149صحيح مسلم30-2-1448هـ تكملة.mp3").cont && parseName("0149صحيح مسلم30-2-1448ه تكمله.mp3").cont);
+  { const d = parseName("0184صحيح مسلم1-6-1448هـ.mp3.mpeg"); check("a doubled extension («.mp3.mpeg») is understood", d && d.seq === 184 && d.d === 1 && d.m === 6 && d.y === 1448 && d.ext === "mpeg" && parseName("0184صحيح مسلم1-6-1448هـ.mp3.txt").ext === "mp3" && parseName("0184صحيح مسلم1-6-1448هـ.pdf.txt") === null); }
   check("names that do not follow the convention are refused", [parseName("صحيح مسلم.mp3"), parseName("0150صحيح مسلم.mp3"), parseName("150صحيح مسلم 2-3-1448هـ.mp3"), parseName("0150صحيح مسلم 2-3-1448هـ.txt")].every(x => x === null));
   const odd = planBatch([{ file: "0150صحيح مسلم 30-3-1448هـ.mp3", size: 1 }, { file: "0151صحيح مسلم 7-3-1448هـ.mp3", size: 1 }]);
   check("a Hijri day that does not exist is reported, not guessed", odd.warnings.some(w => w.includes("does not exist")) || odd.rows.length === 2, odd.warnings.join());
