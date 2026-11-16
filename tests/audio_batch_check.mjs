@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { parseName, planBatch, checkExisting, registerSql, lessonData, toCsv, fromCsv, rowFromCsv, PART_AR, parseTime, analyzeProfile, parseRms, parseRanges, fmtRanges, mergeRanges, mapToSource, removeFilter, findQuietRuns } from "../tools/audio_batch_lib.mjs";
+import { parseName, planBatch, checkExisting, registerSql, lessonData, toCsv, fromCsv, rowFromCsv, PART_AR, parseTime, analyzeProfile, parseRms, parseRanges, fmtRanges, mergeRanges, mapToSource, keepSegments, keptSeconds, cutArgs, findQuietRuns } from "../tools/audio_batch_lib.mjs";
 import { addLessons } from "../admin/src/upload.mjs";
 
 let bad = 0;
@@ -147,7 +147,10 @@ else {
   check("findQuietRuns: a pause shorter than a minute is left alone", findQuietRuns([...sp(100), ...Array(50).fill(-70), ...sp(100)]).runs.length === 0 && findQuietRuns([...sp(100), ...Array(59).fill(-70), ...sp(100)]).runs.length === 0);
   check("parseRanges / fmtRanges / mergeRanges", JSON.stringify(parseRanges("13:02-32:15;50:00-52:10").ranges) === "[[782,1935],[3000,3130]]" && fmtRanges([[782, 1935]]) === "0:13:02-0:32:15" && parseRanges("5-3").error && parseRanges("1-5;4-9").error === "ranges overlap" && JSON.stringify(mergeRanges([[0, 10]], [[10, 20], [30, 40]])) === "[[0,20],[30,40]]");
   check("mapToSource undoes the start trim and the removed ranges", mapToSource(100, 10, [[50, 80]]) === 140 && mapToSource(30, 10, [[50, 80]]) === 40);
-  check("removeFilter: ranges are shifted by the start trim", removeFilter([[782, 1935]], 0).includes("between(t,782.000,1935.000)") && removeFilter([[782, 1935]], 600).includes("between(t,182.000,1335.000)") && removeFilter([], 0) === "");
+  check("keepSegments: start trim + removed stretches + end trim", JSON.stringify(keepSegments(83, 4166, [[3574, 3765]])) === "[[83,3574],[3765,4166]]" && JSON.stringify(keepSegments(0, null, [])) === "[[0,null]]" && JSON.stringify(keepSegments(10, null, [[50, 80], [75, 90]])) === "[[10,50],[90,null]]" && JSON.stringify(keepSegments(100, 200, [[10, 20], [150, 300]])) === "[[100,150]]");
+  check("keptSeconds", keptSeconds(keepSegments(83, 4166, [[3574, 3765]]), 4300) === 3892 && keptSeconds([[0, null]], 60) === 60);
+  { const a = cutArgs({ start: 5, end: 50, remove: [] }, "X"), b = cutArgs({ start: 5, end: null, remove: [[20, 30]] }, "X");
+    check("cutArgs: no removal = -ss/-to + -af; removal = sample-exact atrim + concat (no aselect, no -ss)", a.pre.join(" ") === "-ss 5 -to 50" && a.filter.join(" ") === "-af X" && b.pre.length === 0 && b.filter[0] === "-filter_complex" && /atrim=start_sample=220500:end_sample=882000/.test(b.filter[1]) && /atrim=start_sample=1323000,asetpts/.test(b.filter[1]) && /concat=n=2/.test(b.filter[1]) && !/aselect/.test(b.filter[1])); }
 }
 
 /* ───── ffmpeg output ───── */

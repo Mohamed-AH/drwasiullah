@@ -21,7 +21,7 @@ import crypto from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import readline from "node:readline/promises";
-import { planBatch, checkExisting, registerSql, toCsv, fromCsv, rowFromCsv, MEDIA_BASE, SHEIKH, PART_AR, analyzeProfile, parseRms, fmtTime, parseTime, parseRanges, fmtRanges, mergeRanges, mapToSource, removeFilter, findQuietRuns, CSV_COLUMNS } from "./audio_batch_lib.mjs";
+import { planBatch, checkExisting, registerSql, toCsv, fromCsv, rowFromCsv, MEDIA_BASE, SHEIKH, PART_AR, analyzeProfile, parseRms, fmtTime, parseTime, parseRanges, fmtRanges, mergeRanges, mapToSource, keepSegments, keptSeconds, cutArgs, findQuietRuns, CSV_COLUMNS } from "./audio_batch_lib.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DB = "drwasiullah", BUCKET = "drwasiullah-media", WIN = process.platform === "win32";
@@ -135,17 +135,23 @@ async function scan(o) {
 const probeDuration = f => Math.round(parseFloat(run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).stdout) || 0);
 const trimArgs = t => [...(t && t.start != null ? ["-ss", String(t.start)] : []), ...(t && t.end != null ? ["-to", String(t.end)] : [])];   // input options: cut before the filters, so loudness is measured on what is kept
 async function loudnormJson(src, trim) {
-  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", ...trimArgs(trim), "-i", src, "-vn", "-af", `${removeFilter(trim && trim.remove || [], trim && trim.start)}loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json`, "-f", "null", "-"]);
+  const cut = cutArgs(trim, "loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json");
+  const r = await runAsync("ffmpeg", ["-hide_banner", "-nostats", ...cut.pre, "-i", src, "-vn", ...cut.filter, "-f", "null", "-"]);
   const t = r.stderr, a = t.lastIndexOf("{"), b = t.lastIndexOf("}");
   try { const j = JSON.parse(t.slice(a, b + 1)); return Number.isFinite(+j.input_i) ? j : null; } catch { return null; }
 }
 export async function convertOne(src, dest, meta, trim = null) {
   const ln = await loudnormJson(src, trim);
-  const filter = removeFilter(trim && trim.remove || [], trim && trim.start) + (ln ? `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${ln.input_i}:measured_TP=${ln.input_tp}:measured_LRA=${ln.input_lra}:measured_thresh=${ln.input_thresh}:offset=${ln.target_offset}:linear=true`
+  const tail = (ln ? `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${ln.input_i}:measured_TP=${ln.input_tp}:measured_LRA=${ln.input_lra}:measured_thresh=${ln.input_thresh}:offset=${ln.target_offset}:linear=true`
     : "loudnorm=I=-16:TP=-1.5:LRA=11") + ",aresample=44100";                              // silent / unmeasurable files fall back to one-pass
-  const tmp = dest + ".part.m4a";
-  await runAsync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", ...trimArgs(trim), "-i", src, "-vn", "-map_metadata", "-1", "-af", filter, "-ac", "1", "-c:a", "aac", "-b:a", "48k",
+  const cut = cutArgs(trim, tail), tmp = dest + ".part.m4a";
+  await runAsync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", ...cut.pre, "-i", src, "-vn", "-map_metadata", "-1", ...cut.filter, "-ac", "1", "-c:a", "aac", "-b:a", "48k",
     "-fflags", "+bitexact", "-flags:a", "+bitexact", "-movflags", "+faststart", "-metadata", `title=${meta.title}`, "-metadata", `artist=${SHEIKH}`, "-metadata", `album=${meta.album}`, tmp]);
+  const t = trim || {};
+  if (t.start != null || t.end != null || (t.remove || []).length) {                    // the result must have the length the trims promise (a build that ignores a cut is caught here, never uploaded)
+    const total = probeDuration(src), expected = keptSeconds(keepSegments(t.start, t.end, t.remove || []), total), got = probeDuration(tmp);
+    if (Math.abs(got - expected) > 3) { fs.rmSync(tmp, { force: true }); throw new Error(`${path.basename(src)}: the converted file is ${got} s but the trims should give about ${Math.round(expected)} s: the cut was not applied correctly. Nothing was saved for this file; tell Claude (and send the output of  ffmpeg -version).`); }
+  }
   fs.renameSync(tmp, dest);
   return { measured: ln ? +ln.input_i : null };
 }
