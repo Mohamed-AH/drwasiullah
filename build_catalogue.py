@@ -168,8 +168,8 @@ def main():
         if duration(r["duration_iso"]) == 0:   # live now / premiere not started: it appears on the next run, once it has a length
             continue
         if r["channel_id"] in all_extra:       # an extra channel: shown only when its state is "publish" (see config.json extra_channels)
-            if r["channel_id"] in pub_extra and r["youtube_id"] in already:
-                skipped.append(r["youtube_id"])
+            if r["channel_id"] in pub_extra and (r["youtube_id"] in already or r["youtube_id"] in set(pub_extra[r["channel_id"]].get("skip_ids", []))):
+                skipped.append(r["youtube_id"])      # already on the site under another entry, or listed in config.json skip_ids (a person decided the other copy is the one to show)
             elif r["channel_id"] in pub_extra:
                 item, sid = urdu_lesson(uc, u_rules, u_matchers, u_members, r)
                 sd = u_rules["_series"][sid]
@@ -232,7 +232,7 @@ def main():
     print(f"{len(lessons)} lessons in {len(series)} series -> {OUT.relative_to(BASE) if OUT.is_relative_to(BASE) else OUT}")
     if os.environ.get("CATALOGUE_REPORT"):
         Path(os.environ["CATALOGUE_REPORT"]).write_text(json.dumps(conflicts, ensure_ascii=False), encoding="utf-8")
-    if pub_extra and skipped: print(f"  {len(skipped)} video(s) of the extra channel are already on the site under another entry and were not added again: {', '.join(skipped)}")
+    if pub_extra and skipped: print(f"  {len(skipped)} video(s) of the extra channel are already on the site under another entry (or in skip_ids) and were not added again: {', '.join(skipped)}")
     if conflicts: print(f"  {len(conflicts)} videos where the title and the playlist name different series (nothing changed; see the sync report)")
     for s in series: print(f"  {s['count']:4}  {s['title']}")
 

@@ -29,8 +29,9 @@
       "id": "UCp2c7Qynmu9zx8Z0enQlGrw",
       "kind": "urdu",
       "own": true,
-      "state": "off",
-      "_note": "The Sheikh's own Urdu channel (every video is his). state: off = ignored; collect = read into data/videos.jsonl but NOT published; publish = also shown on the site. Plan: docs/urdu-channel-plan.md"
+      "state": "publish",
+      "_note": "The Sheikh's own Urdu channel (every video is his). state: off = ignored; collect = read into data/videos.jsonl but NOT published; publish = also shown on the site. skip_ids: video ids of this channel that must NOT be shown because the same recording is already shown from another source (a person confirmed it). Plan: docs/urdu-channel-plan.md",
+      "skip_ids": []
     }
   ]
 }

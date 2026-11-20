@@ -63,8 +63,8 @@ os.environ["VIDEOS_DB"] = str(tmp / "videos2.db")
 B.OUT = tmp / "cat.json"; B.CHANNEL_PLAYLISTS = tmp / "pl.json"
 real_extra = B.extra_channels
 B.site_lesson_ids = lambda: {"u_dup"}
-def build(pub):
-    B.extra_channels = lambda: ({UC}, ({UC: {"id": UC, "state": "publish", "kind": "urdu"}} if pub else {}))
+def build(pub, skip=()):
+    B.extra_channels = lambda: ({UC}, ({UC: {"id": UC, "state": "publish", "kind": "urdu", "skip_ids": list(skip)}} if pub else {}))
     with contextlib.redirect_stdout(io.StringIO()): B.main()
     return json.loads(B.OUT.read_text(encoding="utf-8"))
 
@@ -85,6 +85,9 @@ ok(all(S[x]["nohome"] is True for x in S if x != "muslim") and "nohome" not in S
 ok(all(s["id"] in {l["series"] for l in on["lessons"]} for s in on["series"]), "only series with lessons are written")
 ok(all(set(l) <= {"id", "title", "series", "subject", "date", "duration", "n", "section", "hd"} for l in on["lessons"]), "lesson fields stay within the catalogue format")
 
+sk = build(True, skip=["u_clip", "u_qa"])
+ok({l["id"] for l in sk["lessons"]} == set(L) - {"u_clip", "u_qa"}, "skip_ids: the listed videos are left out, nothing else changes")
+
 # ---------- extra_channels() reads config.json ----------
 real_base = B.BASE
 cfg_dir = Path(tempfile.mkdtemp()); B.BASE = cfg_dir
@@ -93,7 +96,7 @@ allc, pub = real_extra()
 ok(allc == {UC, "UCx", "UCy"} and set(pub) == {"UCx"}, "only state publish is shown; every configured channel is kept off the Arabic rules")
 B.BASE = real_base
 cfg = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
-ok(all(c.get("state") in ("off", "collect", "publish") for c in cfg["extra_channels"]) and cfg["extra_channels"][0]["id"] == "UCp2c7Qynmu9zx8Z0enQlGrw", "config.json declares the channel (and a valid state)")
+ok(all(c.get("state") in ("off", "collect", "publish") for c in cfg["extra_channels"]) and cfg["extra_channels"][0]["id"] == "UCp2c7Qynmu9zx8Z0enQlGrw" and isinstance(cfg["extra_channels"][0].get("skip_ids", []), list), "config.json declares the channel (a valid state, skip_ids a list)")
 
 # ---------- sync_report.py ----------
 old = {"lessons": [], "series": []}
