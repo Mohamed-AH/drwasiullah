@@ -1,53 +1,97 @@
 #!/usr/bin/env python3
 """Survey EVERY video of a YouTube channel that is the Sheikh's own (e.g. @DrWasiullahAbbas, whose titles do not name him). Run on YOUR machine (needs YOUTUBE_API_KEY in .env).
 
-    python tools/survey_channel.py --handle @DrWasiullahAbbas        # reads the channel through the official API, writes the files below, prints the survey
-    python tools/survey_channel.py --from-json tools/channel_all.json # analyse a saved list again (offline, no API key)
+    python survey_channel.py --handle @DrWasiullahAbbas                # reads the channel through the official API, writes the files below, prints the survey
+    python survey_channel.py --from-json channel_all.json              # analyse a saved list again (offline, no API key)
+
+STANDALONE: needs only Python 3.8+ (standard library) and a YouTube Data API v3 key: set YOUTUBE_API_KEY, or put YOUTUBE_API_KEY=... in a file named .env next
+to this script or in the current folder, or pass --key. Works from any folder and any PC; the repository is not needed.
 
 It reads the channel's playlists and ALL its uploads (title, date, length, which playlists), nothing is downloaded. Quota: about 1 unit per 50 videos
-(a 2,600-video channel is ~110 of the 10,000 units a day). Writes (all git-ignored):
-    tools/channel_all.json     every video: id, title, published, seconds, playlists, description (first 300 characters)
-    tools/channel_titles.tsv   one line per video (id, date, seconds, playlists, title), to read in a spreadsheet
-    tools/channel_survey.txt   the survey: lengths, years, scripts, playlist coverage, and the groups of titles that look like one series
+(a 2,600-video channel is ~110 of the 10,000 units a day). Writes (next to this script, or --out DIR; git-ignored in the repository):
+    channel_all.json     every video: id, title, published, seconds, playlists, description (first 300 characters)
+    channel_titles.tsv   one line per video (id, date, seconds, playlists, title), to read in a spreadsheet
+    channel_survey.txt   the survey: lengths, years, scripts, playlist coverage, and the groups of titles that look like one series
 Nothing is published by this tool; it only reports, so a person decides which group becomes which series on the site."""
-import argparse, collections, json, re, sys
+import argparse, collections, json, os, re, sys, time, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+HERE = Path(__file__).resolve().parent
+API = "https://www.googleapis.com/youtube/v3/"
+
+
+def load_key(cli_key=None):
+    if cli_key: return cli_key
+    if os.environ.get("YOUTUBE_API_KEY"): return os.environ["YOUTUBE_API_KEY"]
+    for f in (HERE / ".env", Path.cwd() / ".env", HERE.parent / ".env"):
+        if f.exists():
+            for ln in f.read_text(encoding="utf-8-sig").splitlines():
+                if ln.strip().startswith("YOUTUBE_API_KEY") and "=" in ln:
+                    return ln.split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+
+class Api:
+    def __init__(self, key): self.key = key
+
+    def get(self, endpoint, params, tries=4):
+        url = API + endpoint + "?" + urllib.parse.urlencode({**params, "key": self.key})
+        for i in range(tries):
+            try:
+                with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "survey-channel/1.0"}), timeout=40) as r:
+                    return json.loads(r.read().decode("utf-8"))
+            except urllib.error.HTTPError as e:
+                body = e.read().decode("utf-8", "replace")[:300]
+                if e.code in (500, 502, 503, 504) and i < tries - 1: time.sleep(2 ** i); continue
+                sys.exit(f"YouTube API error {e.code} for {endpoint}: {body}")
+            except (urllib.error.URLError, TimeoutError) as e:
+                if i < tries - 1: time.sleep(2 ** i); continue
+                sys.exit(f"cannot reach YouTube ({e}). Check the internet connection.")
+
+
+def chunks(items, size):
+    for i in range(0, len(items), size): yield items[i:i + size]
+
+
+def duration(iso):
+    """ISO 8601 (PT1H2M3S) -> seconds."""
+    m = re.fullmatch(r"P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso or "")
+    if not m: return None
+    d, h, mi, sec = (int(x or 0) for x in m.groups())
+    return d * 86400 + h * 3600 + mi * 60 + sec
 
 LENGTH_BUCKETS = [(60, "up to 1 min (shorts / clips)"), (300, "1-5 min"), (900, "5-15 min"), (1800, "15-30 min"), (3600, "30-60 min"), (7200, "1-2 h"), (10 ** 9, "over 2 h")]
 
 
-def pages(ingest, endpoint, params):
+def pages(api, endpoint, params):
     token = None
     while True:
-        data = ingest.api_get(endpoint, {**params, **({"pageToken": token} if token else {})})
+        data = api.get(endpoint, {**params, **({"pageToken": token} if token else {})})
         yield from data.get("items", [])
         token = data.get("nextPageToken")
         if not token: return
 
 
-def listing(ingest, duration, handle):
+def listing(api, handle):
     """-> (channel info dict, [video dicts]) through the official API."""
-    ch = ingest.api_get("channels", {"part": "snippet,contentDetails,statistics", "forHandle": handle}).get("items")
+    ch = api.get("channels", {"part": "snippet,contentDetails,statistics", "forHandle": handle}).get("items")
     if not ch: sys.exit(f"no channel found for {handle}")
     ch = ch[0]; cid = ch["id"]; uploads = ch["contentDetails"]["relatedPlaylists"]["uploads"]
     videos = {}
-    for it in pages(ingest, "playlistItems", {"part": "snippet", "playlistId": uploads, "maxResults": 50}):
+    for it in pages(api, "playlistItems", {"part": "snippet", "playlistId": uploads, "maxResults": 50}):
         sn = it.get("snippet", {}); vid = sn.get("resourceId", {}).get("videoId")
         if vid and sn.get("title") not in ("Private video", "Deleted video"):
             videos[vid] = {"id": vid, "title": sn.get("title", ""), "published": sn.get("publishedAt", "")[:10], "seconds": None, "playlists": [], "description": (sn.get("description") or "")[:300]}
-    plists = list(pages(ingest, "playlists", {"part": "snippet,contentDetails", "channelId": cid, "maxResults": 50}))
+    plists = list(pages(api, "playlists", {"part": "snippet,contentDetails", "channelId": cid, "maxResults": 50}))
     for p in plists:
-        for it in pages(ingest, "playlistItems", {"part": "snippet", "playlistId": p["id"], "maxResults": 50}):
+        for it in pages(api, "playlistItems", {"part": "snippet", "playlistId": p["id"], "maxResults": 50}):
             sn = it.get("snippet", {}); vid = sn.get("resourceId", {}).get("videoId")
             if not vid or sn.get("title") in ("Private video", "Deleted video"): continue
             v = videos.setdefault(vid, {"id": vid, "title": sn.get("title", ""), "published": sn.get("publishedAt", "")[:10], "seconds": None, "playlists": [], "description": (sn.get("description") or "")[:300]})
             v["playlists"].append(p["snippet"]["title"])
     ids = list(videos)
-    for batch in ingest.chunks(ids, 50):
-        for v in ingest.api_get("videos", {"part": "contentDetails", "id": ",".join(batch), "maxResults": 50}).get("items", []):
+    for batch in chunks(ids, 50):
+        for v in api.get("videos", {"part": "contentDetails", "id": ",".join(batch), "maxResults": 50}).get("items", []):
             videos[v["id"]]["seconds"] = duration(v.get("contentDetails", {}).get("duration", ""))
     info = {"title": ch["snippet"]["title"], "handle": handle, "id": cid, "reported_videos": ch["statistics"].get("videoCount", "?"), "playlists": len(plists)}
     return info, list(videos.values())
@@ -130,17 +174,17 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--handle", default="@DrWasiullahAbbas")
     ap.add_argument("--from-json", help="analyse a saved tools/channel_all.json instead of calling the API")
-    ap.add_argument("--out", default=str(ROOT / "tools"))
+    ap.add_argument("--out", default=str(HERE), help="folder for the result files (default: next to this script)")
+    ap.add_argument("--key", help="YouTube API key (otherwise YOUTUBE_API_KEY / .env)")
     a = ap.parse_args(argv)
     out = Path(a.out)
     if a.from_json:
         data = json.loads(Path(a.from_json).read_text(encoding="utf-8")); info, vids = data["channel"], data["videos"]
     else:
-        import os, ingest
-        from build_catalogue import duration
-        ingest.load_dotenv(ingest.ENV_PATH)
-        if not os.environ.get("YOUTUBE_API_KEY"): sys.exit("YOUTUBE_API_KEY is missing (.env or environment).")
-        info, vids = listing(ingest, duration, a.handle)
+        key = load_key(a.key)
+        if not key: sys.exit("YOUTUBE_API_KEY is missing: set the variable, put it in a .env file next to this script, or pass --key.")
+        print("reading the channel (about 1-2 minutes)...", file=sys.stderr)
+        info, vids = listing(Api(key), a.handle)
         (out / "channel_all.json").write_text(json.dumps({"channel": info, "videos": vids}, ensure_ascii=False, indent=1), encoding="utf-8")
         (out / "channel_titles.tsv").write_text("\n".join("\t".join([v["id"], v.get("published", ""), str(v.get("seconds") or ""), " ; ".join(v.get("playlists", [])), v["title"].replace("\t", " ")]) for v in sorted(vids, key=lambda v: v.get("published") or "")), encoding="utf-8")
     text = survey(info, vids)
