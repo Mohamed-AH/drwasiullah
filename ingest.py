@@ -147,9 +147,8 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def resolve_channel(config: dict) -> tuple[str, str, str]:
-    handle = os.environ.get("YOUTUBE_CHANNEL_HANDLE") or config.get("channel_handle", DEFAULT_HANDLE)
-    handle = handle.strip()
+def resolve_channel(config: dict, handle: str | None = None) -> tuple[str, str, str]:
+    handle = (handle or os.environ.get("YOUTUBE_CHANNEL_HANDLE") or config.get("channel_handle", DEFAULT_HANDLE)).strip()
 
     data = api_get("channels", {
         "part": "id,snippet,contentDetails",
@@ -270,6 +269,7 @@ def ingest_videos(
     channel_title: str,
     uploads_playlist: str,
     config: dict,
+    own: bool = False,
 ) -> set[str]:
     now = datetime.now(timezone.utc).isoformat()
     count = 0
@@ -293,6 +293,8 @@ def ingest_videos(
             tags = snippet.get("tags", [])
             score = speaker_score(title, description, tags, config)
             status = status_from_score(score)
+            if own:   # the Sheikh's own channel: every video is his, whether or not the title names him
+                score, status = 100, "CONFIRMED"
 
             # Preserve manual curation fields if this video already exists.
             existing = conn.execute(
@@ -398,12 +400,15 @@ def sync_playlists(config: dict) -> None:
         print(f"WARNING: could not read playlists ({exc}); keeping the previous data/playlists.json.")
 
 
-def mark_removed(conn: sqlite3.Connection, seen: set[str]) -> int:
+def mark_removed(conn: sqlite3.Connection, seen: set[str], channel_id: str | None = None) -> int:
     """Videos deleted/made private on YouTube get speaker_status=REMOVED so the site stops linking to them.
     Safety: a partial API answer must never wipe the library, so more than max(5, 3%) removals at once is refused."""
     if not seen:
         return 0
-    ids = [r[0] for r in conn.execute("SELECT youtube_id FROM videos WHERE speaker_status != 'REMOVED'")]
+    q, args = "SELECT youtube_id FROM videos WHERE speaker_status != 'REMOVED'", ()
+    if channel_id:   # each channel is judged only by its own answer (a failed read of one channel must never remove the other's videos)
+        q, args = q + " AND channel_id = ?", (channel_id,)
+    ids = [r[0] for r in conn.execute(q, args)]
     gone = [i for i in ids if i not in seen]
     if not gone:
         return 0
@@ -415,6 +420,46 @@ def mark_removed(conn: sqlite3.Connection, seen: set[str]) -> int:
     conn.commit()
     print(f"Marked {len(gone)} videos as REMOVED (deleted or private on YouTube): {', '.join(gone)}")
     return len(gone)
+
+
+CHANNEL_PLAYLISTS_PATH = BASE_DIR / "data" / "channel_playlists.json"
+
+
+def sync_channel_playlists(channel_id: str) -> None:
+    """For an extra channel: which playlists each video is in (video id -> [playlist titles]); the classifier of tools/urdu_channel.py uses the names
+    (surah of a tafsir class, a named video series). A failure keeps the previous file."""
+    try:
+        existing = json.loads(CHANNEL_PLAYLISTS_PATH.read_text(encoding="utf-8")) if CHANNEL_PLAYLISTS_PATH.exists() else {}
+    except ValueError:
+        existing = {}
+    try:
+        members: dict[str, list[str]] = {}
+        token = None
+        pls = []
+        while True:
+            params = {"part": "snippet", "channelId": channel_id, "maxResults": 50}
+            if token: params["pageToken"] = token
+            data = api_get("playlists", params)
+            pls += [(i["id"], i.get("snippet", {}).get("title", "")) for i in data.get("items", [])]
+            token = data.get("nextPageToken")
+            if not token: break
+        for pid, title in pls:
+            token = None
+            while True:
+                params = {"part": "contentDetails", "playlistId": pid, "maxResults": 50}
+                if token: params["pageToken"] = token
+                data = api_get("playlistItems", params)
+                for it in data.get("items", []):
+                    vid = it.get("contentDetails", {}).get("videoId")
+                    if vid: members.setdefault(vid, []).append(title)
+                token = data.get("nextPageToken")
+                if not token: break
+        existing[channel_id] = dict(sorted(members.items()))
+        CHANNEL_PLAYLISTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        CHANNEL_PLAYLISTS_PATH.write_text(json.dumps(existing, ensure_ascii=False, indent=0) + "\n", encoding="utf-8")
+        print(f"Extra channel playlists: {len(pls)} playlists, {len(members)} videos in at least one.")
+    except RuntimeError as exc:
+        print(f"WARNING: could not read the playlists of {channel_id} ({exc}); keeping the previous data/channel_playlists.json.")
 
 
 def main() -> int:
@@ -449,8 +494,25 @@ def main() -> int:
             uploads_playlist,
             config,
         )
-        mark_removed(conn, seen)
+        mark_removed(conn, seen, channel_id)
         sync_playlists(config)
+        # Extra channels (config.json extra_channels): state "collect" or "publish" reads them; "off" (the default) does nothing at all.
+        for ch in config.get("extra_channels", []):
+            if ch.get("state", "off") not in ("collect", "publish"):
+                continue
+            try:
+                print(f"\nExtra channel {ch['handle']} (state {ch['state']})...")
+                x_id, x_title, x_uploads = resolve_channel(config, ch["handle"])
+                if ch.get("id") and ch["id"] != x_id:
+                    print(f"WARNING: {ch['handle']} is now channel {x_id}, config.json says {ch['id']}; skipping it.")
+                    continue
+                x_ids = get_upload_video_ids(x_uploads)
+                print(f"Found {len(x_ids)} uploaded videos on {x_title}.")
+                x_seen = ingest_videos(conn, x_ids, x_id, x_title, x_uploads, config, own=bool(ch.get("own")))
+                mark_removed(conn, x_seen, x_id)
+                sync_channel_playlists(x_id)
+            except RuntimeError as exc:
+                print(f"WARNING: extra channel {ch.get('handle')} skipped this run ({exc}); the primary channel was processed normally.")
     finally:
         conn.close()
 

@@ -25,3 +25,7 @@ Safety stops: if more than 3 lessons would vanish, or YouTube answers only partl
 - After `git pull`: `python tools/videos_text.py load` rebuilds your local `videos.db`.
 - After curating with `manage.py`: `python tools/videos_text.py dump`, then `python build_catalogue.py`, then commit `data/videos.jsonl` and `site/catalogue.json`.
 - Once, when convenient: `git rm --cached videos.db` and commit (keeps your local file, stops tracking the binary).
+
+
+## Extra channels (the Sheikh's own Urdu channel)
+`config.json` → `extra_channels` lists further channels read by the same sync. `state`: `off` (default, ignored) / `collect` (read into `data/videos.jsonl`, not shown) / `publish` (shown). Every video of a channel marked `own` counts as the Sheikh's. Its videos are sorted by `tools/urdu_channel.py` with `data/urdu_channel_rules.json`, playlist names come from `data/channel_playlists.json` (written by `ingest.py`). Details, decisions and how to switch it on: `docs/urdu-channel-plan.md`.

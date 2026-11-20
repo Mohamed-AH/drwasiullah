@@ -21,7 +21,7 @@ const used = new Set(), src = FILES.map(f => fs.readFileSync(f, "utf8")).join("\
 for (const m of src.matchAll(/["'`]([a-zA-Z]+(?:\.[a-zA-Z0-9$_{}]+)+)["'`]/g)) {
   const k = m[1];
   if (!prefixes.has(k.split(".")[0])) continue;
-  if (k.includes("${")) { if (k === "sec.${s.id}.title" || k === "sec.${s.id}.desc") for (const id of ["duroos", "audio", "lectures", "khutab", "urdu", "books"]) used.add(k.replace("${s.id}", id)); continue; }
+  if (k.includes("${")) { if (k === "sec.${s.id}.title" || k === "sec.${s.id}.desc") for (const id of ["duroos", "audio", "lectures", "khutab", "urdu", "urdu-qa", "books"]) used.add(k.replace("${s.id}", id)); continue; }
   used.add(k);
 }
 for (const m of src.matchAll(/["'`]([a-zA-Z]+)["'`]\s*\]/g)) if (Object.hasOwn(AR, m[1])) used.add(m[1]);                  // AR["weekdays"]

@@ -23,6 +23,7 @@ export const SECTIONS = [
   { id: "lectures", icon: "mic-vocal" },
   { id: "khutab",   icon: "scroll-text" },
   { id: "urdu",     icon: "languages" },
+  { id: "urdu-qa",  icon: "message-circle-question" },
   { id: "books",    icon: "book-open" },
 ].map(s => Object.defineProperties(s, { title: { get: () => t(`sec.${s.id}.title`), enumerable: true }, desc: { get: () => t(`sec.${s.id}.desc`), enumerable: true } }));   // text follows the page language
 const UNIT = { muslim: AR["unit.majlis"], "fadail-sahabah": AR["unit.majlis"], nasai: AR["unit.majlis"] };   // numbered-lesson label per series
@@ -265,7 +266,8 @@ export const fullTitle = l => { const s = seriesById[l.series], c = useLabel(l) 
 export const secOfSeries = s => secById[s.sec] || secById.duroos;
 export const secOfLesson = l => secOfSeries(seriesById[l.series]);
 export const seriesOrder = (a, b) => (a.ord ?? 1e9) - (b.ord ?? 1e9) || (a.n ?? 1e9) - (b.n ?? 1e9) || (a.o - b.o);   // ord = the editors' saved display order (see applyOrder), else number, else original position
-export const lang = l => secOfLesson(l).id === "urdu" ? ' lang="ur"' : "";
+export const isUrdu = sec => sec === "urdu" || sec === "urdu-qa";   // the Sheikh's Urdu lessons: their titles are Urdu, so the text is marked lang="ur"
+export const lang = l => isUrdu(secOfLesson(l).id) ? ' lang="ur"' : "";
 export const thumb = id => `https://i.ytimg.com/vi/${safeYt(id)}/mqdefault.jpg`;
 export const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 0l2.6 5.4L20.5 3.5l-1.9 5.9L24 12l-5.4 2.6 1.9 5.9-5.9-1.9L12 24l-2.6-5.4-5.9 1.9 1.9-5.9L0 12l5.4-2.6-1.9-5.9 5.9 1.9z"/></svg>`;
 

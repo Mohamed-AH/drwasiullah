@@ -8,7 +8,7 @@ export const ACTOR = "script:audio_batch";
 export const PART_AR = { a: "الجزء الأول", b: "الجزء الثاني", c: "الجزء الثالث", d: "الجزء الرابع" };
 export const SHEIKH = "الشيخ وصي الله بن محمد عباس";
 const PARTS = ["a", "b", "c", "d"];
-const EXTS = ["mp3", "wav", "m4a", "flac", "ogg", "aac"];
+const EXTS = ["mp3", "wav", "m4a", "flac", "ogg", "aac", "opus", "mpeg", "mpg", "mp4"];
 
 /* name -> series. Anything that matches no route goes to the fallback (misc lectures) and is listed in the warnings so it can be checked. */
 export const ROUTES = [
@@ -18,14 +18,14 @@ export const FALLBACK = { series: "misc", numbered: false };
 
 const NFC = s => String(s).normalize("NFC");
 const tidy = s => NFC(s).replace(/[‎‏‪-‮⁦-⁩]/g, "").replace(/\s+/g, " ").trim();
-const NAME_RE = /^(\d{4})\s*(.*?)\s*(\d{1,2})\s*-\s*(\d{1,2})\s*-\s*(\d{4})\s*ه[ـ]*\s*(?:(تكمل[ةه]|تتمة)\s*)?\.([A-Za-z0-9]{2,5})$/;
+const NAME_RE = /^(\d{4})\s*(.*?)\s*(\d{1,2})\s*-\s*(\d{1,2})\s*-\s*(\d{4})\s*ه[ـ]*\s*(?:(تكمل[ةه]|تتمة)\s*)?((?:\.[A-Za-z0-9]{2,5})+)$/;   // the extension may be doubled («….mp3.mpeg»): the last known one counts
 
 /* "0149صحيح مسلم30-2-1448هـ تكملة.mp3" -> { seq: 149, text: "صحيح مسلم", y: 1448, m: 2, d: 30, cont: true, ext: "mp3" }  (null when the name does not follow the convention) */
 export function parseName(fileName) {
   const m = NAME_RE.exec(NFC(fileName).trim());
   if (!m) return null;
-  const ext = m[7].toLowerCase();
-  if (!EXTS.includes(ext)) return null;
+  const ext = m[7].toLowerCase().split(".").filter(Boolean).reverse().find(e => EXTS.includes(e));
+  if (!ext) return null;
   return { seq: +m[1], text: tidy(m[2]), d: +m[3], m: +m[4], y: +m[5], cont: !!m[6], ext };
 }
 
@@ -231,10 +231,34 @@ export function mapToSource(t, trimStart = 0, removed = []) {
   for (const [a, b] of removed) if (x >= a) x += b - a;
   return x;
 }
-/* The ffmpeg filter that drops the removed ranges (times in the original file; `trimStart` is subtracted because -ss restarts the clock) */
-export function removeFilter(removed, trimStart = 0) {
-  const rs = removed.map(([a, b]) => [a - (trimStart || 0), b - (trimStart || 0)]).filter(([, b]) => b > 0).map(([a, b]) => [Math.max(0, a), b]);
-  return rs.length ? `aselect='not(${rs.map(([a, b]) => `between(t,${a.toFixed(3)},${b.toFixed(3)})`).join("+")})',asetpts=N/SR/TB,` : "";
+/* The pieces of the original that are kept, in seconds of the ORIGINAL: [[from, to|null], ...] (null = to the end). */
+export function keepSegments(start, end, removed = []) {
+  const out = []; let at = start || 0;
+  for (const [a, b] of mergeRanges(removed || [])) {
+    if (b <= at) continue;
+    if (end != null && a >= end) break;
+    if (a > at) out.push([at, end != null ? Math.min(a, end) : a]);
+    at = Math.max(at, b);
+  }
+  if (end == null) out.push([at, null]); else if (at < end) out.push([at, end]);
+  return out;
+}
+export const keptSeconds = (segs, total) => segs.reduce((n, [a, b]) => n + Math.max(0, (b == null ? total : Math.min(b, total)) - a), 0);
+
+/* ffmpeg arguments that cut the original and then apply `tail` (the rest of the filter chain, e.g. "loudnorm=...").
+   -> { pre: [input options], filter: [filter arguments] }
+   Without removed stretches: plain input -ss / -to (proven everywhere).
+   With removed stretches: the pieces are cut by SAMPLE COUNT (atrim start_sample/end_sample) and joined with concat. The earlier method
+   (aselect on the timestamp `t`) is silently ignored by some current ffmpeg builds (2025), which left the quiet stretches in the file. */
+export function cutArgs(trim, tail, SR = 44100) {
+  const t = trim || {}, rm = t.remove || [];
+  if (!rm.length) return { pre: [...(t.start != null ? ["-ss", String(t.start)] : []), ...(t.end != null ? ["-to", String(t.end)] : [])], filter: ["-af", tail] };
+  const segs = keepSegments(t.start, t.end, rm), n = segs.length, smp = x => Math.round(x * SR);
+  const cut = ([a, b]) => `atrim=start_sample=${smp(a)}${b == null ? "" : `:end_sample=${smp(b)}`},asetpts=N/SR/TB`;
+  let g;
+  if (n === 1) g = `[0:a]aresample=${SR},${cut(segs[0])},${tail}[o]`;
+  else g = `[0:a]aresample=${SR},asplit=${n}${segs.map((_, i) => `[s${i}]`).join("")};` + segs.map((sg, i) => `[s${i}]${cut(sg)}[t${i}]`).join(";") + `;${segs.map((_, i) => `[t${i}]`).join("")}concat=n=${n}:v=0:a=1,${tail}[o]`;
+  return { pre: [], filter: ["-filter_complex", g, "-map", "[o]"] };
 }
 /* levels = RMS dB of each consecutive SECOND. A second is quiet when it is `dropDb` below the 70th percentile of the file (the usual speech level, even when a long break makes up half of the recording); loud blips (a cough, a footstep) of up to `mergeSeconds`
    inside a quiet stretch do not end it. -> [{ from, to }] in seconds, only stretches of at least `minSeconds` */

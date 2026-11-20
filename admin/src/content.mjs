@@ -5,7 +5,7 @@ import { KEY } from "./upload.mjs";
 
 const clean = (s, n) => String(s ?? "").replace(/[\u0000-\u001f\u007f‎‏‪-‮⁦-⁩]/g, "").trim().slice(0, n);
 const STATUSES = ["draft", "published", "hidden"];
-export const NEW_SERIES_SECTIONS = ["audio", "lectures", "khutab", "urdu"];
+export const NEW_SERIES_SECTIONS = ["audio", "lectures", "khutab", "urdu", "urdu-qa"];
 
 export async function newSeries(f, env, user, redirect) {
   const db = env.DB;
@@ -45,7 +45,7 @@ export async function lessonStatus(f, env, user, redirect) {
 /* ---------- editing (phase 4a) ---------- */
 /* Rows from these data files are owned by the database and shipped by Publish. YouTube rows (origin "catalogue") are written by the daily sync, so they are read-only here. */
 export const EDITABLE = ["library", "makkah", "haram"];
-const SECTIONS = ["duroos", "audio", "lectures", "khutab", "urdu"];
+const SECTIONS = ["duroos", "audio", "lectures", "khutab", "urdu", "urdu-qa"];
 export const verOf = async text => [...new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(text)))].slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join("");
 const intOrNull = (v, lo, hi) => { const t = String(v ?? "").trim(); if (t === "") return null; const n = Number(t); return Number.isInteger(n) && n >= lo && n <= hi ? n : NaN; };
 

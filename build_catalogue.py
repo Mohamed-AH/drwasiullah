@@ -9,11 +9,13 @@ videos.db (series, subject, lesson_number, title_ar) always win.
 Included: CONFIRMED / MANUAL_APPROVED, plus REVIEW videos whose title names
 the Sheikh. Never included: MANUAL_REJECTED / REJECTED, other speakers.
 """
-import json, os, re, sqlite3
+import json, os, re, sqlite3, sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
+sys.path.insert(0, str(BASE / "tools"))
+CHANNEL_PLAYLISTS = Path(os.environ.get("CHANNEL_PLAYLISTS_JSON") or BASE / "data" / "channel_playlists.json")   # written by ingest.py for extra channels
 OUT = BASE / "site" / "catalogue.json"
 PLAYLISTS = Path(os.environ.get("PLAYLISTS_JSON") or BASE / "data" / "playlists.json")   # written by ingest.py
 
@@ -111,7 +113,48 @@ def reviewed_conflicts():
         return set()
 
 
+def extra_channels():
+    """config.json extra_channels -> (all channel ids, {id: config} of those whose state is "publish"). The Sheikh's own Urdu channel is sorted by tools/urdu_channel.py."""
+    try:
+        chans = json.loads((BASE / "config.json").read_text(encoding="utf-8")).get("extra_channels") or []
+    except (OSError, ValueError):
+        chans = []
+    return {c["id"] for c in chans if c.get("id")}, {c["id"]: c for c in chans if c.get("id") and c.get("state") == "publish" and c.get("kind") == "urdu"}
+
+
+def site_lesson_ids():
+    """Lesson ids that already exist elsewhere on the site (library.json, makkah.json, haram.json: archive.org lessons, lessons added or imported by hand). A video of an
+    extra channel with one of these ids is not added a second time: the existing entry (which an editor may have titled) stays."""
+    ids = set()
+    for name in ("library", "makkah", "haram"):
+        try: ids |= {l["id"] for l in json.loads((BASE / "site" / "data" / f"{name}.json").read_text(encoding="utf-8")).get("lessons", [])}
+        except (OSError, ValueError): pass
+    return ids
+
+
+def urdu_lesson(uc, rules, matchers, members, r):
+    """One video of the Sheikh's own Urdu channel -> (lesson dict, series id). Manual curation in videos.db (series / lesson_number / title_ar) wins."""
+    pls = (members.get(r["channel_id"]) or {}).get(r["youtube_id"], [])
+    c = uc.classify(rules, matchers, {"id": r["youtube_id"], "title": r["title_original"], "published": riyadh_date(r["published_at"]), "seconds": duration(r["duration_iso"]), "playlists": pls})
+    manual = (r["series"] or "").strip()
+    sid = manual if manual in rules["_series"] else c["series"]
+    sdef = rules["_series"][sid]
+    item = {"id": r["youtube_id"], "title": (r["title_ar"] or "").strip() or c["title"], "series": sid, "subject": sdef["subject"],
+            "date": c["date"] or riyadh_date(r["published_at"]), "duration": duration(r["duration_iso"])}
+    if c["hd"]: item["hd"] = c["hd"]
+    if r["lesson_number"] is not None: item["n"] = r["lesson_number"]          # only a number set by hand; the numbers in the titles restart every Hajj season, so they stay in the title
+    if sdef.get("sections_by") and c["section"] and not c["section"].startswith("999|"): item["section"] = c["section"].split("|")[-1]
+    return item, sid
+
+
 def main():
+    all_extra, pub_extra = extra_channels()
+    if pub_extra:
+        import urdu_channel as uc
+        u_rules = uc.load_rules(); u_matchers = uc.build_topic_matchers(u_rules)
+        try: u_members = json.loads(CHANNEL_PLAYLISTS.read_text(encoding="utf-8"))
+        except (OSError, ValueError): u_members = {}
+        already, skipped = site_lesson_ids(), []
     db = sqlite3.connect(os.environ.get("VIDEOS_DB") or BASE / "videos.db")
     db.row_factory = sqlite3.Row
     rows = db.execute("SELECT * FROM videos WHERE speaker_status NOT IN ('MANUAL_REJECTED', 'REJECTED', 'REMOVED') ORDER BY published_at DESC, youtube_id").fetchall()
@@ -123,6 +166,15 @@ def main():
     by_playlist, conflicts, reviewed = playlist_series(), [], reviewed_conflicts()
     for r in rows:
         if duration(r["duration_iso"]) == 0:   # live now / premiere not started: it appears on the next run, once it has a length
+            continue
+        if r["channel_id"] in all_extra:       # an extra channel: shown only when its state is "publish" (see config.json extra_channels)
+            if r["channel_id"] in pub_extra and (r["youtube_id"] in already or r["youtube_id"] in set(pub_extra[r["channel_id"]].get("skip_ids", []))):
+                skipped.append(r["youtube_id"])      # already on the site under another entry, or listed in config.json skip_ids (a person decided the other copy is the one to show)
+            elif r["channel_id"] in pub_extra:
+                item, sid = urdu_lesson(uc, u_rules, u_matchers, u_members, r)
+                sd = u_rules["_series"][sid]
+                series_info.setdefault(sid, {"id": sid, "title": sd["title"], "subject": sd["subject"], "description": sd.get("description", ""), "sec": sd["sec"], "unit": sd.get("unit", ""), "ordered": bool(sd.get("ordered")), "nohome": True})
+                lessons.append(item)
             continue
         title = (r["title_ar"] or "").strip() or r["title_original"]
         t = norm(title)
@@ -164,7 +216,7 @@ def main():
     for sid, info in series_info.items():
         if sid not in used: continue
         ls = [l for l in lessons if l["series"] == sid]
-        info.update(sec=SECTION_OF.get(sid, "duroos"), count=len(ls), seconds=sum(l["duration"] for l in ls),
+        info.update(sec=info.get("sec") or SECTION_OF.get(sid, "duroos"), count=len(ls), seconds=sum(l["duration"] for l in ls),
                     first=min(l["date"] for l in ls), last=max(l["date"] for l in ls))
         series.append(info)
     series.sort(key=lambda s: (s["id"] == MISC[0], -s["count"]))
@@ -177,9 +229,10 @@ def main():
     out = {"updated": updated, "channel": "https://www.youtube.com/@wahatsunnah12",
            "subjects": sorted({s["subject"] for s in series}), "series": series, "lessons": lessons}
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"{len(lessons)} lessons in {len(series)} series -> {OUT.relative_to(BASE)}")
+    print(f"{len(lessons)} lessons in {len(series)} series -> {OUT.relative_to(BASE) if OUT.is_relative_to(BASE) else OUT}")
     if os.environ.get("CATALOGUE_REPORT"):
         Path(os.environ["CATALOGUE_REPORT"]).write_text(json.dumps(conflicts, ensure_ascii=False), encoding="utf-8")
+    if pub_extra and skipped: print(f"  {len(skipped)} video(s) of the extra channel are already on the site under another entry (or in skip_ids) and were not added again: {', '.join(skipped)}")
     if conflicts: print(f"  {len(conflicts)} videos where the title and the playlist name different series (nothing changed; see the sync report)")
     for s in series: print(f"  {s['count']:4}  {s['title']}")
 

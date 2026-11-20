@@ -57,11 +57,12 @@ jobs:
 
       - name: Publish
         run: |
-          if git diff --quiet -- data/videos.jsonl data/playlists.json site/catalogue.json && [ -z "$(git ls-files --others --exclude-standard data/playlists.json)" ]; then echo "No changes today."; exit 0; fi
+          if git diff --quiet -- data/videos.jsonl data/playlists.json data/channel_playlists.json site/catalogue.json && [ -z "$(git ls-files --others --exclude-standard data/playlists.json data/channel_playlists.json)" ]; then echo "No changes today."; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/videos.jsonl site/catalogue.json
           if [ -f data/playlists.json ]; then git add data/playlists.json; fi
+          if [ -f data/channel_playlists.json ]; then git add data/channel_playlists.json; fi
           git commit -m "YouTube sync $(date -u +%F)"
           if [ "$SYNC_MODE" = "pr" ]; then
             git push --force origin HEAD:refs/heads/auto/youtube-sync

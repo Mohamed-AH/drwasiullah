@@ -44,7 +44,7 @@ def items(lib, kind, series=None, ids=None, include_makkah=False):
     out = []   # (source_url, kind)
     if kind in ("audio", "all"):
         for l in lib["lessons"]:
-            if not l.get("src"): continue
+            if not l.get("src") or "://media.drwasiullah.com/" in l["src"]: continue   # already ours (portal uploads, tools/audio_batch.mjs)
             if series and l["series"] not in series: continue
             if ids and l["id"] not in ids: continue
             if "makkahscholars.org" in l["src"] and not (include_makkah or ids or series): continue   # a 10 GB series: only on request

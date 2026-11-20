@@ -1,0 +1,53 @@
+name: Git mirror (GitLab)
+
+# Nightly: copy the whole repository (all branches and tags, full history) to a private GitLab project, so the code, the nightly content
+# backups and every Publish survive the loss of the GitHub account or repository. `main` is pushed WITHOUT force (a rewritten history
+# fails loudly instead of overwriting the copy); other branches are force-pushed. Not configured yet = a warning, not a failure.
+# Setup: docs/backup-plan.md, step 3.  Secrets: GITLAB_TOKEN (project access token, write_repository) and GITLAB_PROJECT (e.g. mygroup/drwasiullah).
+on:
+  schedule:
+    - cron: "47 3 * * *"         # 03:47 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: git-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+      GITLAB_PROJECT: ${{ secrets.GITLAB_PROJECT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push everything to GitLab
+        shell: bash
+        run: |
+          if [ -z "$GITLAB_TOKEN" ] || [ -z "$GITLAB_PROJECT" ]; then
+            echo "::warning::GITLAB_TOKEN / GITLAB_PROJECT are not set: the git mirror is NOT running (docs/backup-plan.md, step 3)"; echo "SKIPPED=1" >> "$GITHUB_ENV"; exit 0
+          fi
+          git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*' >/dev/null 2>&1 || true
+          URL="https://oauth2:${GITLAB_TOKEN}@gitlab.com/${GITLAB_PROJECT}.git"
+          git push "$URL" "refs/remotes/origin/main:refs/heads/main" 2>&1 | sed "s#${GITLAB_TOKEN}#***#g"
+          for b in $(git for-each-ref refs/remotes/origin --format='%(refname:strip=3)' | grep -vx -e HEAD -e main); do
+            git push --force "$URL" "refs/remotes/origin/$b:refs/heads/$b" 2>&1 | sed "s#${GITLAB_TOKEN}#***#g" || true
+          done
+          git push "$URL" --tags 2>&1 | sed "s#${GITLAB_TOKEN}#***#g"
+          echo "mirrored $(git rev-parse origin/main) to gitlab.com/$GITLAB_PROJECT"
+      - name: Heartbeat
+        if: success() && env.SKIPPED != '1'
+        env:
+          HC: ${{ secrets.HC_PING_GIT_MIRROR }}
+        run: if [ -n "$HC" ]; then curl -fsS -m 15 --retry 3 -o /dev/null "$HC"; else echo "::notice::no heartbeat secret (HC_PING_GIT_MIRROR)"; fi
+      - name: Heartbeat (failure)
+        if: failure()
+        env:
+          HC: ${{ secrets.HC_PING_GIT_MIRROR }}
+        run: if [ -n "$HC" ]; then curl -fsS -m 15 --retry 2 -o /dev/null "$HC/fail" || true; fi

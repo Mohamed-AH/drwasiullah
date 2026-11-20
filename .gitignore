@@ -49,4 +49,9 @@ tools/channel_hits.json
 .wrangler/
 db/seed.sql
 db/restore-live.sql
-tools/audio_batch_work/
+tools/audio_batch_work*/
+tools/channel_all.json
+tools/channel_titles.tsv
+tools/channel_survey.txt
+tools/urdu_review.csv
+tools/urdu_review.txt

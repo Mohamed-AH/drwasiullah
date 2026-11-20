@@ -26,11 +26,14 @@ def main():
     if len(dropped) > 3 or len(n) == 0 or len(n) < len(o) - 3:
         print(f"\n**Refusing to publish: {len(dropped)} lessons disappeared.** Check the API response / videos.jsonl."); return 1
 
+    ser = {x["id"]: x for x in new.get("series", [])}
+    numbered = lambda sid: ser.get(sid, {}).get("ordered", True)       # the Urdu channel's series say ordered:false when their videos carry no lesson number
     attention = []
     for a, b in moved[:30]:
         attention.append(f"MOVED `{b['id']}` {b['title'][:70]}: {a['series']} #{a.get('n', '-')} -> {b['series']} #{b.get('n', '-')}")
     attention += [f"UNMATCHED `{l['id']}` {l['title'][:80]} (no series rule matched; it is listed under general lectures)" for l in added if l["series"] == "misc"][:30]
-    attention += [f"NO NUMBER `{l['id']}` {l['title'][:80]} (series {l['series']})" for l in added if l["series"] != "misc" and l.get("n") is None][:30]
+    attention += [f"NO NUMBER `{l['id']}` {l['title'][:80]} (series {l['series']})" for l in added if l["series"] != "misc" and l.get("n") is None and numbered(l["series"])][:30]
+    attention += [f"NO TOPIC `{l['id']}` {l['title'][:80]} (no topic word matched; it is listed under the miscellaneous questions)" for l in added if l["series"] == "qa-misc"][:30]
     attention += [f"DUPLICATE NUMBER {s} #{k} is now used by more than one lesson" for s, k in sorted(dupes(new["lessons"]) - dupes(old["lessons"]))]
     rep = os.environ.get("CATALOGUE_REPORT")
     if rep and Path(rep).exists():

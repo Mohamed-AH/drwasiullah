@@ -3,7 +3,7 @@
 import {
   SITE, NAME, NAME_FULL, OFFICIAL_PRE, FULL_NAME, ROLE, OFFICIAL_NAME, YT_CHANNEL, WP_SITE, SECTIONS, SPINE, SPINE_PALETTE, SPINE_H, PAGE, MAXQ,
   state, WEEKDAYS, byId, seriesById, secById, ic, esc, fmtNum, fmtYear, ldate, dur, isoDur, hours, dg, cleanQuery, oneOf, safeUrl, safeYt, safeLang, safeDecode, jsonLd,
-  kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
+  kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, isUrdu, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
   t, getLang, setLang, langPrefix, splitLang, LANGS, LANG_META, sectionName, bookTitle, groupName, phrase, markArabicDoc,
 } from "./core.js";
 
@@ -79,8 +79,8 @@ function home() {
   const DB = state.DB, vis = visible(), cfg = Object.fromEntries(state.home.blocks.map(b => [b.id, b]));
   const bio = state.bio;
   const hd = (id, dflt) => esc(cfg[id].title || dflt);                         // an optional custom heading from the portal (plain text)
-  const top = (cfg.shelf.series.length ? cfg.shelf.series.map(i => seriesById[i]) : DB.series.slice().sort((a, b) => b.count - a.count)).slice(0, cfg.shelf.count);
-  const latest = DB.lessons.filter(l => l.date).slice(0, cfg.latest.count);
+  const top = (cfg.shelf.series.length ? cfg.shelf.series.map(i => seriesById[i]) : DB.series.filter(s => !s.nohome).sort((a, b) => b.count - a.count)).slice(0, cfg.shelf.count);   // automatic shelf: series flagged nohome (the Urdu channel's, reached through their own sections) are left out; they can still be hand-picked in the portal
+  const latest = DB.lessons.filter(l => l.date && !seriesById[l.series].nohome).slice(0, cfg.latest.count);
   const hero = `
     <section class="hero"><p class="bism"${getLang() === "ar" ? "" : ' lang="ar"'}>${t("hero.bism")}</p>
       <h1><span class="h1-pre">${t("brand.officialPre")}</span><span class="nm"><em>${t("hero.nm1")}</em></span> <span class="nm">${t("hero.nm2")}</span> <span class="nm">${t("hero.nm3")}</span><span class="dua">${t("hero.duaLead")}${t("brand.dua")}</span></h1>
@@ -176,12 +176,12 @@ function seriesPage(id) {
     <div class="bar">${searchBox(t("series.search"))}
       <select id="sort" aria-label="${t("sort.label")}"><option value="new"${st.sort === "new" ? " selected" : ""}>${t("sort.new")}</option><option value="old">${t("sort.old")}</option>${ordered ? `<option value="num"${st.sort === "num" ? " selected" : ""}>${t("sort.num")}</option>` : ""}</select></div>
     ${sections.length > 1 ? `<div class="pill-row" id="secs" role="group" aria-label="${t("filter.book")}"><button type="button" class="pill on" aria-pressed="true" data-s="">${t("filter.all")}</button>${sections.map(x => `<button type="button" class="pill" aria-pressed="false" data-s="${esc(x)}">${esc(sectionName(x))}</button>`).join("")}</div>` : ""}
-    <p class="count" id="count" role="status">${t("count.lessons", { n: fmtNum(list.count) })}</p><div id="out"${s.sec === "urdu" ? ' lang="ur"' : ""}>${list.html}</div>`;
+    <p class="count" id="count" role="status">${t("count.lessons", { n: fmtNum(list.count) })}</p><div id="out"${isUrdu(s.sec) ? ' lang="ur"' : ""}>${list.html}</div>`;
   return mkPage({
     nav: s.sec, path: href.series(s.id), html, wire: { t: "series", id: s.id }, ogType: "website",
     title: withSite(t("series.metaTitle", { title: s.title, n: fmtNum(s.count) })),
     description: clip(t("series.metaDesc", { desc: s.description, n: fmtNum(s.count), hours: hours(s.seconds), sec: sec.title }), 160),
-    jsonld: [c.ld, { "@context": "https://schema.org", "@type": "CollectionPage", name: s.title, url: SITE + href.series(s.id), inLanguage: s.sec === "urdu" ? "ur" : getLang(),
+    jsonld: [c.ld, { "@context": "https://schema.org", "@type": "CollectionPage", name: s.title, url: SITE + href.series(s.id), inLanguage: isUrdu(s.sec) ? "ur" : getLang(),
       mainEntity: { "@type": "ItemList", numberOfItems: info.sib.length, itemListElement: info.sib.map((l, i) => ({ "@type": "ListItem", position: i + 1, url: SITE + href.lesson(l.id), name: fullTitle(l) })) } }],
   });
 }
@@ -212,7 +212,7 @@ function lessonPage(id) {
         ${ext}<button type="button" class="btn" id="share">${ic("link", 17)} ${t("lesson.copy")}</button></div>
     </div>
     <aside class="side" aria-labelledby="side-h"><h2 id="side-h">${esc(s.title)} <small>${fmtNum(i + 1)} / ${fmtNum(sib.length)}</small></h2>
-      <div class="scroll"${s.sec === "urdu" ? ' lang="ur"' : ""}>${win.map(x => row(x, { now: x.id === l.id })).join("")}</div>
+      <div class="scroll"${isUrdu(s.sec) ? ' lang="ur"' : ""}>${win.map(x => row(x, { now: x.id === l.id })).join("")}</div>
       <a class="side-all" href="${href.series(s.id)}">${t("lesson.all", { n: fmtNum(sib.length) })} ${ic("chevron-left", 15)}</a></aside></div>`;
   const desc = clip(t("lesson.desc", { kind: t(l.kind === "audio" ? "lesson.audio" : "lesson.video"), title, date: ldate(l) }), 160);
   const ld = l.kind === "audio"
@@ -222,7 +222,7 @@ function lessonPage(id) {
     nav: s.sec, path: href.lesson(l.id), html, wire: { t: "lesson", id: l.id, next: next ? href.lesson(next.id) : "" }, ogType: "article",
     image: l.kind === "video" ? `https://i.ytimg.com/vi/${safeYt(l.id)}/hqdefault.jpg` : OG_DEFAULT,
     title: withSite(title), description: desc,
-    jsonld: [c.ld, { "@context": "https://schema.org", ...ld, name: title, description: desc, inLanguage: s.sec === "urdu" ? "ur" : getLang(),
+    jsonld: [c.ld, { "@context": "https://schema.org", ...ld, name: title, description: desc, inLanguage: isUrdu(s.sec) ? "ur" : getLang(),
       ...(l.date ? (l.kind === "video" ? { uploadDate: l.date } : { dateCreated: l.date }) : {}), ...(l.duration ? { duration: isoDur(l.duration) } : {}),
       author: { "@type": "Person", name: t("ld.author") }, isPartOf: { "@type": "CreativeWorkSeries", name: s.title, url: SITE + href.series(s.id) } }],
   });
@@ -386,7 +386,7 @@ export function chromeTop(nav, path = "/") {
   </aside>`;
 }
 export function chromeBottom(nav) {
-  const vis = navItems(), extra = ["audio", "lectures", "khutab", "urdu", "books"].map(id => vis.find(s => s.id === id)).filter(Boolean)[0];
+  const vis = navItems(), extra = ["audio", "lectures", "khutab", "urdu", "urdu-qa", "books"].map(id => vis.find(s => s.id === id)).filter(Boolean)[0];
   const items = [{ id: "home", t: t("nav.home"), i: "house", h: href.home() }, { id: "library", t: t("nav.libraryBottom"), i: "layout-grid", h: href.library() }, { id: "search", t: t("nav.search"), i: "search", h: href.search(), mid: true }];
   if (extra) items.push({ id: extra.id, t: t("nav.bottomLabel", extra.t), i: extra.i, h: extra.h });
   return `<nav class="bottom" id="bottom" aria-label="${t("nav.quick")}">${items.map(x => `<a class="bn${x.mid ? " mid" : ""}" href="${x.h}" data-nav="${x.id}"${nav === x.id ? ' aria-current="page"' : ""}><span class="bn-i">${ic(x.i, x.mid ? 25 : 22)}</span><span>${x.t}</span></a>`).join("")}
