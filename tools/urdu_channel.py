@@ -163,6 +163,20 @@ def topic_of(matchers, text):
     return tops[0], conf, [(sid, s) for s, sid in ranked if s][:3]
 
 
+AR_DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
+
+
+def hajj_season(date, hd=""):
+    """Hijri year of a Hajj class as a section label («حج ١٤٤٤ هـ»). The Hijri date in the title when it has one; otherwise from the Gregorian date, which is only
+    unambiguous for classes given between March and July (Shawwal to Dhul Hijjah): Hijri year = round((year - 622) * 1.030684), exact for 2023-2029. Else ''."""
+    try:
+        y = int(hd.split("-")[0]) if hd else None
+        if y is None and date and 3 <= int(date[5:7]) <= 7: y = int((int(date[:4]) - 622) * 1.030684 + 0.5)
+    except (ValueError, IndexError):
+        y = None
+    return f"حج {y} هـ".translate(AR_DIGITS) if y else ""
+
+
 # ---------- the classifier ----------
 def classify(rules, matchers, v):
     """v: {id, title, published, seconds, playlists}. -> dict with series, section, n, date, date_source, title, title_roman, confidence, flags."""
@@ -208,8 +222,9 @@ def classify(rules, matchers, v):
         mm = re.search(r"dars[-_ ]*(?:e[-_ ]*)?(?:hajj)?[-_ ]*(\d{1,3})\b", low)
         out["n"] = int(mm.group(1)) if mm else ""
         out["title"] = strip_title(title) or "درس الحج"
-        out["section"] = year
+        out["section"] = hajj_season(date, hd)
         if not mm: out["flags"].append("no_number")
+        if not out["section"]: out["flags"].append("hajj_season_unknown")
     elif re.search(G["deoband_book"], low):
         out["series"] = "deoband-book-urdu"; out["title"] = urdu_or_roman(strip_title(title))[0] or title
     elif re.search(G["qa_marks"], low):

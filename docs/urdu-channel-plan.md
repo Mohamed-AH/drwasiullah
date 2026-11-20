@@ -1,6 +1,6 @@
 # Plan: the Sheikh's Urdu YouTube channel (@DrWasiullahAbbas)
 
-Status: **decisions taken 2026-11-20 (section 7); phase 2 (classification dry run) BUILT, nothing on the site yet.** Written from `tools/survey_channel.py` output (channel_all.json, 2,630 videos). Tools: `tools/survey_channel.py` (list the channel), `tools/urdu_channel.py` + `data/urdu_channel_rules.json` (sort into series/sections/topics, write the review files), `tests/urdu_channel_check.py`.
+Status: **decisions taken 2026-11-20 (section 7); phases 2 and 3 BUILT (classification + second channel in the daily sync + the new section), switched OFF in `config.json`: nothing appears on the site until the owner sets the channel's state to «publish» (section 11).** Written from `tools/survey_channel.py` output (channel_all.json, 2,630 videos). Tools: `tools/survey_channel.py` (list the channel), `tools/urdu_channel.py` + `data/urdu_channel_rules.json` (sort into series/sections/topics, write the review files), `tests/urdu_channel_check.py`.
 The site stays Arabic in its interface (the Sheikh's request, CLAUDE.md «Arabic only»); this adds the Sheikh's own **Urdu lessons as content**, in the existing section «الدروس بالأردية».
 
 ## 1. What the channel is (measured)
@@ -84,3 +84,17 @@ A visitor must always be able to tell one session from another, with only facts 
 ## 10. First dry run (2,630 videos, built 2026-11-20)
 `python tools/urdu_channel.py --from channel_all.json` writes `urdu_review.csv` (one row per video) and `urdu_review.txt`. Result: the Quran class (tafsir with its Q&A) 300 videos, Q&A sessions 80, Hajj classes 74, «اليوم الآخر» 7, the Deoband book 10, talks 25, and the 2,047 clips in 11 topics plus «متفرقة»: about 400 clips (20%) match no topic word and stay in «متفرقة» (never guessed), about 270 are flagged «ambiguous» (a tie between two topics). The rules are meant to be corrected by the team in the CSV: change the `series` column of a row and the rule words can be extended.
 **Same recording on two channels:** 9 lessons already on the site from the Haram channel (`hajj-urdu` 2025-05/06, `tawheed-urdu-live`, `aqeeda-manasik-urdu`) have a channel video within a day and of a similar length. Decision still needed: show each lesson once, and from which channel (recommended: the Sheikh's own channel, which keeps syncing; the old Haram-channel entry is then hidden in the portal).
+
+## 11. Built (phase 3) and how to switch it on
+**What exists:** `config.json` → `extra_channels` (the channel's id and a `state`); `ingest.py` reads an extra channel (all its videos are CONFIRMED, removals are judged per channel, playlist names are saved in `data/channel_playlists.json`); `build_catalogue.py` sorts its videos with `tools/urdu_channel.py` + `data/urdu_channel_rules.json` into the catalogue; the new section «الأسئلة والفتاوى (بالأردية)» (`urdu-qa`, icon, texts, portal and report lists); `tools/sync_report.py` lists new clips that matched no topic; tests `tests/urdu_channel_check.py` (64), `tests/urdu_sync_check.py` (20). Arabic output is byte-identical (golden test).
+**Behaviour worth knowing**
+- The Urdu series carry `nohome: true`: they never appear in the Arabic home page's automatic shelf or «latest» block (series already there stay). Editors can still hand-pick them in the portal's home layout.
+- Clips get no lesson number (a number would replace their title with «السؤال N»). Hajj classes get one section per Hajj season (their numbers restart every year, so the number stays in the title). Surahs are the sections of the tafsir series (chronological order of teaching).
+- A channel video whose id is already on the site (`library/makkah/haram.json`, e.g. the 2016 «علماء ديوبند كو مشوره») is not added twice; the existing entry stays.
+- Rules are applied at every build: improve `data/urdu_channel_rules.json` (topic words, series names) and the next sync re-sorts everything. Editors' corrections in the portal are patches on top and survive.
+- Size when published: about 2,630 more lesson pages (the site grows from about 3.4k to about 6.1k pages and about 145 MB to about 280 MB of static files; Cloudflare's limit is 20,000 files). The first sync reads about 2,630 videos (about 55 API units).
+**How to switch it on (owner)**
+1. Merge the branch (state is `off`: nothing changes).
+2. Optional preview: set `"state": "collect"` in `config.json` (the sync reads the channel into `data/videos.jsonl`, still nothing on the site).
+3. After the team has reviewed the CSV and the open decisions (the 9 duplicate lessons) are settled: set `"state": "publish"`. The next daily sync (or Actions → YouTube sync → Run workflow) imports and publishes; the run summary lists the first 50 new lessons and every clip with no topic. Check the site: `/section/urdu-qa/`, a tafsir surah, a Hajj season, a clip, the home page.
+4. To undo: set the state back to `off` (the next sync removes them from the catalogue; `videos.jsonl` keeps the data).

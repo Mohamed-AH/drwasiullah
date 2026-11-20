@@ -22,5 +22,15 @@
     "fz4NKFUURbQ": "Fadail lesson 156; wrong playlist (Muslim)",
     "o7QOkSyvq1I": "Muslim lesson 193; wrong playlist (Fadail)",
     "tHyJbofoOxw": "Muslim Q&A after lesson 3; wrong playlist (Nasai)"
-  }
+  },
+  "extra_channels": [
+    {
+      "handle": "@DrWasiullahAbbas",
+      "id": "UCp2c7Qynmu9zx8Z0enQlGrw",
+      "kind": "urdu",
+      "own": true,
+      "state": "off",
+      "_note": "The Sheikh's own Urdu channel (every video is his). state: off = ignored; collect = read into data/videos.jsonl but NOT published; publish = also shown on the site. Plan: docs/urdu-channel-plan.md"
+    }
+  ]
 }

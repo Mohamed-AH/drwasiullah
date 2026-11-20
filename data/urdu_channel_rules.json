@@ -1,5 +1,5 @@
 {
-  "_note": "Rules for sorting the videos of the Sheikh's own Urdu channel (@DrWasiullahAbbas) into series, sections and topics. Used by tools/urdu_channel.py. PLAN: docs/urdu-channel-plan.md. Series names are PROPOSALS until the owner/team approve them. Topics are for navigation only (keywords in the title), never a ruling; anything not matched goes to qa-misc.",
+  "_note": "Rules for sorting the videos of the Sheikh's own Urdu channel (@DrWasiullahAbbas) into series, sections and topics. Used by tools/urdu_channel.py. PLAN: docs/urdu-channel-plan.md. Series names are PROPOSALS until the owner/team approve them. Topics are for navigation only (keywords in the title), never a ruling; anything not matched goes to qa-misc. Every series here is built with nohome:true so the Arabic home page (automatic shelf and latest lessons) is unchanged; they can still be hand-picked in the portal.",
   "channel": "@DrWasiullahAbbas",
   "sections": {
     "urdu": "الدروس بالأردية",
@@ -12,6 +12,8 @@
       "title": "درس القرآن: ترجمة وتفسير (بالأردية)",
       "unit": "الدرس",
       "ordered": false,
+      "description": "دروس الشيخ في ترجمة القرآن وتفسيره باللغة الأردية، مرتبة بحسب السور.",
+      "subject": "الدروس بالأردية",
       "sections_by": "surah"
     },
     {
@@ -20,29 +22,36 @@
       "title": "مجالس السؤال والجواب (بالأردية)",
       "unit": "المجلس",
       "ordered": false,
-      "sections_by": "year"
+      "description": "مجالس الأسئلة والأجوبة التي يعقدها الشيخ باللغة الأردية.",
+      "subject": "الدروس بالأردية"
     },
     {
       "id": "hajj-classes-urdu",
       "sec": "urdu",
       "title": "دروس الحج (بالأردية)",
       "unit": "الدرس",
-      "ordered": true,
-      "sections_by": "year"
+      "ordered": false,
+      "description": "دروس الشيخ في أحكام الحج وصفة حج النبي ﷺ باللغة الأردية.",
+      "subject": "الدروس بالأردية",
+      "sections_by": "hajj_season"
     },
     {
       "id": "akhirah-urdu",
       "sec": "urdu",
       "title": "الإيمان باليوم الآخر (بالأردية)",
       "unit": "الدرس",
-      "ordered": false
+      "ordered": false,
+      "description": "دروس باللغة الأردية في الإيمان باليوم الآخر.",
+      "subject": "الدروس بالأردية"
     },
     {
       "id": "deoband-book-urdu",
       "sec": "urdu",
       "title": "كتاب مرئي: نصيحة لعلماء ديوبند (بالأردية)",
       "unit": "المقطع",
-      "ordered": false
+      "ordered": false,
+      "description": "مقاطع مرئية باللغة الأردية من سلسلة «Video Book».",
+      "subject": "الدروس بالأردية"
     },
     {
       "id": "talks-urdu",
@@ -50,6 +59,8 @@
       "title": "محاضرات وكلمات (بالأردية)",
       "unit": "المحاضرة",
       "ordered": false,
+      "description": "محاضرات وكلمات ومجالس متفرقة للشيخ باللغة الأردية.",
+      "subject": "الدروس بالأردية",
       "sections_by": "talk_group"
     },
     {
@@ -57,91 +68,117 @@
       "sec": "urdu-qa",
       "title": "أسئلة الحج والعمرة والأضحية (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: الحج والعمرة والأضحية.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-salah",
       "sec": "urdu-qa",
       "title": "أسئلة الصلاة (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: الصلاة.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-fasting",
       "sec": "urdu-qa",
       "title": "أسئلة الصيام ورمضان (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: الصيام ورمضان.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-zakat-muamalat",
       "sec": "urdu-qa",
       "title": "أسئلة الزكاة والصدقات والمعاملات (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: الزكاة والصدقات والمعاملات.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-family",
       "sec": "urdu-qa",
       "title": "أسئلة النكاح والطلاق والأسرة والمرأة (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: النكاح والطلاق والأسرة والمرأة.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-janaiz",
       "sec": "urdu-qa",
       "title": "أسئلة الجنائز والقبور (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: الجنائز والقبور.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-aqeedah",
       "sec": "urdu-qa",
       "title": "أسئلة العقيدة والتوحيد والبدع (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: العقيدة والتوحيد والبدع.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-manhaj",
       "sec": "urdu-qa",
       "title": "أسئلة المنهج والمذاهب والتقليد (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: المنهج والمذاهب والتقليد.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-quran-hadith",
       "sec": "urdu-qa",
       "title": "أسئلة القرآن والحديث (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: القرآن والحديث.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-azkar",
       "sec": "urdu-qa",
       "title": "أسئلة الأذكار والأدعية والرقى (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: الأذكار والأدعية والرقى.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-tahara",
       "sec": "urdu-qa",
       "title": "أسئلة الطهارة والوضوء والغسل (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: الطهارة والوضوء والغسل.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-dawah-akhlaq",
       "sec": "urdu-qa",
       "title": "أسئلة الدعوة والأخلاق والآداب (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوع: الدعوة والأخلاق والآداب.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     },
     {
       "id": "qa-misc",
       "sec": "urdu-qa",
       "title": "أسئلة متفرقة (بالأردية)",
       "unit": "السؤال",
-      "ordered": false
+      "ordered": false,
+      "description": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية في موضوعات متفرقة.",
+      "subject": "الأسئلة والفتاوى (بالأردية)"
     }
   ],
   "topics": [

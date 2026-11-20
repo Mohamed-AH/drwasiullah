@@ -53,6 +53,7 @@ export const AR = {
   "sec.lectures.title": "المحاضرات", "sec.lectures.desc": "محاضرات وكلمات وفتاوى ولقاءات منفردة.",
   "sec.khutab.title": "الخطب", "sec.khutab.desc": "خطب الجمعة والمناسبات.",
   "sec.urdu.title": "الدروس بالأردية", "sec.urdu.desc": "دروس ومحاضرات باللغة الأردية.",
+  "sec.urdu-qa.title": "الأسئلة والفتاوى (بالأردية)", "sec.urdu-qa.desc": "أسئلة وأجوبة قصيرة للشيخ باللغة الأردية، مرتبة بحسب الموضوع.",
   "sec.books.title": "الكتب", "sec.books.desc": "مؤلفات الشيخ وتحقيقاته للقراءة والتحميل.",
   "unit.majlis": "المجلس", "unit.lesson": "الدرس",
   "count.lessons": p => `${p.n} درسًا`, "count.books": p => `${p.n} كتابًا`, "count.results": p => `${p.n} نتيجة`,

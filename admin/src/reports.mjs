@@ -6,8 +6,8 @@ import { SERIES_EFF, SERIES_FROM } from "./pages.mjs";
 import { cell } from "./analytics.mjs";
 
 const all = (db, sql, ...a) => db.prepare(sql).bind(...a).all().then(r => r.results);
-const SEC_AR = { duroos: "الدروس المرئية", audio: "الدروس الصوتية", lectures: "المحاضرات", khutab: "الخطب", urdu: "الدروس بالأردية" };
-const SEC_ORDER = ["duroos", "audio", "lectures", "khutab", "urdu"];
+const SEC_AR = { duroos: "الدروس المرئية", audio: "الدروس الصوتية", lectures: "المحاضرات", khutab: "الخطب", urdu: "الدروس بالأردية", "urdu-qa": "الأسئلة والفتاوى (بالأردية)" };
+const SEC_ORDER = ["duroos", "audio", "lectures", "khutab", "urdu", "urdu-qa"];
 const HM = ["محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"];
 const AR = s => String(s).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
 const G2H = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", { year: "numeric", month: "numeric", day: "numeric", timeZone: "UTC" });

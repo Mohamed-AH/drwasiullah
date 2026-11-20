@@ -5,7 +5,7 @@ import { pendingChanges } from "./publish.mjs";
 import { orderState } from "./order.mjs";
 
 const PER = 100;
-const SEC_AR = { duroos: "الدروس المرئية", audio: "الدروس الصوتية", lectures: "المحاضرات", khutab: "الخطب", urdu: "الدروس بالأردية" };
+const SEC_AR = { duroos: "الدروس المرئية", audio: "الدروس الصوتية", lectures: "المحاضرات", khutab: "الخطب", urdu: "الدروس بالأردية", "urdu-qa": "الأسئلة والفتاوى (بالأردية)" };
 const trunc = (s, n) => { s = String(s ?? ""); return s.length > n ? s.slice(0, n) + "…" : s; };
 const all = (db, sql, ...a) => db.prepare(sql).bind(...a).all().then(r => r.results);
 const one = (db, sql, ...a) => db.prepare(sql).bind(...a).first();
@@ -120,7 +120,7 @@ export async function uploadPage(db, user) {
 }
 
 export async function newSeriesPage(db, user, flash) {
-  const sec = { audio: "الدروس الصوتية", lectures: "المحاضرات", khutab: "الخطب", urdu: "الدروس بالأردية" };
+  const sec = { audio: "الدروس الصوتية", lectures: "المحاضرات", khutab: "الخطب", urdu: "الدروس بالأردية", "urdu-qa": "الأسئلة والفتاوى (بالأردية)" };
   const body = `<form method="post" action="/series/new">
 <p><label>المعرّف (إنجليزي صغير وأرقام وشرطة، لا يتغير بعد ذلك) <input name="id" required pattern="[a-z0-9][a-z0-9\\-]{1,39}" maxlength="40" dir="ltr"></label></p>
 <p><label>العنوان <input name="title" required maxlength="150" class="wide"></label></p>

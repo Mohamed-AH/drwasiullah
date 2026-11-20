@@ -66,8 +66,8 @@ ok(U.topic_of(M, "Suraj Nikalne ke Waqt Tawaf ki do Rakat Padhsakte Hai?")[1] ==
 c = cl("Dars E Quran | Sawal o Jawab | 20-11-2026", 4100, "2026-11-21"); ok(c["series"] == "quran-qa-urdu" and c["title"] == "سؤال وجواب" and c["date"] == "2026-11-20" and c["section"] == "2026", f"Quran class Q&A {c}")
 c = cl("Dars E Quran | Tarjumah wa Tafseer | Surah Ash-Shu'ara | Aayat 38-66 | 11-Dec-20", 3900, "2020-12-12"); ok(c["series"] == "quran-tafsir-urdu" and c["section"].startswith("026|") and "Aayat 38-66" in c["title"], f"tafsir {c}")
 c = cl("Dars E Quran | Tarjumah wa Tafseer | Sawal o Jawab | Surah Humazah | Ayah 01-09 | 09-01-2026", 3900, "2026-01-10"); ok(c["series"] == "quran-tafsir-urdu" and c["section"].startswith("104|") and "Sawal o Jawab" in c["title"], f"tafsir with Q&A keeps its marker {c}")
-c = cl("Dars-E-Hajj_12 | 07-06-2025 | Sheikh Dr.Wasiullah Abbas", 3600, "2025-06-08"); ok(c["series"] == "hajj-classes-urdu" and c["n"] == 12 and c["section"] == "2025", f"Hajj class {c}")
-c = cl("Dars-15 | Hajj Special Duroos | حج اسپیشل دُرُوس | Dr Wasiullah Abbas | 24-06-2024 | 18-12-1445", 4000, "2024-06-25"); ok(c["series"] == "hajj-classes-urdu" and c["n"] == 15 and c["hd"] == "1445-12-18", f"Hijri date from the title {c}")
+c = cl("Dars-E-Hajj_12 | 07-06-2025 | Sheikh Dr.Wasiullah Abbas", 3600, "2025-06-08"); ok(c["series"] == "hajj-classes-urdu" and c["n"] == 12 and c["section"] == "حج ١٤٤٦ هـ", f"Hajj class {c}")
+c = cl("Dars-15 | Hajj Special Duroos | حج اسپیشل دُرُوس | Dr Wasiullah Abbas | 24-06-2024 | 18-12-1445", 4000, "2024-06-25"); ok(c["series"] == "hajj-classes-urdu" and c["n"] == 15 and c["hd"] == "1445-12-18" and c["section"] == "حج ١٤٤٥ هـ", f"Hijri date from the title {c}")
 c = cl("Dr Wasiullah Abbas | Kya Eid e Milad manana Jayez hai | کیا عید میلاد منانا جایز ہے | wma15", 100, "2020-01-11"); ok(c["series"] == "qa-aqeedah" and c["n"] == 15 and c["title"].startswith("کیا عید"), f"clip {c}")
 c = cl("Maidan Arafat hi Mahshar Hoga? | میدان عرفات ہی محشر ہوگا؟ | wma1645", 60, "2026-09-23"); ok("clip" in c["flags"] or "short" in c["flags"], "flagged as a clip")
 c = cl("Tawaf ke Baad Do Rakat Nafil Hai ya Wajib? | Shaik Wasiullah Abbas (wma s222)", 40, "2024-03-26"); ok("short" in c["flags"] and c["n"] == "" and c["series"] in ("qa-hajj-umrah", "qa-salah"), f"short {c}")
@@ -79,6 +79,11 @@ c = cl("Dars E Quran | Sawal o Jawab | 15-11-2026", 360, "2026-11-15"); ok(c["se
 c = cl("Special Message for the Seminar | Dr. Wasiullah Abbas Hafizahullah | 28 October 2026", 1560, "2026-11-03"); ok(c["series"] == "talks-urdu" and c["section"].startswith("99|"), f"unmatched long video = talks / other {c}")
 for t, s_ in [("", 100), ("|||", 100)]: cl(t, s_)        # must not crash
 ok(all(cl(t, s_)["title"] for t, s_ in [("wma1", 30), ("Dars E Quran", 3000), ("Sawal o Jawab", 3000)]), "a title that is only boilerplate still gets a name")
+
+# ---- Hajj season from a date
+for d, want in [("2023-06-08", "حج ١٤٤٤ هـ"), ("2024-06-24", "حج ١٤٤٥ هـ"), ("2025-05-07", "حج ١٤٤٦ هـ"), ("2026-06-07", "حج ١٤٤٧ هـ"), ("2027-05-10", "حج ١٤٤٨ هـ"), ("2025-11-20", ""), ("2025-12-31", "")]:
+    ok(U.hajj_season(d) == want, f"Hajj season of {d}: {U.hajj_season(d)!r} != {want!r}")
+ok(U.hajj_season("2025-12-31", "1447-1-3") == "حج ١٤٤٧ هـ", "the Hijri year written in the title wins over the date")
 
 # ---- overlap with the lessons already on the site
 real = U.existing_urdu_items

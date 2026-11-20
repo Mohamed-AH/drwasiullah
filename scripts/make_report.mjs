@@ -32,8 +32,8 @@ const HM = ["محرم", "صفر", "ربيع الأول", "ربيع الآخر", 
 const showKey = k => { const y = Math.floor(k / 10000), m = Math.floor(k / 100) % 100, d = k % 100; return [d ? fmtNum(d) : "", m ? HM[m - 1] : "", fmtNum(y), "هـ"].filter(Boolean).join(" "); };
 const upload = l => l.kind === "video" && !l.hd && !!l.date;     // YouTube lessons known only by their upload date
 
-const sectionsOrder = [...SECTIONS.filter(s => s.id !== "books").map(s => s.id), ...["khutab", "urdu"].filter(id => !SECTIONS.some(s => s.id === id))];
-const secTitle = { duroos: "الدروس المرئية", audio: "الدروس الصوتية", lectures: "المحاضرات", khutab: "الخطب", urdu: "الدروس بالأردية" };
+const sectionsOrder = [...SECTIONS.filter(s => s.id !== "books").map(s => s.id), ...["khutab", "urdu", "urdu-qa"].filter(id => !SECTIONS.some(s => s.id === id))];
+const secTitle = { duroos: "الدروس المرئية", audio: "الدروس الصوتية", lectures: "المحاضرات", khutab: "الخطب", urdu: "الدروس بالأردية", "urdu-qa": "الأسئلة والفتاوى (بالأردية)" };
 SECTIONS.forEach(s => { secTitle[s.id] = s.title; });
 
 const groups = sectionsOrder.map(id => {
