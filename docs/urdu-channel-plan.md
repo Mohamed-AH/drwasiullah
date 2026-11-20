@@ -1,6 +1,6 @@
 # Plan: the Sheikh's Urdu YouTube channel (@DrWasiullahAbbas)
 
-Status: **PLAN ONLY, nothing built.** Written 2026-11-20 from `tools/survey_channel.py` output (channel_all.json, 2,630 videos). Decisions needed from the owner are in section 7.
+Status: **decisions taken 2026-11-20 (section 7); phase 2 (classification dry run) BUILT, nothing on the site yet.** Written from `tools/survey_channel.py` output (channel_all.json, 2,630 videos). Tools: `tools/survey_channel.py` (list the channel), `tools/urdu_channel.py` + `data/urdu_channel_rules.json` (sort into series/sections/topics, write the review files), `tests/urdu_channel_check.py`.
 The site stays Arabic in its interface (the Sheikh's request, CLAUDE.md «Arabic only»); this adds the Sheikh's own **Urdu lessons as content**, in the existing section «الدروس بالأردية».
 
 ## 1. What the channel is (measured)
@@ -69,3 +69,18 @@ The daily YouTube sync reads ONE channel (`config.json` `channel_handle`, curren
 6. Sync (recommended) or one-time import?
 7. Series names (section 2) approved?
 8. Does the Sheikh's team want to review anything before publishing (the site's rule: nothing public without the owner pressing Publish)?
+
+## 8. Decisions taken (owner, 2026-11-20)
+1. New section «الأسئلة والفتاوى (بالأردية)»: **yes.** 2. Clip topics (2.1): **approved.** 3. Real topics: **to be obtained from transcripts or similar; until then every video must be identifiable** (section 9). 4. Dates: **as proposed** (title date, else upload date, shown in Hijri). 5. Shorts and English-titled clips: **included.** 6. **Daily sync.** 7. Series names: **approved** (the series «مجالس السؤال والجواب (بالأردية)» is the Quran-class Q&A series, named without «بعد درس القرآن» because the 2020 sessions are not tied to a Quran class). 8. The Sheikh's team will **review** (the review CSV in section 10 is what they read).
+
+## 9. Identifying a video before its real topic is known
+A visitor must always be able to tell one session from another, with only facts that are really in the data:
+- **Tafsir sessions:** series → surah (section) → the title carries the ayah range and, where it says so, «سؤال وجواب» (e.g. `Surah Humazah | Ayah 01-09`).
+- **Q&A sessions and Hajj classes:** section by year, then the lesson date (Hijri, from the title when it has one), the weekday, the length, and for Hajj the lesson number from the title (`Dars-12`).
+- **Clips:** the Sheikh's own question as the title (Urdu script when the title has it), the clip number (`wma1234`) when it has one, its topic series, the date.
+- Two videos on one date and the same label (parts of one session) are told apart by their length; they are flagged in the review so a person can mark part 1 / part 2.
+- **Getting the real topics (phase 6, later):** (a) the channel owner exports the YouTube-generated captions from YouTube Studio (no scraping); or (b) the team supplies the audio of the Quran-class Q&A sessions and a speech-to-text model runs on the owner's computer (no YouTube downloading); the result is a time-coded list of the questions, **reviewed by a person** before it is shown (nothing machine-written appears on the site unreviewed). Until then no topic is invented for a Q&A session.
+
+## 10. First dry run (2,630 videos, built 2026-11-20)
+`python tools/urdu_channel.py --from channel_all.json` writes `urdu_review.csv` (one row per video) and `urdu_review.txt`. Result: the Quran class (tafsir with its Q&A) 300 videos, Q&A sessions 80, Hajj classes 74, «اليوم الآخر» 7, the Deoband book 10, talks 25, and the 2,047 clips in 11 topics plus «متفرقة»: about 400 clips (20%) match no topic word and stay in «متفرقة» (never guessed), about 270 are flagged «ambiguous» (a tie between two topics). The rules are meant to be corrected by the team in the CSV: change the `series` column of a row and the rule words can be extended.
+**Same recording on two channels:** 9 lessons already on the site from the Haram channel (`hajj-urdu` 2025-05/06, `tawheed-urdu-live`, `aqeeda-manasik-urdu`) have a channel video within a day and of a similar length. Decision still needed: show each lesson once, and from which channel (recommended: the Sheikh's own channel, which keeps syncing; the old Haram-channel entry is then hidden in the portal).

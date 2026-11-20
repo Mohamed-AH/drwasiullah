@@ -1,0 +1,1964 @@
+{
+  "_note": "Rules for sorting the videos of the Sheikh's own Urdu channel (@DrWasiullahAbbas) into series, sections and topics. Used by tools/urdu_channel.py. PLAN: docs/urdu-channel-plan.md. Series names are PROPOSALS until the owner/team approve them. Topics are for navigation only (keywords in the title), never a ruling; anything not matched goes to qa-misc.",
+  "channel": "@DrWasiullahAbbas",
+  "sections": {
+    "urdu": "الدروس بالأردية",
+    "urdu-qa": "الأسئلة والفتاوى (بالأردية)"
+  },
+  "series": [
+    {
+      "id": "quran-tafsir-urdu",
+      "sec": "urdu",
+      "title": "درس القرآن: ترجمة وتفسير (بالأردية)",
+      "unit": "الدرس",
+      "ordered": false,
+      "sections_by": "surah"
+    },
+    {
+      "id": "quran-qa-urdu",
+      "sec": "urdu",
+      "title": "مجالس السؤال والجواب (بالأردية)",
+      "unit": "المجلس",
+      "ordered": false,
+      "sections_by": "year"
+    },
+    {
+      "id": "hajj-classes-urdu",
+      "sec": "urdu",
+      "title": "دروس الحج (بالأردية)",
+      "unit": "الدرس",
+      "ordered": true,
+      "sections_by": "year"
+    },
+    {
+      "id": "akhirah-urdu",
+      "sec": "urdu",
+      "title": "الإيمان باليوم الآخر (بالأردية)",
+      "unit": "الدرس",
+      "ordered": false
+    },
+    {
+      "id": "deoband-book-urdu",
+      "sec": "urdu",
+      "title": "كتاب مرئي: نصيحة لعلماء ديوبند (بالأردية)",
+      "unit": "المقطع",
+      "ordered": false
+    },
+    {
+      "id": "talks-urdu",
+      "sec": "urdu",
+      "title": "محاضرات وكلمات (بالأردية)",
+      "unit": "المحاضرة",
+      "ordered": false,
+      "sections_by": "talk_group"
+    },
+    {
+      "id": "qa-hajj-umrah",
+      "sec": "urdu-qa",
+      "title": "أسئلة الحج والعمرة والأضحية (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-salah",
+      "sec": "urdu-qa",
+      "title": "أسئلة الصلاة (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-fasting",
+      "sec": "urdu-qa",
+      "title": "أسئلة الصيام ورمضان (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-zakat-muamalat",
+      "sec": "urdu-qa",
+      "title": "أسئلة الزكاة والصدقات والمعاملات (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-family",
+      "sec": "urdu-qa",
+      "title": "أسئلة النكاح والطلاق والأسرة والمرأة (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-janaiz",
+      "sec": "urdu-qa",
+      "title": "أسئلة الجنائز والقبور (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-aqeedah",
+      "sec": "urdu-qa",
+      "title": "أسئلة العقيدة والتوحيد والبدع (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-manhaj",
+      "sec": "urdu-qa",
+      "title": "أسئلة المنهج والمذاهب والتقليد (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-quran-hadith",
+      "sec": "urdu-qa",
+      "title": "أسئلة القرآن والحديث (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-azkar",
+      "sec": "urdu-qa",
+      "title": "أسئلة الأذكار والأدعية والرقى (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-tahara",
+      "sec": "urdu-qa",
+      "title": "أسئلة الطهارة والوضوء والغسل (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-dawah-akhlaq",
+      "sec": "urdu-qa",
+      "title": "أسئلة الدعوة والأخلاق والآداب (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    },
+    {
+      "id": "qa-misc",
+      "sec": "urdu-qa",
+      "title": "أسئلة متفرقة (بالأردية)",
+      "unit": "السؤال",
+      "ordered": false
+    }
+  ],
+  "topics": [
+    {
+      "series": "qa-hajj-umrah",
+      "words": [
+        "hajj",
+        "haj",
+        "umrah",
+        "umra",
+        "umre",
+        "tawaf",
+        "ihram",
+        "ahram",
+        "ehram",
+        "safa",
+        "marwa",
+        "saee",
+        "sai",
+        "arafa",
+        "arafat",
+        "muzdalifa",
+        "mina",
+        "qurbani",
+        "hady",
+        "miqat",
+        "talbiya",
+        "jamarat",
+        "kaaba",
+        "kabah",
+        "zamzam",
+        "hajre aswad",
+        "hajar e aswad",
+        "rukne yamani",
+        "ramal",
+        "madina",
+        "masjide nabwi",
+        "masjid e nabwi",
+        "masjide quba",
+        "masjid e quba",
+        "haram me",
+        "hudude haram",
+        "حج",
+        "عمرہ",
+        "عمره",
+        "طواف",
+        "احرام",
+        "قربانی",
+        "سعی",
+        "عرفات",
+        "عرفہ",
+        "مزدلفہ",
+        "جمرات",
+        "کعبہ",
+        "زمزم",
+        "ہدی",
+        "رکن یمانی",
+        "رکنِ یمانی",
+        "مدینہ"
+      ],
+      "weak": [
+        "makkah",
+        "mecca",
+        "ziyarat",
+        "haram",
+        "حرم",
+        "مکہ"
+      ]
+    },
+    {
+      "series": "qa-salah",
+      "words": [
+        "namaz",
+        "namaaz",
+        "salah",
+        "salat",
+        "salaah",
+        "azan",
+        "adhan",
+        "iqamat",
+        "jamaat",
+        "jamat",
+        "rakat",
+        "rakah",
+        "sajda",
+        "sajdah",
+        "sijda",
+        "ruku",
+        "ruk'u",
+        "qasar",
+        "witr",
+        "witar",
+        "taraweeh",
+        "taraveeh",
+        "tarweeh",
+        "tarawih",
+        "tahajjud",
+        "nafil",
+        "nafl",
+        "qibla",
+        "takbeer",
+        "rafe yaden",
+        "rafa yadain",
+        "rafaul yadain",
+        "raful yadain",
+        "masbooq",
+        "sahw",
+        "tashahhud",
+        "tashahud",
+        "jumma",
+        "jumua",
+        "jumuah",
+        "juma",
+        "sutra",
+        "tahiyatul",
+        "istikhara",
+        "musalli",
+        "muqtadi",
+        "jahri",
+        "qiraat",
+        "naaf ke neeche",
+        "haath bandh",
+        "نماز",
+        "اذان",
+        "اقامت",
+        "جماعت",
+        "رکعت",
+        "رکعات",
+        "سجدہ",
+        "سجدے",
+        "رکوع",
+        "قصر",
+        "وتر",
+        "تراویح",
+        "تہجد",
+        "نفل",
+        "قبلہ",
+        "تکبیر",
+        "رفع الیدین",
+        "جمعہ",
+        "استخارہ",
+        "مصلی",
+        "مقتدی",
+        "salate",
+        "salatul",
+        "salat ul",
+        "sajde saho",
+        "isteghatha",
+        "awabeen",
+        "dhuhr",
+        "zuhur",
+        "asr ki",
+        "maghrib ki",
+        "isha ki",
+        "fajr ki",
+        "fajar",
+        "maghrib",
+        "ishaa",
+        "zohar"
+      ],
+      "weak": [
+        "imam",
+        "khutba",
+        "khutbah",
+        "sunnat",
+        "imamat",
+        "امام",
+        "خطبہ",
+        "سنت",
+        "فرض",
+        "farz"
+      ]
+    },
+    {
+      "series": "qa-fasting",
+      "words": [
+        "roza",
+        "roze",
+        "rozay",
+        "rozo",
+        "rozah",
+        "ramzan",
+        "ramadan",
+        "ramadhan",
+        "ramazan",
+        "sehri",
+        "suhoor",
+        "iftar",
+        "itikaf",
+        "etikaf",
+        "laylatul qadr",
+        "shab e qadr",
+        "fidya",
+        "fidyah",
+        "taraweeh ramadan",
+        "eid ul fitr",
+        "eidul fitr",
+        "روزہ",
+        "روزے",
+        "رمضان",
+        "سحری",
+        "افطار",
+        "اعتکاف",
+        "فدیہ",
+        "شب قدر",
+        "sawm",
+        "siyam",
+        "fasting",
+        "observing sawm",
+        "صوم",
+        "صیام"
+      ],
+      "weak": [
+        "eid",
+        "عید"
+      ]
+    },
+    {
+      "series": "qa-zakat-muamalat",
+      "words": [
+        "zakat",
+        "zakaat",
+        "zakah",
+        "zakath",
+        "zakwat",
+        "sadqa",
+        "sadaqa",
+        "sadqah",
+        "sadaqah",
+        "khairat",
+        "fitrana",
+        "fitra",
+        "sood",
+        "sud",
+        "interest",
+        "qarz",
+        "loan",
+        "karobar",
+        "business",
+        "buisness",
+        "tijarat",
+        "wirasat",
+        "wiraasat",
+        "taqseem e wirasat",
+        "insurance",
+        "kamai",
+        "rishwat",
+        "bank",
+        "shares",
+        "share market",
+        "waqf",
+        "udhar",
+        "tankhwah",
+        "salary",
+        "naukri",
+        "job",
+        "nisab",
+        "نصاب",
+        "زکاۃ",
+        "زکوۃ",
+        "زکات",
+        "زکواۃ",
+        "صدقہ",
+        "فطرہ",
+        "سود",
+        "قرض",
+        "تجارت",
+        "کاروبار",
+        "وراثت",
+        "انشورنس",
+        "رشوت",
+        "بینک",
+        "وقف",
+        "نوکری",
+        "baei",
+        "bai fazl",
+        "bai nasia",
+        "bae'i",
+        "kharid",
+        "kharidna",
+        "farokht",
+        "qist",
+        "qiston",
+        "jurmana",
+        "riba",
+        "haraam kamai",
+        "haram kamai",
+        "sone chandi",
+        "lottery",
+        "gambling",
+        "juwa",
+        "ghar kharid",
+        "lain dain",
+        "tax",
+        "ٹیکس",
+        "خرید",
+        "فروخت",
+        "قسط",
+        "جرمانہ",
+        "ربا",
+        "لاٹری",
+        "جوا",
+        "wasiyat",
+        "wasiyyat",
+        "vasiyyat",
+        "vasiyat",
+        "jayedad",
+        "jaydad",
+        "jayedaad",
+        "jaidad",
+        "lease",
+        "rehen",
+        "qarz e hasna",
+        "وصیت",
+        "جائداد",
+        "جایداد",
+        "رہن"
+      ],
+      "weak": [
+        "zameen",
+        "property",
+        "paisa",
+        "paise",
+        "daam",
+        "ujrat",
+        "taqseem",
+        "dukan",
+        "زمین",
+        "پیسے",
+        "پیسہ",
+        "تقسیم"
+      ]
+    },
+    {
+      "series": "qa-family",
+      "words": [
+        "nikah",
+        "nikaah",
+        "talaq",
+        "talaaq",
+        "shadi",
+        "shaadi",
+        "biwi",
+        "biwio",
+        "biwiyo",
+        "bivi",
+        "shohar",
+        "shauhar",
+        "mahr",
+        "meher",
+        "khula",
+        "iddat",
+        "idat",
+        "walidain",
+        "walideen",
+        "waldiyat",
+        "maa baap",
+        "rishta",
+        "rishte",
+        "mahram",
+        "mahrim",
+        "hijab",
+        "parda",
+        "pardah",
+        "niqab",
+        "niqaab",
+        "burqa",
+        "dulhan",
+        "dulha",
+        "jahez",
+        "nafaqa",
+        "saas",
+        "sasur",
+        "doodh pilana",
+        "doodh chudha",
+        "radaat",
+        "نکاح",
+        "طلاق",
+        "شادی",
+        "بیوی",
+        "شوہر",
+        "مہر",
+        "خلع",
+        "عدت",
+        "والدین",
+        "رشتہ",
+        "محرم",
+        "حجاب",
+        "پردہ",
+        "نقاب",
+        "جہیز",
+        "نفقہ",
+        "رضاعت"
+      ],
+      "weak": [
+        "aurat",
+        "aurato",
+        "auraton",
+        "aurtein",
+        "khawateen",
+        "khwateen",
+        "bachay",
+        "bachche",
+        "bachchi",
+        "bachon",
+        "aulad",
+        "maa",
+        "walid",
+        "walida",
+        "عورت",
+        "عورتوں",
+        "بچوں",
+        "اولاد"
+      ]
+    },
+    {
+      "series": "qa-janaiz",
+      "words": [
+        "janaza",
+        "janazah",
+        "janaze",
+        "mayyat",
+        "mayyit",
+        "marhoom",
+        "qabr",
+        "qabar",
+        "qabrastan",
+        "kafan",
+        "dafan",
+        "dafn",
+        "faut",
+        "fout",
+        "isal e sawab",
+        "isale sawab",
+        "inteqal",
+        "ghusl e mayyat",
+        "جنازہ",
+        "جنازے",
+        "میت",
+        "مرحوم",
+        "قبر",
+        "قبرستان",
+        "کفن",
+        "دفن",
+        "فوت",
+        "ایصال ثواب"
+      ],
+      "weak": [
+        "maut",
+        "موت"
+      ]
+    },
+    {
+      "series": "qa-aqeedah",
+      "words": [
+        "shirk",
+        "tawheed",
+        "tauheed",
+        "aqeeda",
+        "aqeedah",
+        "aqida",
+        "bidat",
+        "bidah",
+        "biddat",
+        "waseela",
+        "waseelah",
+        "tawassul",
+        "jinn",
+        "jinnat",
+        "jadu",
+        "sihr",
+        "nazar lagna",
+        "taweez",
+        "taveez",
+        "taqdeer",
+        "qiyamat",
+        "qayamat",
+        "dajjal",
+        "jannat",
+        "jahannam",
+        "dozakh",
+        "barzakh",
+        "mahshar",
+        "allah kahan",
+        "kalme",
+        "milad",
+        "shab e baraat",
+        "shabe baraat",
+        "imam mahdi",
+        "imaam mehdi",
+        "mahdi",
+        "asma wa sifat",
+        "arsh",
+        "istiwa",
+        "gaib",
+        "ghaib",
+        "murtad",
+        "munafiq",
+        "yajooj majooj",
+        "yajuj majuj",
+        "اللہ کہاں",
+        "شرک",
+        "توحید",
+        "عقیدہ",
+        "عقیدے",
+        "بدعت",
+        "وسیلہ",
+        "توسل",
+        "جادو",
+        "سحر",
+        "تعویذ",
+        "تقدیر",
+        "قیامت",
+        "دجال",
+        "جنت",
+        "جہنم",
+        "برزخ",
+        "محشر",
+        "کلمے",
+        "میلاد",
+        "شب برات",
+        "مہدی",
+        "عرش",
+        "استواء",
+        "غیب",
+        "مرتد",
+        "منافق",
+        "یاجوج ماجوج",
+        "allah ko dekha",
+        "allah ke dekha",
+        "wali",
+        "awliya",
+        "hazir nazir",
+        "ilm e ghaib",
+        "noor",
+        "sifat",
+        "taweel",
+        "nabi ka noor",
+        "اللہ کو دیکھا",
+        "ولی",
+        "اولیاء",
+        "حاضر ناظر",
+        "علم غیب",
+        "نور",
+        "صفات",
+        "تاویل",
+        "peer",
+        "mureed",
+        "pir",
+        "mazar",
+        "auliya",
+        "hidayat",
+        "pir ke paas",
+        "پیر",
+        "مرید",
+        "مزار",
+        "ہدایت"
+      ],
+      "weak": [
+        "kufr",
+        "kafir",
+        "iman",
+        "imaan",
+        "jin",
+        "kaafir",
+        "کفر",
+        "کافر",
+        "ایمان",
+        "جن"
+      ]
+    },
+    {
+      "series": "qa-manhaj",
+      "words": [
+        "taqleed",
+        "taqlid",
+        "itba",
+        "ittiba",
+        "madhab",
+        "mazhab",
+        "maslak",
+        "ahle hadees",
+        "ahlehadees",
+        "ahle hadith",
+        "ahlul hadith",
+        "hanafi",
+        "shafai",
+        "maliki",
+        "hanbali",
+        "imam abu hanifa",
+        "deoband",
+        "barelvi",
+        "salafi",
+        "salafiyat",
+        "manhaj",
+        "ijtihad",
+        "ijma",
+        "ikhtilaf",
+        "tableegh",
+        "tablighi",
+        "aimma arba",
+        "ائمہ اربعہ",
+        "تقلید",
+        "اتباع",
+        "مذہب",
+        "مسلک",
+        "اہل حدیث",
+        "حنفی",
+        "شافعی",
+        "مالکی",
+        "حنبلی",
+        "دیوبند",
+        "بریلوی",
+        "سلفی",
+        "سلفیت",
+        "منہج",
+        "اجتہاد",
+        "اجماع",
+        "اختلاف",
+        "تبلیغی"
+      ],
+      "weak": [
+        "fiqh",
+        "fiqha",
+        "فقہ"
+      ]
+    },
+    {
+      "series": "qa-quran-hadith",
+      "words": [
+        "quran",
+        "qur'an",
+        "qoran",
+        "tilawat",
+        "hadees",
+        "hadith",
+        "hadis",
+        "tafseer",
+        "tafsir",
+        "ayat",
+        "ayate",
+        "ayah",
+        "surah",
+        "surat",
+        "hifz",
+        "tajweed",
+        "qirat",
+        "bukhari",
+        "muslim shareef",
+        "tirmizi",
+        "tirmidhi",
+        "abu dawood",
+        "ibn majah",
+        "dhaeef",
+        "zaeef",
+        "sahih hadees",
+        "qurani",
+        "qurani ayat",
+        "قرآن",
+        "قران",
+        "تلاوت",
+        "حدیث",
+        "تفسیر",
+        "آیت",
+        "آیات",
+        "سورۃ",
+        "سورہ",
+        "حفظ",
+        "تجوید",
+        "قرأت",
+        "بخاری",
+        "ضعیف",
+        "sure",
+        "surey",
+        "sooraah",
+        "hafiz",
+        "hifze",
+        "tarjuma",
+        "tarjumah",
+        "ترجمہ",
+        "حافظ"
+      ],
+      "weak": [
+        "sahih",
+        "kitab",
+        "kitaab",
+        "صحیح",
+        "کتاب"
+      ]
+    },
+    {
+      "series": "qa-azkar",
+      "words": [
+        "dua",
+        "duain",
+        "duaen",
+        "dua'a",
+        "duaa",
+        "du'a",
+        "zikr",
+        "zikar",
+        "dhikr",
+        "azkar",
+        "azkaar",
+        "wazifa",
+        "wazifah",
+        "wazaif",
+        "durood",
+        "durud",
+        "istighfar",
+        "ruqya",
+        "ruqyah",
+        "ayatul kursi",
+        "ayat ul kursi",
+        "ayatal kursi",
+        "tasbeeh",
+        "tasbih",
+        "masnoon",
+        "masnun",
+        "دعا",
+        "دعاء",
+        "دعائیں",
+        "ذکر",
+        "اذکار",
+        "وظیفہ",
+        "وظائف",
+        "درود",
+        "استغفار",
+        "رقیہ",
+        "آیت الکرسی",
+        "تسبیح",
+        "مسنون"
+      ],
+      "weak": [
+        "subhan",
+        "سبحان"
+      ]
+    },
+    {
+      "series": "qa-tahara",
+      "words": [
+        "wudu",
+        "wuzu",
+        "wazu",
+        "ghusl",
+        "ghusal",
+        "tayammum",
+        "napaki",
+        "napak",
+        "janabat",
+        "haiz",
+        "nifas",
+        "istihaza",
+        "najasat",
+        "najis",
+        "mauze",
+        "moze",
+        "miswak",
+        "pakizgi",
+        "وضو",
+        "غسل",
+        "تیمم",
+        "ناپاکی",
+        "ناپاک",
+        "جنابت",
+        "حیض",
+        "نفاس",
+        "استحاضہ",
+        "نجاست",
+        "موزے",
+        "مسواک",
+        "masah",
+        "mash",
+        "masha",
+        "wadhu",
+        "wadu",
+        "wazoo",
+        "wadhu",
+        "وضوء",
+        "مسح"
+      ],
+      "weak": [
+        "paak",
+        "پاک"
+      ]
+    },
+    {
+      "series": "qa-dawah-akhlaq",
+      "words": [
+        "dawat",
+        "dawah",
+        "dai",
+        "akhlaq",
+        "akhlaaq",
+        "adab",
+        "aadab",
+        "gunah",
+        "gunaah",
+        "tawba",
+        "tauba",
+        "sabr",
+        "hasad",
+        "ghibat",
+        "jhoot",
+        "jhuth",
+        "dadhi",
+        "daadhi",
+        "libaas",
+        "libas",
+        "topi",
+        "tasveer",
+        "tasweer",
+        "photo",
+        "music",
+        "gaana",
+        "covid",
+        "riyakaari",
+        "riya",
+        "mehmaan",
+        "mehman",
+        "padosi",
+        "sila rahmi",
+        "qate talluq",
+        "dost",
+        "dosti",
+        "داعی",
+        "دعوت",
+        "اخلاق",
+        "آداب",
+        "گناہ",
+        "توبہ",
+        "صبر",
+        "حسد",
+        "غیبت",
+        "جھوٹ",
+        "داڑھی",
+        "لباس",
+        "ٹوپی",
+        "تصویر",
+        "فوٹو",
+        "موسیقی",
+        "گانا",
+        "مہمان",
+        "پڑوسی",
+        "صلہ رحمی",
+        "قطع تعلق",
+        "دوست",
+        "naseehat",
+        "nasihat",
+        "fitne",
+        "fitna",
+        "jawani",
+        "khel",
+        "rang lagana",
+        "khizab",
+        "baal rang",
+        "haddi",
+        "gussa",
+        "ghusse",
+        "sharab",
+        "nasha",
+        "smoking",
+        "cigarette",
+        "نصیحت",
+        "فتنے",
+        "فتنہ",
+        "جوانی",
+        "کھیل",
+        "خضاب",
+        "غصہ",
+        "شراب",
+        "نشہ",
+        "alcohol",
+        "dawai",
+        "homeopathic",
+        "dawa",
+        "علاج",
+        "دوا"
+      ],
+      "weak": [
+        "tv",
+        "mobile",
+        "internet",
+        "facebook",
+        "salam",
+        "mubarakbad",
+        "taziyat",
+        "ilm",
+        "hukmaran",
+        "سلام",
+        "مبارکباد",
+        "تعزیت",
+        "علم"
+      ]
+    }
+  ],
+  "groups": {
+    "quran_class": "dars e quran|dars-e-quran|darse quran",
+    "tafsir_marks": "tarjumah wa tafseer|tarjuma wa tafseer|tarjumah wa tafsir|tafseer|tafsir",
+    "qa_marks": "sawal o jawab|sawal-o-jawab|sawaal o jawaab|sawal o jawaab|سوال و جواب|سوال وجواب",
+    "hajj_class": "hajj e nabwi|hajj-e-nabwi|dars e hajj|dars-e-hajj|dars-e-hajj|hajj special|حج اسپیشل|hajj ka tareeqa",
+    "akhirah_marks": "youm e akhirat|youm-e-akhirat|یوم آخرت",
+    "deoband_book": "video book|ulama e deoband",
+    "talk_groups": [
+      {
+        "key": "india-2023",
+        "label": "جولة الهند ٢٠٢٣",
+        "pattern": "hyd|hyderabad|bangalore|banglore|sholapur|india|chilkalguda|barkas|payam e taleem|siraat-e-mustaqeem|ijtema"
+      },
+      {
+        "key": "saudi-halaat",
+        "label": "أحوال السعودية قبل الملك عبد العزيز",
+        "pattern": "saudi arab ke halaat|سعودی عرب کے حالات"
+      },
+      {
+        "key": "ramadan",
+        "label": "رمضان",
+        "pattern": "ramzan|ramadan|ramadhan|رمضان"
+      },
+      {
+        "key": "tawheed",
+        "label": "التوحيد",
+        "pattern": "kitab-ut-tawheed|kitab ut tawheed|کتاب التوحید|tawheed"
+      }
+    ]
+  },
+  "surahs": [
+    [
+      1,
+      "الفاتحة",
+      [
+        "fatiha",
+        "fatihah"
+      ]
+    ],
+    [
+      2,
+      "البقرة",
+      [
+        "baqarah",
+        "baqara"
+      ]
+    ],
+    [
+      3,
+      "آل عمران",
+      [
+        "imran",
+        "al imran",
+        "aal imran"
+      ]
+    ],
+    [
+      4,
+      "النساء",
+      [
+        "nisa",
+        "nisaa"
+      ]
+    ],
+    [
+      5,
+      "المائدة",
+      [
+        "maidah",
+        "maida",
+        "maaidah"
+      ]
+    ],
+    [
+      6,
+      "الأنعام",
+      [
+        "anam",
+        "anaam"
+      ]
+    ],
+    [
+      7,
+      "الأعراف",
+      [
+        "araf",
+        "aaraf"
+      ]
+    ],
+    [
+      8,
+      "الأنفال",
+      [
+        "anfal"
+      ]
+    ],
+    [
+      9,
+      "التوبة",
+      [
+        "tawbah",
+        "tawba",
+        "taubah"
+      ]
+    ],
+    [
+      10,
+      "يونس",
+      [
+        "yunus"
+      ]
+    ],
+    [
+      11,
+      "هود",
+      [
+        "hud"
+      ]
+    ],
+    [
+      12,
+      "يوسف",
+      [
+        "yusuf",
+        "yousuf"
+      ]
+    ],
+    [
+      13,
+      "الرعد",
+      [
+        "rad",
+        "raad"
+      ]
+    ],
+    [
+      14,
+      "إبراهيم",
+      [
+        "ibrahim"
+      ]
+    ],
+    [
+      15,
+      "الحجر",
+      [
+        "hijr"
+      ]
+    ],
+    [
+      16,
+      "النحل",
+      [
+        "nahl"
+      ]
+    ],
+    [
+      17,
+      "الإسراء",
+      [
+        "isra",
+        "israa",
+        "bani israil"
+      ]
+    ],
+    [
+      18,
+      "الكهف",
+      [
+        "kahf"
+      ]
+    ],
+    [
+      19,
+      "مريم",
+      [
+        "maryam"
+      ]
+    ],
+    [
+      20,
+      "طه",
+      [
+        "taha",
+        "ta ha"
+      ]
+    ],
+    [
+      21,
+      "الأنبياء",
+      [
+        "anbiya",
+        "anbiyaa"
+      ]
+    ],
+    [
+      22,
+      "الحج",
+      [
+        "hajj"
+      ]
+    ],
+    [
+      23,
+      "المؤمنون",
+      [
+        "muminun",
+        "mominoon",
+        "muminoon"
+      ]
+    ],
+    [
+      24,
+      "النور",
+      [
+        "nur",
+        "noor"
+      ]
+    ],
+    [
+      25,
+      "الفرقان",
+      [
+        "furqan"
+      ]
+    ],
+    [
+      26,
+      "الشعراء",
+      [
+        "shuara",
+        "shu'ara",
+        "shuaraa"
+      ]
+    ],
+    [
+      27,
+      "النمل",
+      [
+        "naml"
+      ]
+    ],
+    [
+      28,
+      "القصص",
+      [
+        "qasas"
+      ]
+    ],
+    [
+      29,
+      "العنكبوت",
+      [
+        "ankabut"
+      ]
+    ],
+    [
+      30,
+      "الروم",
+      [
+        "rum",
+        "room"
+      ]
+    ],
+    [
+      31,
+      "لقمان",
+      [
+        "luqman"
+      ]
+    ],
+    [
+      32,
+      "السجدة",
+      [
+        "sajdah",
+        "sajda"
+      ]
+    ],
+    [
+      33,
+      "الأحزاب",
+      [
+        "ahzab"
+      ]
+    ],
+    [
+      34,
+      "سبأ",
+      [
+        "saba"
+      ]
+    ],
+    [
+      35,
+      "فاطر",
+      [
+        "fatir",
+        "faatir"
+      ]
+    ],
+    [
+      36,
+      "يس",
+      [
+        "yasin",
+        "yaseen"
+      ]
+    ],
+    [
+      37,
+      "الصافات",
+      [
+        "saffat",
+        "saaffat"
+      ]
+    ],
+    [
+      38,
+      "ص",
+      [
+        "sad",
+        "saad"
+      ]
+    ],
+    [
+      39,
+      "الزمر",
+      [
+        "zumar"
+      ]
+    ],
+    [
+      40,
+      "غافر",
+      [
+        "ghafir",
+        "mumin",
+        "momin"
+      ]
+    ],
+    [
+      41,
+      "فصلت",
+      [
+        "fussilat",
+        "fussilaat",
+        "hamim sajdah",
+        "ha mim sajdah"
+      ]
+    ],
+    [
+      42,
+      "الشورى",
+      [
+        "shura",
+        "shoora",
+        "shurah"
+      ]
+    ],
+    [
+      43,
+      "الزخرف",
+      [
+        "zukhruf",
+        "zukhruf"
+      ]
+    ],
+    [
+      44,
+      "الدخان",
+      [
+        "dukhan",
+        "dukhaan"
+      ]
+    ],
+    [
+      45,
+      "الجاثية",
+      [
+        "jathiya",
+        "jathiyah",
+        "jasiya"
+      ]
+    ],
+    [
+      46,
+      "الأحقاف",
+      [
+        "ahqaf"
+      ]
+    ],
+    [
+      47,
+      "محمد",
+      [
+        "muhammad"
+      ]
+    ],
+    [
+      48,
+      "الفتح",
+      [
+        "fath"
+      ]
+    ],
+    [
+      49,
+      "الحجرات",
+      [
+        "hujurat",
+        "hujuraat"
+      ]
+    ],
+    [
+      50,
+      "ق",
+      [
+        "qaf"
+      ]
+    ],
+    [
+      51,
+      "الذاريات",
+      [
+        "dhariyat",
+        "dhariyaat",
+        "zariyat",
+        "zariyaat"
+      ]
+    ],
+    [
+      52,
+      "الطور",
+      [
+        "tur",
+        "toor"
+      ]
+    ],
+    [
+      53,
+      "النجم",
+      [
+        "najm"
+      ]
+    ],
+    [
+      54,
+      "القمر",
+      [
+        "qamar"
+      ]
+    ],
+    [
+      55,
+      "الرحمن",
+      [
+        "rahman"
+      ]
+    ],
+    [
+      56,
+      "الواقعة",
+      [
+        "waqiah",
+        "waqiah",
+        "waqia",
+        "waqi'ah",
+        "waqiyah"
+      ]
+    ],
+    [
+      57,
+      "الحديد",
+      [
+        "hadeed",
+        "hadid"
+      ]
+    ],
+    [
+      58,
+      "المجادلة",
+      [
+        "mujadilah",
+        "mujadila",
+        "mujadalah"
+      ]
+    ],
+    [
+      59,
+      "الحشر",
+      [
+        "hashr"
+      ]
+    ],
+    [
+      60,
+      "الممتحنة",
+      [
+        "mumtahanah",
+        "mumtahina"
+      ]
+    ],
+    [
+      61,
+      "الصف",
+      [
+        "saff"
+      ]
+    ],
+    [
+      62,
+      "الجمعة",
+      [
+        "jumuah",
+        "jumua",
+        "jumah"
+      ]
+    ],
+    [
+      63,
+      "المنافقون",
+      [
+        "munafiqun",
+        "munafiqoon"
+      ]
+    ],
+    [
+      64,
+      "التغابن",
+      [
+        "taghabun"
+      ]
+    ],
+    [
+      65,
+      "الطلاق",
+      [
+        "talaq"
+      ]
+    ],
+    [
+      66,
+      "التحريم",
+      [
+        "tahrim",
+        "tahreem"
+      ]
+    ],
+    [
+      67,
+      "الملك",
+      [
+        "mulk"
+      ]
+    ],
+    [
+      68,
+      "القلم",
+      [
+        "qalam"
+      ]
+    ],
+    [
+      69,
+      "الحاقة",
+      [
+        "haqqah",
+        "haaqqah"
+      ]
+    ],
+    [
+      70,
+      "المعارج",
+      [
+        "maarij",
+        "mairaj"
+      ]
+    ],
+    [
+      71,
+      "نوح",
+      [
+        "nuh",
+        "noah"
+      ]
+    ],
+    [
+      72,
+      "الجن",
+      [
+        "jinn"
+      ]
+    ],
+    [
+      73,
+      "المزمل",
+      [
+        "muzzammil",
+        "muzammil"
+      ]
+    ],
+    [
+      74,
+      "المدثر",
+      [
+        "muddaththir",
+        "muddathir",
+        "mudassir"
+      ]
+    ],
+    [
+      75,
+      "القيامة",
+      [
+        "qiyamah",
+        "qiyamat"
+      ]
+    ],
+    [
+      76,
+      "الإنسان",
+      [
+        "insan",
+        "dahr"
+      ]
+    ],
+    [
+      77,
+      "المرسلات",
+      [
+        "mursalat"
+      ]
+    ],
+    [
+      78,
+      "النبأ",
+      [
+        "naba"
+      ]
+    ],
+    [
+      79,
+      "النازعات",
+      [
+        "naziat",
+        "naaziaat"
+      ]
+    ],
+    [
+      80,
+      "عبس",
+      [
+        "abasa"
+      ]
+    ],
+    [
+      81,
+      "التكوير",
+      [
+        "takwir",
+        "takweer"
+      ]
+    ],
+    [
+      82,
+      "الانفطار",
+      [
+        "infitar"
+      ]
+    ],
+    [
+      83,
+      "المطففين",
+      [
+        "mutaffifin",
+        "mutaffifeen"
+      ]
+    ],
+    [
+      84,
+      "الانشقاق",
+      [
+        "inshiqaq"
+      ]
+    ],
+    [
+      85,
+      "البروج",
+      [
+        "buruj",
+        "burooj"
+      ]
+    ],
+    [
+      86,
+      "الطارق",
+      [
+        "tariq",
+        "taariq"
+      ]
+    ],
+    [
+      87,
+      "الأعلى",
+      [
+        "ala",
+        "aala"
+      ]
+    ],
+    [
+      88,
+      "الغاشية",
+      [
+        "ghashiyah",
+        "ghashiya"
+      ]
+    ],
+    [
+      89,
+      "الفجر",
+      [
+        "fajr"
+      ]
+    ],
+    [
+      90,
+      "البلد",
+      [
+        "balad"
+      ]
+    ],
+    [
+      91,
+      "الشمس",
+      [
+        "shams"
+      ]
+    ],
+    [
+      92,
+      "الليل",
+      [
+        "layl",
+        "lail"
+      ]
+    ],
+    [
+      93,
+      "الضحى",
+      [
+        "duha",
+        "zuha"
+      ]
+    ],
+    [
+      94,
+      "الشرح",
+      [
+        "sharh",
+        "inshirah",
+        "alam nashrah"
+      ]
+    ],
+    [
+      95,
+      "التين",
+      [
+        "tin",
+        "teen"
+      ]
+    ],
+    [
+      96,
+      "العلق",
+      [
+        "alaq"
+      ]
+    ],
+    [
+      97,
+      "القدر",
+      [
+        "qadr"
+      ]
+    ],
+    [
+      98,
+      "البينة",
+      [
+        "bayyinah",
+        "bayyina"
+      ]
+    ],
+    [
+      99,
+      "الزلزلة",
+      [
+        "zalzalah",
+        "zilzal",
+        "zilzaal"
+      ]
+    ],
+    [
+      100,
+      "العاديات",
+      [
+        "adiyat",
+        "aadiyaat"
+      ]
+    ],
+    [
+      101,
+      "القارعة",
+      [
+        "qariah",
+        "qaariah",
+        "qaria"
+      ]
+    ],
+    [
+      102,
+      "التكاثر",
+      [
+        "takathur",
+        "takaathur"
+      ]
+    ],
+    [
+      103,
+      "العصر",
+      [
+        "asr"
+      ]
+    ],
+    [
+      104,
+      "الهمزة",
+      [
+        "humazah",
+        "humaza"
+      ]
+    ],
+    [
+      105,
+      "الفيل",
+      [
+        "fil",
+        "feel"
+      ]
+    ],
+    [
+      106,
+      "قريش",
+      [
+        "quraysh",
+        "quraish"
+      ]
+    ],
+    [
+      107,
+      "الماعون",
+      [
+        "maun",
+        "maaun"
+      ]
+    ],
+    [
+      108,
+      "الكوثر",
+      [
+        "kawthar",
+        "kausar",
+        "kauthar"
+      ]
+    ],
+    [
+      109,
+      "الكافرون",
+      [
+        "kafirun",
+        "kaafiroon"
+      ]
+    ],
+    [
+      110,
+      "النصر",
+      [
+        "nasr"
+      ]
+    ],
+    [
+      111,
+      "المسد",
+      [
+        "masad",
+        "lahab"
+      ]
+    ],
+    [
+      112,
+      "الإخلاص",
+      [
+        "ikhlas",
+        "ikhlaas"
+      ]
+    ],
+    [
+      113,
+      "الفلق",
+      [
+        "falaq"
+      ]
+    ],
+    [
+      114,
+      "الناس",
+      [
+        "nas",
+        "naas"
+      ]
+    ]
+  ]
+}

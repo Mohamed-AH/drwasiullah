@@ -53,3 +53,5 @@ tools/audio_batch_work*/
 tools/channel_all.json
 tools/channel_titles.tsv
 tools/channel_survey.txt
+tools/urdu_review.csv
+tools/urdu_review.txt
