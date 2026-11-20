@@ -355,7 +355,7 @@ export function resolve(pathname, params = new URLSearchParams()) {
 
 /* ───────── Chrome: header, drawer, bottom bar, footer, <head> ───────── */
 const navItems = () => {
-  const items = [...visible().map(s => ({ id: s.id, t: s.title, i: s.icon, h: href.section(s), n: s.id === "books" ? 0 : sectionCount(s.id) }))];
+  const items = [...visible().map(s => ({ id: s.id, t: s.id === "urdu-qa" ? t("sec.urdu-qa.nav") : s.title, i: s.icon, h: href.section(s), n: s.id === "books" ? 0 : sectionCount(s.id) }))];
   if (state.schedule) items.push({ id: "schedule", t: t("sched.crumb"), i: "calendar-days", h: href.schedule() });
   if (state.bio) items.push({ id: "about", t: t("home.about"), i: "book-marked", h: href.about() });
   return items;

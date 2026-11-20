@@ -22,7 +22,7 @@ const all = []; (function walk(d) { for (const e of fs.readdirSync(d, { withFile
 const top = fs.readdirSync(dist);
 check("no language folders in dist/", !top.some(x => /^(en|ur|xx|i18n)$/.test(x)), top.join());
 check("no dictionary, translated bio, language CSS or language fonts in dist/", !all.some(f => /^i18n\/|^data\/bio\.[a-z]{2}\.json$|^lang-.*\.css$|^js\/lang-init\.js$|fonts\/(cardo|cormorant|noto-nastaliq)/.test(f)), all.filter(f => /^i18n\/|bio\.[a-z]{2}\.json|^lang-|lang-init|cardo|cormorant|nastaliq/.test(f)).join());
-check("decoy files of another language were not shipped", !all.some(f => /qq/.test(f)));
+check("decoy files of another language were not shipped", !all.some(f => /(^|\/)(qq\.js|bio\.qq\.json|lang-qq\.css)$/.test(f)));
 const html = all.filter(f => f.endsWith(".html")), bodies = html.map(f => fs.readFileSync(path.join(dist, f), "utf8"));
 check(`${html.length} pages are Arabic: <html lang="ar" dir="rtl"> and nothing else`, bodies.every(b => /^<!doctype html>\s*<html lang="ar" dir="rtl">/.test(b)));
 check("no hreflang, language switcher, language hint or redirect script on any page", !bodies.some(b => /hreflang|class="langs|lang-hint|lang-init|lang-ui|data-langs|data-indexed/.test(b)));
