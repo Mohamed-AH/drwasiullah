@@ -74,14 +74,15 @@ h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.4;margin:0}
 .brand strong{font:700 21px var(--disp);display:block;line-height:1.25}
 .brand small{font:400 12px var(--kufi);color:var(--ink-2);letter-spacing:0}
 .nav{display:none;gap:0;font-family:var(--kufi);font-size:14.5px}
-.nav a{padding:4px 11px;position:relative;color:var(--ink-2);white-space:nowrap}
-.nav a::after{content:"";position:absolute;inset-inline:11px;bottom:0;height:2px;background:var(--rubric);transform:scaleX(0);transition:transform .3s}
+.nav a{padding:4px 9px;position:relative;color:var(--ink-2);white-space:nowrap}
+.nav a::after{content:"";position:absolute;inset-inline:9px;bottom:0;height:2px;background:var(--rubric);transform:scaleX(0);transition:transform .3s}
 .nav a:hover,.nav a.on{color:var(--ink)}
 .nav a:hover::after,.nav a.on::after{transform:scaleX(1)}
 .icon-btn{position:relative;display:block;padding:0;width:40px;height:40px;flex:none;border:1px solid var(--rule);background:transparent;border-radius:50%;cursor:pointer;color:var(--ink);transition:.25s}
 .icon-btn:hover{background:var(--ink);color:var(--paper)}
 .top-in{gap:10px}
-@media(min-width:1180px){.nav{display:flex}.burger{display:none}.top-in{gap:12px}}
+@media(min-width:1280px){.nav{display:flex}.burger{display:none}.top-in{gap:12px}}   /* ten menu items need about 1,280 px; below that the drawer is used */
+@media(min-width:1280px){.top-in{max-width:1320px}}                                    /* wide screens: the masthead is wider than the text column so the name keeps its room */
 
 /* ───────── Hero ───────── */
 .hero{padding:46px 0 10px;text-align:center;position:relative}
