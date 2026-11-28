@@ -72,6 +72,7 @@ export const AR = {
   "hero.p": "فهرس منظّم لدروس الشيخ أ.د. وصي الله بن محمد عباس حفظه الله ومحاضراته وخطبه وكتبه، مرتّبة بحسب الأقسام والكتب لتصل إلى ما تريده بسرعة.",
   "hero.search": "ابحث عن درس أو كتاب أو باب… مثال: صحيح مسلم كتاب الحج",
   "stat.lessons": "مادة علمية", "stat.series": "سلسلة", "stat.books": "كتابًا",
+  "home.featuredName": "سلسلة مميزة", "feat.start": "ابدأ من المجلس الأول", "feat.open": "صفحة السلسلة", "feat.span": p => `${p.a} – ${p.b}`, "series.related": "انظر أيضًا",
   "home.news": "آخر الإعلانات", "home.schedule": "جدول الدروس الأسبوعي", "home.about": "عن الشيخ", "home.sections": "الأقسام", "home.shelf": "خزانة الكتب", "home.latest": "أحدث المواد",
   "home.allNews": "كل الإعلانات", "home.fullSchedule": "الجدول كاملًا", "home.readMore": "اقرأ المزيد", "home.allSections": "كل الأقسام", "home.all": "الكل",
   "home.schedNote": "بتوقيت مكة المكرمة؛ الجدول قابل للتغيير.",

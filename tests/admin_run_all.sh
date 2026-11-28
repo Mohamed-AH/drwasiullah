@@ -13,7 +13,7 @@ ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=300:duration=90"  -ac 1 -b
 ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=500:duration=3600" -ac 1 -b:a 48k "$A/big.mp3"
 ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=700:duration=30"  -ac 1 -b:a 48k "$A/t3.mp3"
 head -c 3000 /dev/urandom > "$A/fake.mp3"
-setsid npx wrangler@4 dev $W --port "$PORT" --var ENV:dev --var GH_API_BASE:http://localhost:8795 --var GH_DISPATCH_TOKEN:testtoken > "$P/dev.log" 2>&1 &
+setsid npx wrangler@4 dev $W --port "$PORT" --var ENV:dev --var GH_API_BASE:http://localhost:8795 --var GH_DISPATCH_TOKEN:testtoken --var YT_BASE:http://localhost:8796 --var YT_API_BASE:http://localhost:8796 --var YOUTUBE_API_KEY:testkey > "$P/dev.log" 2>&1 &
 PID=$!; trap 'kill -- -$PID 2>/dev/null || true' EXIT
 for i in $(seq 1 40); do curl -s -o /dev/null "http://localhost:$PORT/" && break; sleep 1; done
 BASE=http://localhost:$PORT node tests/admin_http.mjs | grep -E "FAIL|passed|!!"
@@ -37,8 +37,8 @@ BASE=http://localhost:$PORT SHOT=${SHOT:-} SHOTNAME=reports PAGES="/reports,/rep
 
 
 # the chain steps below overwrite these tracked data files temporarily: keep copies and put them back on exit
-KEEP=$(mktemp -d); for f in overrides order schedule home; do [ -f "site/data/$f.json" ] && cp "site/data/$f.json" "$KEEP/$f.json"; done
-restore() { for f in overrides order schedule home; do if [ -f "$KEEP/$f.json" ]; then cp "$KEEP/$f.json" "site/data/$f.json"; else rm -f "site/data/$f.json"; fi; done; kill -- -$PID 2>/dev/null || true; }
+KEEP=$(mktemp -d); for f in overrides order schedule home library; do [ -f "site/data/$f.json" ] && cp "site/data/$f.json" "$KEEP/$f.json"; done
+restore() { for f in overrides order schedule home library; do if [ -f "$KEEP/$f.json" ]; then cp "$KEEP/$f.json" "site/data/$f.json"; else rm -f "site/data/$f.json"; fi; done; kill -- -$PID 2>/dev/null || true; }
 trap restore EXIT
 # --- chain: patches saved in the portal -> overrides.json (Publish) -> build; and the daily mirror must leave the patches alone ---
 DB=$(ls "$P"/v3/d1/miniflare-D1DatabaseObject/*.sqlite | head -1)
@@ -95,7 +95,7 @@ node scripts/build.mjs | tail -1
 node -e '
 const fs = require("fs"), o = JSON.parse(fs.readFileSync(process.argv[1] + "/pub/data/home.json", "utf8")), h = fs.readFileSync("dist/index.html", "utf8");
 const at = s => h.indexOf(s), cards = (h.match(/<article class="card/g) || []).length;
-const ok = o.blocks.map(b => b.id).join() === "latest,schedule,about,sections,shelf,news" && o.blocks[5].on === false && !h.includes("id=\"live-news\"")
+const ok = o.blocks.map(b => b.id).join() === "featured,latest,schedule,about,sections,shelf,news" && o.blocks[6].on === false && o.blocks[0].on === true && !!o.blocks[0].series && h.includes("class=\"feat\"") && !h.includes("id=\"live-news\"")
   && at("أحدث المواد") > 0 && at("أحدث المواد") < at("جدول الدروس الأسبوعي") && at("رفّ مختار") > at("الأقسام") && !h.includes("خزانة الكتب</h2>")
   && h.includes("id=\"live-banner\" aria-live=\"polite\" data-home") && fs.existsSync("dist/data/home.json") && (h.match(/<a class="spine/g) || []).length === 5;
 console.log(ok ? "ok   home layout -> home.json -> built home page (order, hidden block, custom heading, sizes) and shipped for the client" : "FAIL home chain: " + JSON.stringify(o).slice(0, 400) + " cards=" + cards); process.exit(ok ? 0 : 1)' "$P"
@@ -104,3 +104,16 @@ cp "$KEEP/home.json" site/data/home.json 2>/dev/null || rm -f site/data/home.jso
 # --- chain: the reports' totals must equal what the SITE would show after Publish (same rules as scripts/make_report.mjs) ---
 node --no-warnings scripts/db.mjs export --db "$DB" --out "$P/pub" --only data/library.json,data/makkah.json,data/haram.json,data/overrides.json,data/order.json >/dev/null
 BASE=http://localhost:$PORT node tests/reports_chain.mjs "$P/pub" | grep -E "FAIL|ok  "
+
+# --- «إضافة من يوتيوب» (runs last: it leaves a new series behind) and the chain: portal -> library.json (Publish) -> the built series page honours keepTitle / related / pin ---
+BASE=http://localhost:$PORT node tests/admin_youtube.mjs | grep -E "FAIL|passed|!!"
+npx wrangler@4 d1 execute drwasiullah $W --command "delete from lessons where id like 'rpt-%'; delete from series where id like 'rpt-%'" >/dev/null 2>&1   # the reports fixtures have no audio file: they cannot be built into a site
+node --no-warnings scripts/db.mjs export --db "$DB" --out "$P/pub" --only data/library.json >/dev/null
+cp "$P/pub/data/library.json" site/data/library.json
+node scripts/build.mjs | tail -1
+node -e '
+const fs = require("fs"), lib = JSON.parse(fs.readFileSync("site/data/library.json", "utf8")), s = lib.series.find(x => x.id === "tawheed-test"), ls = lib.lessons.filter(l => l.series === "tawheed-test");
+const page = fs.readFileSync("dist/series/tawheed-test/index.html", "utf8"), lesson = fs.readFileSync("dist/lesson/" + ls[0].id + "/index.html", "utf8"), tad = fs.readFileSync("dist/series/tadrib/index.html", "utf8");
+const ok = s && s.keepTitle === true && s.pin === true && s.related.join() === "tadrib" && ls.length === 5 && ls.every(l => l.kind === "video" && /^\d{4}-\d{2}-\d{2}$/.test(l.date) && l.duration === 3720)
+  && page.includes("باب فضل التوحيد") && !page.includes("المجلس الأول —") && /class="related"[^>]*>[^<]*<a href="\/series\/tadrib\/"/.test(page) && /class="related"[^>]*>[^<]*<a href="\/series\/tawheed-test\/"/.test(tad) && lesson.includes("المجلس");
+console.log(ok ? "ok   YouTube add -> library.json -> built site: topic titles kept, numbers, Hijri dates, \"see also\" from both sides" : "FAIL youtube chain: " + JSON.stringify(s) + " " + ls.length); process.exit(ok ? 0 : 1)'

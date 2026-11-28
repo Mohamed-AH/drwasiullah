@@ -173,12 +173,16 @@ export async function seriesEditPage(db, user, id, flash) {
   const d = JSON.parse(s.data);
   if (s.origin === "catalogue") return catalogueSeriesPage(db, user, s, flash);
   if (!EDITABLE.includes(s.origin)) return layout({ title: d.title, user, path: "/series", body: `<p class="flash err">لا تُعدَّل هذه السلسلة هنا.</p>`, flash });
+  const others = (await all(db, "SELECT id, title FROM series WHERE status = 'published' AND id != ? ORDER BY sec, origin, pos", s.id));
   const body = `<p class="muted"><span class="ltr">${esc(s.id)}</span> · <a href="/series/${encodeURIComponent(s.id)}">رجوع إلى السلسلة</a></p>
 <form method="post" action="/series/save"><input type="hidden" name="id" value="${esc(s.id)}"><input type="hidden" name="ver" value="${await verOf(s.data)}">
 <p><label>العنوان<br><input name="title" class="wide" required maxlength="150" value="${esc(d.title)}"></label></p>
 <p><label>القسم <select name="sec">${SEC_OPTS(d.sec)}</select></label> <label>اسم الوحدة <input name="unit" maxlength="20" size="8" value="${esc(d.unit ?? "")}"></label>
 <label><input type="checkbox" name="ordered" value="1"${d.ordered ? " checked" : ""}> دروس مرقّمة بالترتيب</label></p>
 <p><label>وصف قصير<br><textarea name="description" maxlength="300" rows="2">${esc(d.description ?? "")}</textarea></label></p>
+<p><label><input type="checkbox" name="keepTitle" value="1"${d.keepTitle ? " checked" : ""}> إظهار عنوان كل درس بجانب رقمه (للسلاسل ذات الأبواب المسمّاة، مثل مجالس السماع)</label><br>
+<label><input type="checkbox" name="pin" value="1"${d.pin ? " checked" : ""}> تثبيت السلسلة في أول صفحة قسمها</label></p>
+<details${(d.related || []).length ? " open" : ""}><summary>سلاسل ذات صلة («انظر أيضًا»، تظهر في الصفحتين)</summary><div class="checks">${others.map(o => `<label><input type="checkbox" name="related" value="${esc(o.id)}"${(d.related || []).includes(o.id) ? " checked" : ""}> ${esc(o.title)}</label>`).join("")}</div></details>
 <p><label>الحالة <select name="status">${STATUS_OPTS(s.status)}</select></label> <span class="muted">إخفاء السلسلة يُخفي كل دروسها.</span></p>
 <p><button>حفظ</button></p></form>`;
   return layout({ title: "تعديل سلسلة", user, path: "/series", body, flash });

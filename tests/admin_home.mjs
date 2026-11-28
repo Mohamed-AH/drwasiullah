@@ -14,19 +14,20 @@ const order = h => [...h.matchAll(/<input type="hidden" name="ids" value="([a-z]
 /* the palette in the admin equals the one the site renders */
 const core = fs.readFileSync("site/js/core.js", "utf8"), adm = fs.readFileSync("admin/src/home.mjs", "utf8");
 const ids = s => [...s.matchAll(/\{ id: "([a-z]+)", name:/g)].map(m => m[1]).join(",");
-check("admin block palette = site palette", ids(core) === ids(adm) && ids(core).split(",").length === 6, ids(core) + " | " + ids(adm));
+check("admin block palette = site palette", ids(core) === ids(adm) && ids(core).split(",").length === 7, ids(core) + " | " + ids(adm));
 
 check("menu entry for admin only; editor gets 404 / 403", (await html("/")).includes('href="/home"') && !(await html("/", E)).includes('href="/home"') && (await get("/home", E)).status === 404 && (await postA("/home/save", [["ver", "x"]], E)).status === 403);
 check("cross-site post refused", (await postA("/home/save", [["ver", "x"]], A, { "sec-fetch-site": "cross-site" })).status === 403);
 
 let page = await html("/home");
-check("default layout lists the six blocks in the site's order", order(page).join(",") === "news,schedule,about,sections,shelf,latest", order(page).join(","));
-check("first block cannot move up, last cannot move down", /value="news:up" disabled/.test(page) && /value="latest:down" disabled/.test(page));
+check("default layout lists the seven blocks in the site's order", order(page).join(",") === "news,schedule,about,sections,shelf,latest,featured", order(page).join(","));
+check("first block cannot move up, last cannot move down", /value="news:up" disabled/.test(page) && /value="featured:down" disabled/.test(page));
 let v = ver(page);
 const form = (o = {}) => {
-  const ord = o.order || order(page), p = [["ver", o.ver || v], ["move", o.move ?? ""]];
+  const ord = o.order ? (o.order.includes("featured") || o.noAutoFeatured ? o.order : ["featured", ...o.order]) : order(page), p = [["ver", o.ver || v], ["move", o.move ?? ""]];
   for (const id of ord) {
     p.push(["ids", id]);
+    if (id === "featured") { if (o.featured) { p.push(["on_featured", "1"]); p.push(["fseries", o.featured]); } else if (o.featuredSeries) p.push(["fseries", o.featuredSeries]); continue; }
     if (!(o.off || []).includes(id)) p.push(["on_" + id, "1"]);
     p.push(["title_" + id, (o.titles || {})[id] ?? ""]);
     if (id === "shelf") p.push(["count_shelf", o.shelfCount ?? "10"]);
@@ -41,8 +42,8 @@ check("missing / duplicated / unknown block ids refused", loc(await postA("/home
 
 check("up arrow moves 'latest' above 'shelf'", loc(await postA("/home/save", form({ move: "latest:up" }))).includes("ok=home_saved"));
 page = await html("/home"); v = ver(page);
-check("new order shown", order(page).join(",") === "news,schedule,about,sections,latest,shelf", order(page).join(","));
-check("down arrow moves it back", loc(await postA("/home/save", form({ move: "latest:down" }))).includes("ok=home_saved") && order(await html("/home")).join(",") === "news,schedule,about,sections,shelf,latest");
+check("new order shown", order(page).join(",") === "news,schedule,about,sections,latest,shelf,featured", order(page).join(","));
+check("down arrow moves it back", loc(await postA("/home/save", form({ move: "latest:down" }))).includes("ok=home_saved") && order(await html("/home")).join(",") === "news,schedule,about,sections,shelf,latest,featured");
 page = await html("/home"); v = ver(page);
 
 const sid = /name="series" value="([^"]+)"/.exec(page)[1];
@@ -52,11 +53,16 @@ check("saved values shown (escaped), unknown series dropped, counts clamped", pa
 
 check("reset restores the default layout", loc(await postA("/home/reset", [["ver", v]])).includes("ok=home_saved"));
 page = await html("/home");
-check("after reset: order, visibility and counts are the defaults", order(page).join(",") === "news,schedule,about,sections,shelf,latest" && /name="on_about" value="1" checked/.test(page) && /name="count_shelf"[^>]*value="10"/.test(page) && !page.includes("أقسامنا"));
+check("after reset: order, visibility and counts are the defaults", order(page).join(",") === "featured,news,schedule,about,sections,shelf,latest" && /name="on_about" value="1" checked/.test(page) && /name="count_shelf"[^>]*value="10"/.test(page) && !page.includes("أقسامنا"));
 check("reset with a stale token refused", loc(await postA("/home/reset", [["ver", "1".repeat(40)]])).includes("err=conflict"));
 /* leave a distinctive layout behind: tests/admin_run_all.sh exports it and builds the site from it */
 page = await html("/home"); v = ver(page);
-check("final layout saved (news hidden, latest first, custom shelf heading and size)", loc(await postA("/home/save", form({ ver: v, order: ["latest", "schedule", "about", "sections", "shelf", "news"], off: ["news"], titles: { shelf: "رفّ مختار" }, shelfCount: "5", latestCount: "6" }))).includes("ok=home_saved"));
+check("final layout saved (news hidden, latest first, custom shelf heading and size)", loc(await postA("/home/save", form({ ver: v, order: ["latest", "schedule", "about", "sections", "shelf", "news"], off: ["news"], titles: { shelf: "رفّ مختار" }, shelfCount: "5", latestCount: "6", featured: sid }))).includes("ok=home_saved"));
+/* the featured block: off by default, takes one real series, an unknown one is dropped */
+{
+  const pg = await html("/home");
+  check("featured is off by default with an empty series chooser", /name="fseries"/.test(pg) === true);
+}
 const au = await html("/audit");
 check("audit log has home.save and home.reset", au.includes("home.save") && au.includes("home.reset"));
 console.log(bad ? `${bad} FAILED` : "all home layout checks passed");

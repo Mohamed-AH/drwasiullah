@@ -99,13 +99,18 @@ export async function editSeries(f, env, user, redirect) {
   if (!EDITABLE.includes(row.origin)) return back("not_editable", "err");
   if (clean(f.get("ver"), 20) !== await verOf(row.data)) return back("conflict", "err");
   const data = JSON.parse(row.data);
-  const before = { title: data.title, description: data.description ?? null, unit: data.unit ?? null, ordered: !!data.ordered, sec: data.sec, status: row.status };
+  const before = { title: data.title, description: data.description ?? null, unit: data.unit ?? null, ordered: !!data.ordered, sec: data.sec, status: row.status, keepTitle: !!data.keepTitle, pin: !!data.pin, related: data.related ?? [] };
   const title = clean(f.get("title"), 150), description = clean(f.get("description"), 300), unit = clean(f.get("unit"), 20), sec = clean(f.get("sec"), 12), status = clean(f.get("status"), 12);
   if (!title || !SECTIONS.includes(sec) || !STATUSES.includes(status)) return back("invalid", "err");
   data.title = title; data.sec = sec; data.ordered = f.get("ordered") ? true : false;
   if (description) data.description = description; else delete data.description;
   if (unit) data.unit = unit; else delete data.unit;
-  const after = { title, description: data.description ?? null, unit: data.unit ?? null, ordered: data.ordered, sec, status };
+  const known = new Set((await db.prepare("SELECT id FROM series").all()).results.map(r => r.id));   // flags for the public site: keep topic titles, pin first in the section, "see also" links
+  const related = [...new Set(f.getAll("related").map(String).filter(i => known.has(i) && i !== id))].slice(0, 6);
+  if (f.get("keepTitle")) data.keepTitle = true; else delete data.keepTitle;
+  if (f.get("pin")) data.pin = true; else delete data.pin;
+  if (related.length) data.related = related; else delete data.related;
+  const after = { title, description: data.description ?? null, unit: data.unit ?? null, ordered: data.ordered, sec, status, keepTitle: !!data.keepTitle, pin: !!data.pin, related };
   if (JSON.stringify(before) === JSON.stringify(after)) return back("nochange", "ok");
   await db.batch([
     db.prepare("UPDATE series SET sec = ?, title = ?, status = ?, data = ? WHERE id = ?").bind(sec, title, status, JSON.stringify(data), id),

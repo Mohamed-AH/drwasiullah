@@ -112,7 +112,7 @@ Safety: everything is plain text (no HTML anywhere), links must be https (the li
 Setup after merging: `npx wrangler d1 migrations apply drwasiullah --remote` (adds `banners`, `announcements`, `schedule_notices`), redeploy the admin Worker, and the public site deploys on merge as usual. Tests: `tests/admin_live.mjs` (inside `tests/admin_run_all.sh`) and `tests/live_run.sh` (the public side: endpoint, banners, announcements, badges, empty/failed endpoint, accessibility).
 
 ## Home page layout (phase 6, admin only)
-Portal menu «الصفحة الرئيسية». The hero (name + search) is fixed at the top; below it there is a fixed palette of six blocks: announcements, weekly schedule, about the Sheikh, sections, book shelf, latest materials. Per block: show/hide, move up/down (the arrows save the whole form, then move one step), an optional plain-text heading, and for the shelf (3–16) and latest (4–24) how many items. The shelf can show **hand-picked series** (shown in the list's order) instead of the automatic biggest ones. «إعادة الترتيب الافتراضي» stores the default layout again.
+Portal menu «الصفحة الرئيسية». The hero (name + search) is fixed at the top; below it there is a fixed palette of seven blocks: featured series (off by default; one chosen series as a card with its lessons and a start button), announcements, weekly schedule, about the Sheikh, sections, book shelf, latest materials. Per block: show/hide, move up/down (the arrows save the whole form, then move one step), an optional plain-text heading, and for the shelf (3–16) and latest (4–24) how many items. The shelf can show **hand-picked series** (shown in the list's order) instead of the automatic biggest ones. «إعادة الترتيب الافتراضي» stores the default layout again.
 - Changes need **«النشر»** (Publish exports `site/data/home.json`; without the file the site shows exactly the default layout, as before). No D1 migration is needed (it uses the existing `docs` table).
 - A block with nothing to show (no bio, no schedule, no announcements) stays hidden even if switched on.
 - Two people saving at once: the second save is refused with a «conflict» message (version token), like the schedule.
@@ -134,3 +134,6 @@ Portal menu «التقارير». Nothing to deploy except the admin Worker; no 
 - **Print**: «طباعة / حفظ PDF» opens the browser's print dialog (menus and buttons are hidden in print; choose «حفظ بصيغة PDF»).
 - **CSV** (UTF-8 with BOM, opens correctly in Excel): `/reports/lessons.csv` (every status, optional `?series=`), `/reports/series.csv`, `/reports/books.csv`. Analytics has its own CSV.
 - `scripts/make_report.mjs` (the PDF for the Sheikh's team, built from the repository files) stays as it is.
+
+## Optional: YouTube length for «إضافة من يوتيوب»
+The screen works without any key (title and channel come from YouTube's public oEmbed). To also fill the length of each video: create a YouTube Data API key restricted to «YouTube Data API v3» (the daily sync already uses one; a separate key is cleaner) and run `npx wrangler secret put YOUTUBE_API_KEY -c admin/wrangler.jsonc`. Without it the editor types the minutes (or leaves them empty).

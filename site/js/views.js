@@ -89,7 +89,19 @@ function home() {
       <p class="hero-p">${t("hero.p")}</p>
       ${searchBox(t("hero.search"), "", "q", true)}
       <ul class="stats"><li><b>${fmtNum(DB.lessons.length)}</b>${t("stat.lessons")}</li><li><b>${fmtNum(DB.series.length)}</b>${t("stat.series")}</li>${DB.books.length ? `<li><b>${fmtNum(DB.books.length)}</b>${t("stat.books")}</li>` : ""}</ul></section>`;
+  const feat = () => {
+    const s = cfg.featured.series && seriesById[cfg.featured.series]; if (!s) return "";
+    const ls = state.DB.lessons.filter(l => l.series === s.id).sort(seriesOrder), a = ls[0], b = ls[ls.length - 1];
+    const span = a && ldate(a) && ldate(b) && ldate(a) !== ldate(b) ? t("feat.span", { a: ldate(a), b: ldate(b) }) : a ? ldate(a) : "";
+    return `<section class="feat" aria-labelledby="ft-h"><p class="feat-k">${ic("book-marked", 15)} ${hd("featured", t("home.featuredName"))}</p>
+      <h2 id="ft-h"><a href="${href.series(s.id)}">${esc(s.title)}</a></h2>
+      ${s.description ? `<p class="feat-d">${esc(s.description)}</p>` : ""}
+      <p class="feat-m">${t("count.lessons", { n: fmtNum(s.count) })}${hours(s.seconds) ? " · " + hours(s.seconds) : ""}${span ? " · " + esc(span) : ""}</p>
+      <div class="list">${ls.map((l, i) => row(l, { noSection: true, i })).join("")}</div>
+      <p class="feat-go"><a class="btn" href="${href.lesson(a.id)}">${ic("play", 16)} ${t("feat.start")}</a> <a class="btn ghost" href="${href.series(s.id)}">${t("feat.open")} ${ic("chevron-left", 16)}</a></p></section>`;
+  };
   const block = {
+    featured: feat,
     news: () => `<section class="news" id="live-news" aria-labelledby="nw-h" hidden><div class="sec"><h2 id="nw-h">${hd("news", t("home.news"))}</h2><a href="${href.news()}">${t("home.allNews")} ${ic("chevron-left", 15)}</a></div><div class="news-list"></div></section>`,
     schedule: () => state.schedule ? `<section class="sched sched-home" aria-labelledby="sc-h"><div class="sec"><h2 id="sc-h">${hd("schedule", t("home.schedule"))}</h2><a href="${href.schedule()}">${t("home.fullSchedule")} ${ic("chevron-left", 15)}</a></div>${liveBanner(state.schedule)}${scheduleDays(state.schedule)}<p class="sched-note">${t("home.schedNote")}</p></section>` : "",
     about: () => bio ? `<section class="about-teaser" aria-labelledby="ab-h"><h2 id="ab-h">${hd("about", t("home.about"))}</h2>${bio.summary ? `<p>${esc(bio.summary)}</p>` : ""}<a class="btn" href="${href.about()}">${t("home.readMore")} ${ic("chevron-left", 16)}</a></section>` : "",
@@ -122,6 +134,8 @@ function library() {
   });
 }
 
+const byPinCount = (a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || b.count - a.count;   // a series flagged "pin" comes first in its section
+const relatedOf = s => [...new Set([...(Array.isArray(s.related) ? s.related : []), ...state.DB.series.filter(x => Array.isArray(x.related) && x.related.includes(s.id)).map(x => x.id)])].filter(i => i !== s.id && seriesById[i]);   // shown from both sides
 function sectionPage(id) {
   const sec = secById[id], ser = sec ? seriesIn(id) : [];
   if (!sec || id === "books" || ser.length < 2) return null;     // flat sections link straight to their only series
@@ -131,8 +145,8 @@ function sectionPage(id) {
     nav: id, path: href.section(sec),
     html: `${c.html}
       <div class="title-page"><span class="tile-ic big">${ic(sec.icon, 34)}</span><div><h1 class="page-h">${sec.title}</h1><p class="lede">${t("section.lede", { desc: sec.desc, series: fmtNum(ser.length), items: fmtNum(items.length) })}</p></div></div>
-      ${shelf(ser.slice().sort((a, b) => b.count - a.count))}
-      <div class="sec"><h2>${t("section.details")}</h2></div><div class="grid">${ser.map(seriesCard).join("")}</div>
+      ${shelf(ser.slice().sort(byPinCount))}
+      <div class="sec"><h2>${t("section.details")}</h2></div><div class="grid">${ser.slice().sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0)).map(seriesCard).join("")}</div>
       ${latest.length ? `<div class="sec"><h2>${t("home.latest")}</h2><a href="${href.search(`?sec=${id}`)}">${t("home.all")} ${ic("chevron-left", 15)}</a></div><div class="grid">${latest.map(lessonCard).join("")}</div>` : ""}`,
     title: withSite(t("section.metaTitle", { title: sec.title, n: ser.length })), description: clip(t("section.metaDesc", { desc: sec.desc, series: fmtNum(ser.length), items: fmtNum(items.length) }), 160),
     jsonld: [c.ld],
@@ -173,7 +187,7 @@ function seriesPage(id) {
     : `<span class="spine mini" aria-hidden="true" style="--c:${SPINE[s.id] || SPINE_PALETTE[ix % SPINE_PALETTE.length]}">${STAR.replace("<svg", '<svg class="sp-star"')}<span class="sp-count">${fmtNum(s.count)}</span></span>`;
   const html = `${c.html}
     <div class="title-page">${head}<div><h1 class="page-h">${esc(s.title)}</h1><p class="lede">${esc(s.description || sec.desc)} — ${t("count.lessons", { n: fmtNum(s.count) })}${hours(s.seconds) ? " · " + hours(s.seconds) : ""}</p>${s.extra ? `<a class="btn" href="${esc(safeUrl(s.extra.url))}" target="_blank" rel="noopener">${ic("external-link", 17)} ${esc(s.extra.label)}</a>` : ""}</div></div>
-    <div class="bar">${searchBox(t("series.search"))}
+    ${relatedOf(s).length ? `<p class="related">${t("series.related")}: ${relatedOf(s).map(i => `<a href="${href.series(i)}">${esc(seriesById[i].title)}</a>`).join(" · ")}</p>\n    ` : ""}<div class="bar">${searchBox(t("series.search"))}
       <select id="sort" aria-label="${t("sort.label")}"><option value="new"${st.sort === "new" ? " selected" : ""}>${t("sort.new")}</option><option value="old">${t("sort.old")}</option>${ordered ? `<option value="num"${st.sort === "num" ? " selected" : ""}>${t("sort.num")}</option>` : ""}</select></div>
     ${sections.length > 1 ? `<div class="pill-row" id="secs" role="group" aria-label="${t("filter.book")}"><button type="button" class="pill on" aria-pressed="true" data-s="">${t("filter.all")}</button>${sections.map(x => `<button type="button" class="pill" aria-pressed="false" data-s="${esc(x)}">${esc(sectionName(x))}</button>`).join("")}</div>` : ""}
     <p class="count" id="count" role="status">${t("count.lessons", { n: fmtNum(list.count) })}</p><div id="out"${isUrdu(s.sec) ? ' lang="ur"' : ""}>${list.html}</div>`;

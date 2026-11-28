@@ -57,11 +57,16 @@ Part lessons (one lesson in two files) use a letter after the number, e.g. 22a a
 ### 3.2 A new series
 «رفع درس» → **«+ سلسلة جديدة»**: an id (lowercase English letters, digits and dashes — it can never be changed, so choose carefully, e.g. `sahih-muslim-audio`), the title, the section of the site, the unit word («الدرس»/«المحاضرة»), whether lessons are numbered, and an optional one-line description. A series appears on the site only once it has at least one **published** lesson.
 
+### 3.2a Add YouTube lessons («إضافة من يوتيوب»)
+For a few videos of the Sheikh that the daily sync does not pick up (for example a course on the Haram channel): open **«إضافة من يوتيوب»**, paste the links — one per line, or text where a line such as `المجلس الأول (باب فضل التوحيد)` sits above its link (the number and the topic are taken from it; Arabic digits and «المجلس الحادي عشر» work too) — and press **«مراجعة الدروس»**. Nothing is downloaded: the portal only reads each video's public title and channel name (and, if the optional secret `YOUTUBE_API_KEY` is set on the Worker, its length). In the review table fix the **number**, the **title** (the topic as the source gives it — never translate or invent), the **Hijri date** as `1448-6-12` (read from a title like `12-6-1448` when it is there) and the minutes. Choose an **existing series** or make a **new one** (id, section, unit word, title, description; «show each lesson's title beside its number» is right for named chapters). Tick the confirmation that these are the Sheikh's lessons and press **«إضافة الدروس المحددة»**: the lessons are added as unpublished changes — press **«النشر»** to show them. Videos already on the site are marked «موجود» and skipped. Up to 40 per time.
+
 ### 3.3 Fix a title, number, date or section
 - Menu **«السلاسل»** → open the series → click the lesson title. Change the title, number, section («الباب») or Hijri date (empty = no date) → save → **«النشر»**.
 - The Hijri date is entered as day / month / year. A date that does not exist (e.g. 30 of a 29-day month) is refused.
 - **YouTube lessons** can be edited too: what you change is remembered as a *patch*; the daily YouTube sync can never undo it, and anything you did not touch keeps following YouTube. **«التراجع عن تعديلاتي»** removes all your changes on that item and it follows the sync again.
 - If the page says someone else changed the item while you were editing (message about «عُدِّل هذا العنصر من مستخدم آخر»), reopen the page and redo your change — nothing is lost silently.
+
+Series settings (the series edit page) also hold three display options: **show each lesson's title beside its number** (for series of named chapters), **pin the series first in its section page**, and **related series** («انظر أيضًا», shown on both series' pages).
 
 ### 3.4 Hide or show something
 Series page → the lesson's row → **«إخفاء»** / **«نشر»** (status buttons), or set the status on its edit page. A hidden series hides all its lessons. Hidden items stay in the portal and in the saved order, so un-hiding puts them back where they were.
@@ -97,7 +102,7 @@ News items shown on the home page («آخر الإعلانات», latest three) 
 - Times shown to visitors are Makkah time.
 
 ### 4.4 Home page layout («الصفحة الرئيسية») — needs «النشر»
-Below the fixed header (name and search) there are six blocks: announcements, schedule, about the Sheikh, sections, book shelf, latest materials. For each: show/hide, **رفع ↑ / خفض ↓**, an optional custom heading (plain text), and for the shelf (3–16) and latest (4–24) how many to show. The shelf can show **hand-picked series** instead of the biggest ones. A block with nothing to show (no bio, no announcements…) stays hidden even if switched on. **«إعادة الترتيب الافتراضي»** restores the original layout.
+Below the fixed header (name and search) there are seven blocks: **featured series** (off until you switch it on and choose a series: a card with its lessons and a «ابدأ من المجلس الأول» button), announcements, schedule, about the Sheikh, sections, book shelf, latest materials. For each: show/hide, **رفع ↑ / خفض ↓**, an optional custom heading (plain text), and for the shelf (3–16) and latest (4–24) how many to show. The shelf can show **hand-picked series** instead of the biggest ones. A block with nothing to show (no bio, no announcements…) stays hidden even if switched on. **«إعادة الترتيب الافتراضي»** restores the original layout.
 
 ### 4.5 Analytics («الإحصاءات»)
 Anonymous counts only (lesson and kind of event; nothing about the visitor). **Listen** = 30 seconds of real listening in one page visit; **download** = the download button; **video** = the video play button. Choose the period (7/30/90 days, a year, all), one series or all, and the ordering of the top-lessons table. Cards show the change against the previous equal period; the chart is daily/weekly/monthly (oldest on the right); «عرض الجدول» shows the same numbers as a table; **«تنزيل CSV»** exports per-lesson totals. Counting began when the counters went live; older history does not exist.

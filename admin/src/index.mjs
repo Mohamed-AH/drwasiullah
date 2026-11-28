@@ -12,6 +12,7 @@ import * as LP from "./live_pages.mjs";
 import { analyticsPage, analyticsCsv } from "./analytics.mjs";
 import * as R from "./reports.mjs";
 import * as H from "./home.mjs";
+import * as Y from "./youtube.mjs";
 import * as P from "./pages.mjs";
 
 const HEADERS = {
@@ -31,6 +32,8 @@ async function post(request, env, user, path) {
   const db = env.DB;
   const f = await request.formData();
   if (path === "/series/new" && can(user.role, "content.edit")) return newSeries(f, env, user, redirect);
+  if (path === "/youtube/preview" && can(user.role, "content.edit")) return done(page(await Y.previewPage(f, env, user)));
+  if (path === "/youtube/add" && can(user.role, "content.edit")) return Y.addYoutube(f, env, user, redirect);
   if (path === "/lessons/status" && can(user.role, "content.hide")) return lessonStatus(f, env, user, redirect);
   if (path === "/lessons/save" && can(user.role, "content.edit")) return editLesson(f, env, user, redirect);
   if (path === "/series/save" && can(user.role, "content.edit")) return editSeries(f, env, user, redirect);
@@ -141,6 +144,7 @@ export default {
       else if ((m = /^\/series\/([^/]+)$/.exec(path))) { let id = null; try { id = decodeURIComponent(m[1]); } catch { /* bad escape: 404 */ } html = id && await P.seriesDetail(env.DB, user, id.slice(0, 120), pageNo, flash); }
       else if (path === "/books") html = await P.booksList(env.DB, user, flash);
       else if (path === "/upload" && can(user.role, "content.edit")) html = await P.uploadPage(env.DB, user);
+      else if (path === "/youtube" && can(user.role, "content.edit")) html = Y.youtubePage(user, flash);
       else if (path === "/publish" && can(user.role, "content.publish")) html = await P.publishPage(env.DB, user, flash);
       else if (path === "/analytics" && can(user.role, "analytics.view")) html = await analyticsPage(env.DB, user, url.searchParams);
       else if (path === "/banners" && can(user.role, "banners.edit")) html = await LP.bannersPage(env.DB, user, flash);

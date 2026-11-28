@@ -7,6 +7,7 @@ import { esc, layout } from "./html.mjs";
 
 /* keep in step with HOME_BLOCKS in site/js/core.js (tests/admin_home.mjs compares them) */
 export const BLOCKS = [
+  { id: "featured", name: "سلسلة مميزة", hint: "بطاقة كبيرة تحت رأس الصفحة لسلسلة تختارها (مجالسها وزر «ابدأ من المجلس الأول»). مخفية ما لم تُفعَّل وتختر سلسلة.", off: true },
   { id: "news", name: "آخر الإعلانات", hint: "يظهر فقط عند وجود إعلانات منشورة." },
   { id: "schedule", name: "جدول الدروس الأسبوعي", hint: "من صفحة «الجدول»؛ يختفي إن لم يوجد جدول." },
   { id: "about", name: "عن الشيخ", hint: "ملخص السيرة؛ يختفي إن لم تتوفر السيرة." },
@@ -20,10 +21,11 @@ const clean = (s, n) => String(s ?? "").replace(/[\u0000-\u001f\u007f‎‏‪-�
 export function normalize(raw, seriesIds) {
   const given = raw && Array.isArray(raw.blocks) ? raw.blocks : [], seen = new Set(), out = [];
   const one = (def, x) => {
-    const b = { id: def.id, on: x ? x.on !== false : true };
+    const b = { id: def.id, on: x ? x.on !== false : !def.off };
     const title = clean(x && x.title, 60); if (title) b.title = title;
     if (def.count) { const c = Number.parseInt(x && x.count, 10); b.count = Number.isInteger(c) ? Math.min(def.max, Math.max(def.min, c)) : def.count; }
     if (def.id === "shelf") b.series = [...new Set((Array.isArray(x && x.series) ? x.series : []).filter(i => typeof i === "string" && seriesIds.has(i)))].slice(0, def.max);
+    if (def.id === "featured") b.series = x && typeof x.series === "string" && seriesIds.has(x.series) ? x.series : "";
     return b;
   };
   for (const x of given) { const def = x && BLOCKS.find(d => d.id === x.id); if (!def || seen.has(def.id)) continue; seen.add(def.id); out.push(one(def, x)); }
@@ -44,7 +46,7 @@ export async function saveHome(f, env, user, redirect) {
   if (String(f.get("ver") ?? "") !== await homeVer(cur)) return redirect("/home", "conflict", "err");
   const ids = f.getAll("ids").map(String), valid = new Set(series.map(s => s.id));
   if (ids.length !== BLOCKS.length || new Set(ids).size !== BLOCKS.length || !ids.every(i => BLOCKS.some(b => b.id === i))) return redirect("/home", "invalid", "err");
-  const raw = { blocks: ids.map(id => ({ id, on: f.get("on_" + id) === "1", title: f.get("title_" + id) ?? "", count: f.get("count_" + id), series: id === "shelf" ? f.getAll("series").map(String) : undefined })) };
+  const raw = { blocks: ids.map(id => ({ id, on: f.get("on_" + id) === "1", title: f.get("title_" + id) ?? "", count: f.get("count_" + id), series: id === "shelf" ? f.getAll("series").map(String) : id === "featured" ? String(f.get("fseries") ?? "") : undefined })) };
   const move = String(f.get("move") ?? ""), m = /^([a-z]+):(up|down)$/.exec(move);          // the arrows save the whole form, then move one block
   if (m) { const i = raw.blocks.findIndex(b => b.id === m[1]), j = m[2] === "up" ? i - 1 : i + 1; if (i >= 0 && j >= 0 && j < raw.blocks.length) [raw.blocks[i], raw.blocks[j]] = [raw.blocks[j], raw.blocks[i]]; }
   const next = normalize(raw, valid), same = JSON.stringify(next) === JSON.stringify(cur);
@@ -65,6 +67,7 @@ export async function homePage(db, user, flash) {
   const rows = doc.blocks.map((b, i) => {
     const def = BLOCKS.find(d => d.id === b.id), n = i + 1;
     const extra = (def.count ? `<label>العدد <input type="number" name="count_${b.id}" min="${def.min}" max="${def.max}" class="num" value="${b.count}"></label> ` : "")
+      + (b.id === "featured" ? `<label>السلسلة <select name="fseries"><option value="">— اختر سلسلة —</option>${series.map(s => `<option value="${esc(s.id)}"${b.series === s.id ? " selected" : ""}>${esc(s.title)}</option>`).join("")}</select></label>` : "")
       + (b.id === "shelf" ? `<details><summary>سلاسل مختارة (${chosen.size ? chosen.size : "تلقائي"})</summary><p class="muted">اتركها فارغة ليُظهر الرفّ الأكبر سلاسل عددًا تلقائيًا؛ وإلا تظهر السلاسل المختارة بترتيبها في القائمة.</p>
 <div class="checks">${series.map(s => `<label><input type="checkbox" name="series" value="${esc(s.id)}"${chosen.has(s.id) ? " checked" : ""}> ${esc(s.title)}</label>`).join("")}</div></details>` : "");
     return `<li class="homeblock"><input type="hidden" name="ids" value="${b.id}">

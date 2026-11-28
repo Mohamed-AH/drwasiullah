@@ -153,17 +153,18 @@ function localised(o) {
 /* ───────── Home layout ─────────  data/home.json -> { blocks: [{ id, on, title?, count?, series? }] }. The hero stays first and fixed.
    A fixed palette of blocks (not a page builder): unknown ids are dropped, missing ones are appended with their defaults, everything else is clamped. */
 export const HOME_BLOCKS = [
-  { id: "news", name: AR["home.news"] }, { id: "schedule", name: AR["home.schedule"] }, { id: "about", name: AR["home.about"] },
+  { id: "featured", name: AR["home.featuredName"], off: true }, { id: "news", name: AR["home.news"] }, { id: "schedule", name: AR["home.schedule"] }, { id: "about", name: AR["home.about"] },
   { id: "sections", name: AR["home.sections"] }, { id: "shelf", name: AR["home.shelf"], count: 10, min: 3, max: 16 }, { id: "latest", name: AR["home.latest"], count: 8, min: 4, max: 24 },
 ];
 export function cleanHome(raw) {
   const given = raw && typeof raw === "object" && Array.isArray(raw.blocks) ? raw.blocks : [], seen = new Set(), out = [];
   const clip = (v, n) => String(v ?? "").replace(/[\u0000-\u001f\u007f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "").replace(/\s+/g, " ").trim().slice(0, n);
   const one = (def, x) => {
-    const b = { id: def.id, on: x ? x.on !== false : true };
+    const b = { id: def.id, on: x ? x.on !== false : !def.off };
     const title = clip(x && x.title, 60); if (title) b.title = title;
     if (def.count) { const c = Number.parseInt(x && x.count, 10); b.count = Number.isInteger(c) ? Math.min(def.max, Math.max(def.min, c)) : def.count; }
     if (def.id === "shelf") { const ids = Array.isArray(x && x.series) ? x.series.filter(i => typeof i === "string" && seriesById[i]) : []; b.series = [...new Set(ids)].slice(0, def.max); }
+    if (def.id === "featured") b.series = x && typeof x.series === "string" && seriesById[x.series] ? x.series : "";
     return b;
   };
   for (const x of given) { const def = x && HOME_BLOCKS.find(d => d.id === x.id); if (!def || seen.has(def.id)) continue; seen.add(def.id); out.push(one(def, x)); }
@@ -244,7 +245,7 @@ export const jsonLd = o => JSON.stringify(o).replace(/</g, "\\u003c");          
 
 /* ───────── Model helpers ───────── */
 export const kindIcon = l => l.kind === "audio" ? "headphones" : "video";
-export const useLabel = l => l.kind === "video" && l.n != null && l.series !== "misc";   // YouTube titles are long; show "المجلس N" instead
+export const useLabel = l => l.kind === "video" && l.n != null && l.series !== "misc" && !(seriesById[l.series] && seriesById[l.series].keepTitle);   // YouTube titles are long; show "المجلس N" instead
 export const label = l => `${unitName(seriesById[l.series].unit) || t("unit.lesson")} ${fmtNum(l.n)}`;
 /* other languages: titles of numbered lessons are composed from their Arabic template (titles.js composeLesson); free text stays Arabic (null here) */
 let knownTitles = null;
@@ -262,7 +263,7 @@ function composed(l) {
   return r;
 }
 export const mainTitle = (l, withBook = true) => useLabel(l) ? `${label(l)}${withBook && l.section ? " — " + sectionName(l.section) : ""}` : composed(l) || dg(l.title);
-export const fullTitle = l => { const s = seriesById[l.series], c = useLabel(l) ? null : composed(l); return useLabel(l) ? `${label(l)} — ${s.title}` : c ? `${c} — ${s.title}` : s.ordered ? `${dg(l.title)} — ${s.title}` : dg(l.title); };
+export const fullTitle = l => { const s = seriesById[l.series], c = useLabel(l) ? null : composed(l); if (s.keepTitle && l.n != null) return `${label(l)} — ${dg(l.title)} — ${s.title}`; return useLabel(l) ? `${label(l)} — ${s.title}` : c ? `${c} — ${s.title}` : s.ordered ? `${dg(l.title)} — ${s.title}` : dg(l.title); };
 export const secOfSeries = s => secById[s.sec] || secById.duroos;
 export const secOfLesson = l => secOfSeries(seriesById[l.series]);
 export const seriesOrder = (a, b) => (a.ord ?? 1e9) - (b.ord ?? 1e9) || (a.n ?? 1e9) - (b.n ?? 1e9) || (a.o - b.o);   // ord = the editors' saved display order (see applyOrder), else number, else original position
